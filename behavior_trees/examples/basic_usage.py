@@ -38,7 +38,7 @@ def create_light_control_tree() -> py_trees.behaviour.Behaviour:
     This tree:
     1. Checks if the light is off
     2. If off, turns it on
-    3. Sets the brightness to 75%
+    3. Sets the light color using HSL values [100, 100, 75]
     
     Uses a selector (fallback) pattern with sequence for conditional execution.
     """
@@ -90,7 +90,7 @@ def create_ac_control_tree() -> py_trees.behaviour.Behaviour:
     This tree:
     1. Reads current temperature
     2. If temperature > 25, sets mode to cool
-    3. Sets target temperature to 22
+    3. Sets target temperature to 18
     """
     
     ac_base = "http://localhost:8080/workspaces/home0/master_bedroom/artifacts/masterBedroomAirConditioner"

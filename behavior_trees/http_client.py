@@ -234,11 +234,6 @@ class HTTPClient:
             response = self._client.get(url, headers=headers)
             response.raise_for_status()
             return self._convert_response(response)
-        except httpx.HTTPStatusError as e:
-            # For non-success status, still return response if we got one
-            if e.response.status_code < 500:
-                self._handle_error(e, url)
-            self._handle_error(e, url)
         except Exception as e:
             self._handle_error(e, url)
     

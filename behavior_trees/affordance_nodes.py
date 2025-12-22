@@ -138,7 +138,6 @@ class ActionAffordanceNode(py_trees.behaviour.Behaviour):
         parameter_keys: Blackboard keys to read dynamic parameters from
         store_result: Whether to store the result on the blackboard
         result_key: Blackboard key for storing the result
-        http_client: The HTTP client instance (can be shared)
     """
     
     def __init__(
@@ -587,8 +586,6 @@ class PropertyConditionNode(py_trees.behaviour.Behaviour):
             expected_value_key: Blackboard key for dynamic expected value
             value_path: List of keys to navigate nested response objects
             negate: If True, return SUCCESS when values don't match
-            http_client: Optional shared HTTP client instance
-            http_config: Configuration for HTTP client
         """
         super().__init__(name)
         
@@ -758,8 +755,6 @@ class ComparisonPropertyConditionNode(PropertyConditionNode):
             expected_value_key: Blackboard key for dynamic expected value
             value_path: List of keys to navigate nested response objects
             negate: If True, return SUCCESS when comparison is False
-            http_client: Optional shared HTTP client instance
-            http_config: Configuration for HTTP client
         """
         super().__init__(
             name=name,
