@@ -482,6 +482,28 @@ class SmartHomeSimulator:
                 add_triples_recursive(artifact_uri)
                 self.artifact_graphs[artifact_uri_str] = artifact_graph
 
+    def reset_home(self, home_id: str):
+        """Reset a home to its initial state from the state file"""
+        # Construct file paths
+        state_file = self.home_description_dir / f"home_{home_id}_state.json"
+
+        if not state_file.exists():
+            raise HTTPException(status_code=404, detail=f"State file not found for home: {home_id}")
+
+        # Load the initial state
+        with open(state_file, 'r') as f:
+            states = json.load(f)
+
+        # Reset all devices for this home
+        reset_count = 0
+        for artifact_uri_str, initial_state in states.items():
+            if artifact_uri_str in self.devices:
+                # Reset the device state to the initial state
+                self.devices[artifact_uri_str].state = initial_state.copy()
+                reset_count += 1
+
+        return reset_count
+
     def _get_device_type(self, g: Graph, artifact_uri: URIRef) -> Optional[str]:
         """Extract device type from RDF graph"""
         for type_uri in g.objects(artifact_uri, predicate=URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")):
@@ -983,6 +1005,36 @@ async def root():
 async def health():
     """Health check endpoint"""
     return {"status": "healthy"}
+
+
+@app.post("/reset")
+async def reset_home(request: Request):
+    """Reset endpoint to restore a home to its initial state"""
+    if simulator is None:
+        raise HTTPException(status_code=503, detail="Simulator not initialized")
+
+    try:
+        payload = await request.json()
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    if "home" not in payload:
+        raise HTTPException(status_code=400, detail="Missing 'home' parameter in payload")
+
+    home_id = str(payload["home"])
+
+    # Validate that the home exists
+    if home_id not in simulator.graphs:
+        raise HTTPException(status_code=404, detail=f"Home not found: {home_id}")
+
+    # Reset the home
+    reset_count = simulator.reset_home(home_id)
+
+    return {
+        "status": "success",
+        "message": f"Home {home_id} reset to initial state",
+        "devices_reset": reset_count
+    }
 
 
 if __name__ == "__main__":
