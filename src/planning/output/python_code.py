@@ -5,10 +5,24 @@ Generates Python py_trees code that is exec'd directly.
 """
 
 import logging
+import re
 
 from ..base import Plan
 
 logger = logging.getLogger(__name__)
+
+
+def extract_impossible_subgoals(code: str) -> list[str]:
+    """Extract impossible sub-goals from code comments.
+
+    Looks for comments in the format:
+    # IMPOSSIBLE: <description>
+
+    Returns a list of the descriptions.
+    """
+    pattern = r'^#\s*IMPOSSIBLE:\s*(.+)$'
+    matches = re.findall(pattern, code, re.MULTILINE)
+    return [m.strip() for m in matches]
 
 
 # Tool definition for generating Python code
@@ -124,12 +138,18 @@ class PythonCodeGenerator:
             code = code[:-3]
         code = code.strip()
 
+        # Extract any impossible sub-goals from code comments
+        detected_impossible = extract_impossible_subgoals(code)
+        if detected_impossible:
+            logger.info(f"Detected {len(detected_impossible)} impossible sub-goals")
+
         logger.info(f"Generated Python code ({len(code)} chars)")
 
         return Plan(
             format="python_code",
             content=code,
             explanation=explanation,
+            detected_impossible=detected_impossible,
         )
 
 
@@ -223,10 +243,16 @@ class UnconstrainedPythonCodeGenerator:
             code = code[:-3]
         code = code.strip()
 
+        # Extract any impossible sub-goals from code comments
+        detected_impossible = extract_impossible_subgoals(code)
+        if detected_impossible:
+            logger.info(f"Detected {len(detected_impossible)} impossible sub-goals")
+
         logger.info(f"Generated unconstrained Python code ({len(code)} chars)")
 
         return Plan(
             format="python_code_unconstrained",
             content=code,
             explanation=explanation,
+            detected_impossible=detected_impossible,
         )

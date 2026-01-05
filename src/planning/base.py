@@ -18,6 +18,7 @@ class Plan:
     content: str | dict  # JSON dict or Python code string
     explanation: str = ""
     reasoning_trace: list[str] = field(default_factory=list)
+    detected_impossible: list[str] = field(default_factory=list)  # Sub-goals that cannot be achieved
 
     def to_dict(self) -> dict:
         """Convert to dictionary for tracing."""
@@ -27,6 +28,7 @@ class Plan:
             "explanation": self.explanation,
             "reasoning_trace": self.reasoning_trace,
             "has_reasoning": len(self.reasoning_trace) > 0,
+            "detected_impossible": self.detected_impossible,
         }
 
     @property

@@ -33,7 +33,22 @@ py_trees.composites.Parallel(
 )
 ```
 
-NOTE: The `memory` argument is REQUIRED for Sequence and Selector - they will fail without it!
+CRITICAL RULES:
+1. The `memory` argument is REQUIRED for Sequence and Selector - they will fail without it!
+2. NEVER reuse the same behavior instance in multiple places! Each behavior can only have ONE parent.
+
+WRONG - reusing instances:
+```python
+check = CheckState(...)
+seq1 = Sequence(children=[check, action1])  # check has parent seq1
+seq2 = Sequence(children=[check, action2])  # ERROR: check already has parent!
+```
+
+CORRECT - create new instances:
+```python
+seq1 = Sequence(children=[CheckState(...), action1])
+seq2 = Sequence(children=[CheckState(...), action2])  # new instance
+```
 
 ### Creating Custom Behaviors
 ```python
@@ -186,6 +201,42 @@ class WaitForState(py_trees.behaviour.Behaviour):
 3. Always handle HTTP errors gracefully
 4. Return appropriate Status values from update()
 
+## IMPORTANT - No Import Statements
+Do NOT use any import statements! These variables are already provided in the execution environment:
+- `py_trees` - the full py_trees module
+- `Status` - alias for py_trees.common.Status
+- `http_client` - an httpx.Client instance for HTTP requests
+
+Example - WRONG:
+```python
+import py_trees
+from py_trees.common import Status
+```
+
+Example - CORRECT:
+```python
+# Just use py_trees and Status directly - they're already available
+class MyBehavior(py_trees.behaviour.Behaviour):
+    def update(self):
+        return Status.SUCCESS
+```
+
+## FORBIDDEN - Do NOT Use These
+The following patterns are blocked for security and will cause execution to fail:
+- Do NOT use ANY import statements (py_trees, http_client, Status are pre-provided)
+- Do NOT use `__import__()`, `eval()`, `exec()`, `compile()`
+- Do NOT use `__builtins__`, `__globals__`, `__class__`, `__subclasses__`
+- Do NOT open files for writing
+
+## Detecting Impossible Sub-goals
+If the goal contains sub-goals that CANNOT be achieved with the available devices (e.g., setting brightness on a light without brightness control), you MUST:
+1. Still generate code for the sub-goals that CAN be achieved
+2. Report the impossible sub-goals in a comment at the top of your code like:
+```python
+# IMPOSSIBLE: Set brightness on store room light (no brightness control available)
+# IMPOSSIBLE: Adjust curtain in kitchen (no curtain device found)
+```
+
 ## Available Devices
 {capability_model}
 """
@@ -195,15 +246,19 @@ UNCONSTRAINED_TOOL = """Generate Python code that creates a py_trees behavior tr
 You can create CUSTOM behaviors by subclassing py_trees.behaviour.Behaviour.
 Use http_client (httpx.Client) for HTTP requests to the environment.
 
+CRITICAL - NO IMPORT STATEMENTS:
+- Do NOT use `import` or `from X import Y` - this will cause execution to fail!
+- py_trees, Status, and http_client are already available - just use them directly
+
 Requirements:
 1. Define 'tree' variable with the root behavior node (a Behaviour, not BehaviourTree)
-2. Your update() methods must return py_trees.common.Status values
+2. Your update() methods must return Status.SUCCESS, Status.FAILURE, or Status.RUNNING
 3. Use http_client.get(url) and http_client.post(url, json={{...}}) for HTTP
 4. Handle errors gracefully - return Status.FAILURE on exceptions
 5. Use EXACT URIs from the capability model
 6. CRITICAL: Sequence/Selector REQUIRE memory parameter: Sequence(name="...", memory=True, children=[...])
 
-Available in execution environment:
+Pre-provided variables (DO NOT import these):
 - py_trees (full module)
 - http_client (httpx.Client instance)
 - Status = py_trees.common.Status

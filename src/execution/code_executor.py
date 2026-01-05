@@ -218,8 +218,25 @@ class CodeExecutor:
             "Exception": Exception,
             "isinstance": isinstance,
             "hasattr": hasattr,
+            "getattr": getattr,
+            "setattr": setattr,
             "type": type,
             "super": super,
+            # Math operations
+            "min": min,
+            "max": max,
+            "abs": abs,
+            "round": round,
+            "sum": sum,
+            # Iteration helpers
+            "enumerate": enumerate,
+            "zip": zip,
+            "map": map,
+            "filter": filter,
+            "sorted": sorted,
+            "reversed": reversed,
+            "any": any,
+            "all": all,
         }
 
         # Prepare globals based on mode

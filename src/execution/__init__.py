@@ -1,19 +1,23 @@
 """
 Execution module for running behavior trees.
 
-Supports two execution modes:
+Supports multiple execution modes:
 - ir_executor: Compile JSON IR to py_trees and execute
 - code_executor: Execute generated Python code directly
+- direct_agent: LLM agent with tool calls (no code generation)
 """
 
 from .base import ExecutionResult
 from .ir_executor import IRExecutor
 from .code_executor import CodeExecutor
+from .direct_agent import DirectAgentExecutor, DirectAgentResult
 
 __all__ = [
     "ExecutionResult",
     "IRExecutor",
     "CodeExecutor",
+    "DirectAgentExecutor",
+    "DirectAgentResult",
 ]
 
 

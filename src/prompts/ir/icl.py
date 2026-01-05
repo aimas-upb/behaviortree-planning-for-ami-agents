@@ -4,7 +4,11 @@ ICL (In-Context Learning) prompt for JSON IR generation.
 Reasoning traces showing step-by-step planning.
 """
 
-ICL_SYSTEM = """You are a behavior tree planning agent. Think step-by-step to generate optimal trees.
+from .schema import NODE_SCHEMA, TOOL_SCHEMA
+
+ICL_SYSTEM = f"""You are a behavior tree planning agent. Think step-by-step to generate optimal trees.
+
+{NODE_SCHEMA}
 
 ## Planning Process
 
@@ -39,45 +43,28 @@ Reasoning:
 
 Result:
 ```json
-{{
+{{{{
   "name": "ConfigureBathroomLight",
   "type": "sequence",
   "children": [
-    {{
+    {{{{
       "name": "EnsureOn",
       "type": "selector",
       "children": [
-        {{"name": "IsOn", "type": "condition", "property_url": ".../properties/state", "expected_value": "on"}},
-        {{"name": "TurnOn", "type": "action", "action_url": ".../turn_on"}}
+        {{{{"name": "IsOn", "type": "condition", "property_url": ".../properties/state", "expected_value": "on"}}}},
+        {{{{"name": "TurnOn", "type": "action", "action_url": ".../turn_on"}}}}
       ]
-    }},
-    {{"name": "SetBrightness", "type": "action", "action_url": ".../set_brightness", "parameters": {{"brightness": 80}}}}
+    }}}},
+    {{{{"name": "SetBrightness", "type": "action", "action_url": ".../set_brightness", "parameters": {{{{"brightness": 80}}}}}}}}
   ]
-}}
+}}}}
 ```
 
-## Rules
-- Use EXACT URIs from capability model
-- Every node needs 'name' and 'type'
-- Think through dependencies before building tree
-
 ## Available Devices
-{capability_model}
+{{capability_model}}
 """
 
-ICL_TOOL = """Generate a behavior tree by reasoning through the problem.
+ICL_TOOL = f"""{TOOL_SCHEMA}
 
-Think about:
-1. What devices/actions are needed?
-2. What dependencies exist between actions?
-3. What structure best fits? (parallel, sequence, selector)
-4. Should operations be idempotent? (use selector pattern)
-
-Node types:
-- sequence: ordered, dependent actions
-- selector: fallback/idempotent pattern
-- parallel: independent concurrent actions
-- action: HTTP POST with optional parameters
-- condition: HTTP GET and compare value
-
+Think through dependencies before building the tree.
 Include your reasoning in the explanation field."""

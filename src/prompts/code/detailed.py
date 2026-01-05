@@ -108,6 +108,15 @@ The template nodes handle this automatically:
 2. Use EXACT URIs from the capability model
 3. Choose appropriate composite types based on dependencies
 
+## Detecting Impossible Sub-goals
+If the goal contains sub-goals that CANNOT be achieved with the available devices (e.g., setting brightness on a light without brightness control), you MUST:
+1. Still generate code for the sub-goals that CAN be achieved
+2. Report the impossible sub-goals in a comment at the top of your code like:
+```python
+# IMPOSSIBLE: Set brightness on store room light (no brightness control available)
+# IMPOSSIBLE: Adjust curtain in kitchen (no curtain device found)
+```
+
 ## Available Devices
 {capability_model}
 """

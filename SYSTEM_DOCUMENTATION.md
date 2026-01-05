@@ -14,10 +14,12 @@ This document provides exhaustive documentation of the modular behavior tree pla
 6. [Execution Module](#6-execution-module)
 7. [Prompts Module](#7-prompts-module)
 8. [Runner Module](#8-runner-module)
-9. [Data Flow](#9-data-flow)
-10. [Extending the System](#10-extending-the-system)
-11. [Ablation Dimensions](#11-ablation-dimensions)
-12. [File Reference](#12-file-reference)
+9. [HomeBench Evaluation System](#9-homebench-evaluation-system)
+10. [Visualization Tools](#10-visualization-tools)
+11. [Data Flow](#11-data-flow)
+12. [Extending the System](#12-extending-the-system)
+13. [Ablation Dimensions](#13-ablation-dimensions)
+14. [File Reference](#14-file-reference)
 
 ---
 
@@ -70,7 +72,8 @@ src/
 │       ├── __init__.py      # Factory: create_state_strategy()
 │       ├── none.py          # NoStateGathering
 │       ├── all.py           # AllStateGathering
-│       └── relevant.py      # RelevantStateGathering
+│       ├── relevant.py      # RelevantStateGathering
+│       └── agentic.py       # AgenticStateGathering (LLM-guided)
 │
 ├── planning/                # Phase 2: Behavior tree generation
 │   ├── __init__.py          # Exports Plan, PlanningResult, create_planner
@@ -91,7 +94,8 @@ src/
 │   ├── __init__.py          # Exports ExecutionResult, create_executor
 │   ├── base.py              # ExecutionResult dataclass
 │   ├── ir_executor.py       # IRExecutor (JSON → py_trees → execute)
-│   └── code_executor.py     # CodeExecutor (safety check → exec → execute)
+│   ├── code_executor.py     # CodeExecutor (safety check → exec → execute)
+│   └── direct_agent.py      # DirectAgentExecutor (LLM tool calls)
 │
 └── prompts/                 # Prompt templates for LLM
     ├── __init__.py          # Exports get_prompt, list_strategies
@@ -116,9 +120,20 @@ experiments/
 │   ├── python_code_direct.yaml
 │   ├── python_code_with_reasoning.yaml
 │   └── agentic_discovery.yaml
+├── results/                 # Experiment outputs
+│   └── comparison_bt_vs_agent/  # Example comparison results
 └── scenarios/               # Test scenarios
     └── homebench/
         └── scenario_001.yaml
+
+# Root-level tools
+run_homebench.py             # HomeBench evaluation harness
+eval_viewer.py               # HTML report generator for evaluations
+trace_viewer.py              # HTML trace viewer for individual tests
+datasets/
+└── HomeBench/
+    └── converted/
+        └── test_data.json   # Converted HomeBench test cases
 ```
 
 ### Module Dependencies
@@ -412,6 +427,24 @@ class RelevantAffordanceDiscovery:
 - Only reads those properties
 - **Use when**: You want state context but efficiency
 
+#### 4. Agentic (`state/agentic.py`)
+- LLM-guided state gathering using tool calls
+- Agent decides which properties to read based on the goal
+- Uses tools: `read_property`, `done_gathering`
+- Stops when LLM has gathered sufficient state information
+- **Use when**: You want intelligent, goal-focused state discovery
+
+```python
+class AgenticStateGathering:
+    def __init__(self, client: OpenAI, model: str, max_iterations: int = 10):
+        ...
+
+    def gather(self, affordances: CapabilityModel, goal: str) -> EnvironmentState:
+        # LLM uses tools:
+        # - read_property(property_url) -> current value
+        # - done_gathering(summary) -> stop gathering
+```
+
 ### Discovery Pipeline (`pipeline.py`)
 
 Orchestrates affordance discovery + state gathering:
@@ -455,10 +488,11 @@ Generate a behavior tree plan from the discovery context. Supports:
 ```python
 @dataclass
 class Plan:
-    format: Literal["json_ir", "python_code"]
+    format: Literal["json_ir", "python_code", "python_code_unconstrained"]
     content: str | dict              # JSON dict or Python code string
     explanation: str                 # LLM's explanation of the plan
     reasoning_trace: list[str]       # Captured reasoning steps
+    detected_impossible: list[str]   # Sub-goals that cannot be achieved
 
     @property
     def is_json_ir(self) -> bool: ...
@@ -466,6 +500,8 @@ class Plan:
     @property
     def is_python_code(self) -> bool: ...
 ```
+
+The `detected_impossible` field captures sub-goals that the LLM determined cannot be achieved with the available devices. These are extracted from `# IMPOSSIBLE: <description>` comments in generated Python code.
 
 #### PlanningResult
 ```python
@@ -843,6 +879,57 @@ The code executor blocks:
 - Dangerous imports (only `py_trees` is allowed)
 - Attribute access tricks (`__builtins__`, `__class__`, etc.)
 
+### Direct Agent Executor (`direct_agent.py`)
+
+An alternative execution mode where the LLM directly makes tool calls to interact with the environment, rather than generating code. This allows for comparison between:
+- **Behavior Tree mode**: LLM generates code → compiled → executed
+- **Direct Agent mode**: LLM makes tool calls directly during execution
+
+```python
+@dataclass
+class DirectAgentResult:
+    success: bool
+    actions_executed: list[dict]      # Actions successfully executed
+    properties_read: list[dict]       # Properties read during execution
+    impossible_reported: list[str]    # Sub-goals reported as impossible
+    summary: str                      # Agent's completion summary
+    error: Optional[str]
+    iterations: int                   # Number of LLM turns
+    trace: list[dict]                 # Full execution trace
+
+class DirectAgentExecutor:
+    def __init__(self, client: OpenAI, model: str, max_iterations: int = 20):
+        ...
+
+    def execute(self, goal: str, affordances: CapabilityModel,
+                state: EnvironmentState) -> DirectAgentResult:
+        # LLM uses tools:
+        # - read_property(property_url) -> current value
+        # - execute_action(action_url, parameters) -> success/failure
+        # - report_impossible(subgoal, reason) -> acknowledge
+        # - done(summary) -> complete execution
+```
+
+**Key Features:**
+1. **Parameter Handling**: The system prompt emphasizes computing relative values (e.g., "increase by 25" requires reading current value first)
+2. **Detailed Schema Display**: Shows parameter names, types, constraints, and required markers
+3. **Error Recovery**: HTTP 400 errors include hints about correct parameter format
+4. **Impossible Detection**: Agent can report sub-goals that cannot be achieved
+
+**System Prompt Highlights:**
+```markdown
+## CRITICAL: Parameter Handling
+For RELATIVE changes (increase/decrease by X), you MUST:
+1. First read_property to get the current value
+2. Calculate the new value (current + increment)
+3. Execute the action with the COMPUTED value
+
+### Example: "Increase brightness by 20"
+1. read_property(brightness_url) -> returns 50
+2. Calculate: 50 + 20 = 70
+3. execute_action(set_brightness_url, {"brightness": 70})
+```
+
 ---
 
 ## 7. Prompts Module
@@ -1029,7 +1116,263 @@ uv run python -m src.runner \
 
 ---
 
-## 9. Data Flow
+## 9. HomeBench Evaluation System
+
+### Location
+`run_homebench.py`
+
+### Purpose
+A comprehensive evaluation harness for testing behavior tree planning against the HomeBench dataset. Supports:
+- Multiple execution modes (behavior tree vs direct agent)
+- Configurable discovery and planning strategies
+- Detailed metrics including action matching, property verification, and impossible sub-goal detection
+- HTML report generation with trace links
+
+### Core Dataclasses
+
+#### TestResult
+```python
+@dataclass
+class TestResult:
+    test_id: str
+    success: bool
+    test_data: dict                      # Original test case
+    discovery_result: Optional[dict]
+    planning_result: Optional[dict]
+    execution_result: Optional[dict]
+    ground_truth: dict
+    matched_actions: list[str]           # Actions that matched ground truth
+    missing_actions: list[str]           # Expected actions not executed
+    extra_actions: list[str]             # Unexpected actions executed
+    properties_checked: int
+    properties_matched: int
+    failure_type: Optional[str]          # parse_error, compilation_error, etc.
+    duration: float
+    expected_impossible: int             # Count from ground truth error_inputs
+    detected_impossible: list[str]       # Reported impossible sub-goals
+```
+
+#### EvaluationMetrics
+```python
+@dataclass
+class EvaluationMetrics:
+    total_tests: int = 0
+    successful_tests: int = 0
+    failed_tests: int = 0
+    plans_generated: int = 0
+
+    # Action matching (precision/recall style)
+    total_expected_actions: int = 0
+    total_matched_actions: int = 0
+    total_missing_actions: int = 0
+    total_extra_actions: int = 0
+
+    # Property verification
+    total_properties_checked: int = 0
+    total_properties_matched: int = 0
+
+    # Impossible sub-goal detection
+    total_expected_impossible: int = 0
+    total_detected_impossible: int = 0
+
+    # Failure tracking
+    failures_by_type: dict  # {failure_type: count}
+
+    @property
+    def success_rate(self) -> float: ...
+
+    @property
+    def action_precision(self) -> float: ...
+
+    @property
+    def action_recall(self) -> float: ...
+
+    @property
+    def action_f1(self) -> float: ...
+
+    @property
+    def impossible_detection_rate(self) -> float: ...
+```
+
+### Failure Types
+
+The system tracks these failure categories:
+- `parse_error`: LLM response couldn't be parsed
+- `compilation_error`: Generated code failed to compile/execute
+- `execution_error`: Behavior tree execution failed
+- `action_mismatch`: Wrong actions executed
+- `property_mismatch`: Final state doesn't match expected
+- `error_input_not_detected`: Failed to detect impossible sub-goals
+- `other`: Uncategorized failures
+
+### Ground Truth Format
+
+HomeBench test cases have this structure:
+```json
+{
+  "id": "home96_one_250",
+  "input": "Increase the interval of the aromatherapy device by 25 seconds",
+  "test_type": "one",  // or "multi" for multi-action tests
+  "outputs": [
+    {
+      "action": "http://.../set_interval",
+      "params": {"interval": 50},
+      "execution": "success"  // or "error_input" for impossible
+    }
+  ],
+  "final_state": {
+    "http://.../properties/interval": 50
+  }
+}
+```
+
+When `execution` is `"error_input"`, it indicates the sub-goal is impossible and should be detected/reported.
+
+### CLI Arguments
+
+```bash
+uv run python run_homebench.py [OPTIONS]
+
+# Execution mode
+--execution-mode {behavior_tree,direct_agent}  # Default: behavior_tree
+
+# Discovery strategies
+--discovery-affordances {exhaustive,agentic,relevant}
+--discovery-state {none,all,relevant,agentic}
+
+# Planning strategies (behavior_tree mode only)
+--planning-reasoning {none,chain_of_thought,multi_turn,reflection}
+--planning-output {json_ir,python_code,python_code_unconstrained}
+--prompt-strategy {baseline,detailed,few_shot,icl}
+
+# Test filtering
+--data PATH           # Test data JSON (default: datasets/HomeBench/converted/test_data.json)
+--home HOME_ID        # Filter by home (e.g., home96)
+--type {one,multi}    # Filter by test type
+--limit N             # Limit number of tests
+
+# Output
+--output DIR          # Save results to directory
+--view-report         # Open HTML report after completion
+--no-progress         # Disable progress bar
+```
+
+### Usage Examples
+
+```bash
+# Basic run with defaults (behavior tree mode)
+uv run python run_homebench.py --home home96 --limit 10
+
+# Full agentic setup with reasoning
+uv run python run_homebench.py \
+    --execution-mode behavior_tree \
+    --discovery-affordances agentic \
+    --discovery-state agentic \
+    --planning-reasoning chain_of_thought \
+    --planning-output python_code_unconstrained \
+    --home home96 --limit 15 \
+    --output experiments/results/my_experiment
+
+# Direct agent mode comparison
+uv run python run_homebench.py \
+    --execution-mode direct_agent \
+    --discovery-affordances agentic \
+    --discovery-state agentic \
+    --home home96 --limit 15 \
+    --output experiments/results/direct_agent_test
+
+# Generate HTML report and open it
+uv run python run_homebench.py --home home96 --view-report
+```
+
+### Output Files
+
+When `--output DIR` is specified:
+```
+DIR/
+├── metrics_YYYYMMDD_HHMMSS.json    # Aggregated metrics
+├── results_YYYYMMDD_HHMMSS.json    # Full results array
+├── eval_report.html                 # Generated by eval_viewer
+└── traces/
+    ├── home96_one_250.json         # Individual test traces
+    ├── home96_one_250.html         # HTML visualization
+    └── ...
+```
+
+### Comparison: Behavior Tree vs Direct Agent
+
+| Aspect | Behavior Tree | Direct Agent |
+|--------|--------------|--------------|
+| **Approach** | Generate code → compile → execute | LLM makes live tool calls |
+| **Strengths** | Complex logic, computed params | Simple, direct control |
+| **Weaknesses** | Code errors, compilation | Parameter handling |
+| **Best for** | Relative changes, multi-step | Absolute settings, simple goals |
+
+Example benchmark results:
+- **Behavior Tree (agentic + CoT + unconstrained)**: 80% success, 90% action recall
+- **Direct Agent (agentic)**: 40% success, 50% action recall
+
+---
+
+## 10. Visualization Tools
+
+### Evaluation Report Viewer (`eval_viewer.py`)
+
+Generates interactive HTML reports from evaluation results.
+
+```bash
+uv run python eval_viewer.py experiments/results/my_experiment
+```
+
+**Features:**
+- Summary metrics dashboard (success rate, precision, recall, F1)
+- Failure breakdown by type with visual chart
+- Individual test cards with expand/collapse
+- Links to full trace HTML for each test
+- Ground truth comparison view
+- Color-coded success/failure status
+
+**Generated File:** `eval_report.html` in the results directory
+
+### Trace Viewer (`trace_viewer.py`)
+
+Generates detailed HTML visualizations for individual test traces.
+
+```python
+from trace_viewer import export_html
+import json
+
+with open("traces/test_001.json") as f:
+    trace_data = json.load(f)
+
+export_html(trace_data, "traces/test_001.html")
+```
+
+**Trace Sections:**
+1. **Summary**: Goal, success status, timing
+2. **Discovery**: Affordances found, state gathered
+3. **Planning**: Reasoning trace, generated code
+4. **Execution**: Tick history, actions executed
+5. **Verification**: Ground truth comparison
+
+### Batch Trace Generation
+
+```python
+from trace_viewer import export_html
+from pathlib import Path
+import json
+
+traces_dir = Path("experiments/results/my_experiment/traces")
+for trace_file in traces_dir.glob("*.json"):
+    with open(trace_file) as f:
+        data = json.load(f)
+    html_file = trace_file.with_suffix(".html")
+    export_html(data, str(html_file))
+```
+
+---
+
+## 11. Data Flow
 
 ### Complete Pipeline Data Flow
 
@@ -1137,7 +1480,7 @@ uv run python -m src.runner \
 
 ---
 
-## 10. Extending the System
+## 12. Extending the System
 
 ### Adding a New Affordance Discovery Strategy
 
@@ -1227,12 +1570,13 @@ class MyFormatExecutor:
 
 ---
 
-## 11. Ablation Dimensions
+## 13. Ablation Dimensions
 
 The system supports the following ablation dimensions, all configurable via YAML:
 
 | Dimension | Options | Config Path |
 |-----------|---------|-------------|
+| **Execution Mode** | `behavior_tree`, `direct_agent` | CLI: `--execution-mode` |
 | **Affordance Discovery** | `exhaustive`, `agentic`, `relevant` | `discovery.affordances.strategy` |
 | **State Gathering** | `none`, `all`, `relevant`, `agentic` | `discovery.state.strategy` |
 | **Reasoning** | `none`, `chain_of_thought`, `multi_turn`, `reflection` | `planning.reasoning.strategy` |
@@ -1264,7 +1608,7 @@ Additional ablation configs in `run_ablation.py`:
 
 ---
 
-## 12. File Reference
+## 14. File Reference
 
 ### Core Files
 
@@ -1287,6 +1631,7 @@ Additional ablation configs in `run_ablation.py`:
 | `src/discovery/state/none.py` | NoStateGathering |
 | `src/discovery/state/all.py` | AllStateGathering |
 | `src/discovery/state/relevant.py` | RelevantStateGathering |
+| `src/discovery/state/agentic.py` | AgenticStateGathering |
 
 ### Planning Module
 
@@ -1310,6 +1655,7 @@ Additional ablation configs in `run_ablation.py`:
 | `src/execution/base.py` | ExecutionResult |
 | `src/execution/ir_executor.py` | IRExecutor (JSON → py_trees) |
 | `src/execution/code_executor.py` | CodeExecutor (Python code) |
+| `src/execution/direct_agent.py` | DirectAgentExecutor (LLM tool calls) |
 
 ### Prompts Module
 
@@ -1322,12 +1668,27 @@ Additional ablation configs in `run_ablation.py`:
 | `src/prompts/code/detailed.py` | Comprehensive Python code prompt (constrained) |
 | `src/prompts/code/unconstrained.py` | Custom behavior prompts (unconstrained) |
 
+### Evaluation & Visualization
+
+| File | Purpose |
+|------|---------|
+| `run_homebench.py` | HomeBench evaluation harness |
+| `eval_viewer.py` | HTML report generator for evaluations |
+| `trace_viewer.py` | HTML trace viewer for individual tests |
+
 ### External Dependencies
 
 | File | Purpose |
 |------|---------|
 | `hmas_client.py` | HTTP/RDF client for HMAS environments |
 | `behavior_trees/affordance_nodes.py` | ActionAffordanceNode, PropertyConditionNode, etc. |
+
+### Datasets
+
+| Path | Purpose |
+|------|---------|
+| `datasets/HomeBench/converted/test_data.json` | Converted HomeBench test cases |
+| `datasets/HomeBench/home_description/` | Home environment descriptions |
 
 ---
 
@@ -1336,6 +1697,29 @@ Additional ablation configs in `run_ablation.py`:
 ### Run an experiment
 ```bash
 uv run python -m src.runner --config experiments/configs/baseline.yaml --goal "Turn on light"
+```
+
+### Run HomeBench evaluation
+```bash
+# Behavior tree mode with full agentic setup
+uv run python run_homebench.py \
+    --discovery-affordances agentic \
+    --discovery-state agentic \
+    --planning-reasoning chain_of_thought \
+    --planning-output python_code_unconstrained \
+    --home home96 --limit 15 \
+    --output experiments/results/my_test
+
+# Direct agent mode for comparison
+uv run python run_homebench.py \
+    --execution-mode direct_agent \
+    --discovery-affordances agentic \
+    --discovery-state agentic \
+    --home home96 --limit 15 \
+    --output experiments/results/direct_agent_test
+
+# Generate HTML report
+uv run python eval_viewer.py experiments/results/my_test
 ```
 
 ### Load config programmatically
@@ -1395,4 +1779,16 @@ model:
 
 ---
 
-*Last updated: January 2026*
+*Last updated: January 5, 2026*
+
+## Changelog
+
+### January 5, 2026
+- Added **Direct Agent Execution Mode** (`src/execution/direct_agent.py`) - LLM makes direct tool calls instead of generating code
+- Added **HomeBench Evaluation System** (`run_homebench.py`) - Comprehensive evaluation harness with metrics
+- Added **Visualization Tools** (`eval_viewer.py`, `trace_viewer.py`) - HTML report generation
+- Added **Agentic State Gathering** (`src/discovery/state/agentic.py`) - LLM-guided state discovery
+- Added **Impossible Sub-goal Detection** - `detected_impossible` field in Plan, `# IMPOSSIBLE:` comment parsing
+- Added **Error Input Handling** - Partial matching for impossible sub-goals in ground truth
+- Updated **EvaluationMetrics** with precision/recall/F1 for action matching
+- Added **Failure Type Tracking** - Categorized failure reasons in evaluation
