@@ -390,17 +390,35 @@ class SmartHomeSimulator:
         self.workspace_contains: Dict[str, set] = {}  # workspace_uri -> set of contained URIs (artifacts or sub-workspaces)
         self.artifact_graphs: Dict[str, Graph] = {}  # artifact_uri -> subgraph with TD description
 
-    def load_homes(self):
-        """Load all home descriptions from the directory"""
-        ttl_files = sorted(self.home_description_dir.glob("home_*.ttl"))
+    def load_homes(self, home_ids: list[int] = None):
+        """Load home descriptions from the directory.
 
-        for ttl_file in ttl_files:
-            home_id = ttl_file.stem.replace("home_", "")
-            state_file = self.home_description_dir / f"home_{home_id}_state.json"
+        Args:
+            home_ids: Optional list of specific home IDs to load (e.g., [0, 1, 5]).
+                      If None, loads all homes.
+        """
+        if home_ids is not None:
+            # Load specific homes
+            for home_id in home_ids:
+                ttl_file = self.home_description_dir / f"home_{home_id}.ttl"
+                state_file = self.home_description_dir / f"home_{home_id}_state.json"
 
-            if state_file.exists():
-                print(f"Loading home {home_id}...")
-                self.load_home(ttl_file, state_file)
+                if ttl_file.exists() and state_file.exists():
+                    print(f"Loading home {home_id}...")
+                    self.load_home(ttl_file, state_file)
+                else:
+                    print(f"Warning: Home {home_id} files not found (looking for {ttl_file.name})")
+        else:
+            # Load all homes
+            ttl_files = sorted(self.home_description_dir.glob("home_*.ttl"))
+
+            for ttl_file in ttl_files:
+                home_id = ttl_file.stem.replace("home_", "")
+                state_file = self.home_description_dir / f"home_{home_id}_state.json"
+
+                if state_file.exists():
+                    print(f"Loading home {home_id}...")
+                    self.load_home(ttl_file, state_file)
 
     def load_home(self, ttl_file: Path, state_file: Path):
         """Load a single home from TTL and state files"""
@@ -888,7 +906,8 @@ class SmartHomeSimulator:
 # Global simulator instance and config
 simulator: Optional[SmartHomeSimulator] = None
 config: Dict[str, Any] = {
-    "home_description_dir": Path("datasets/HomeBench/hmas_format/home_description")
+    "home_description_dir": Path("datasets/HomeBench/hmas_format/home_description"),
+    "home_ids": None,  # None = load all, or list of ints e.g. [0, 1, 5]
 }
 
 
@@ -899,6 +918,7 @@ async def lifespan(_app: FastAPI):
 
     # Startup
     home_description_dir = config["home_description_dir"]
+    home_ids = config.get("home_ids")
 
     if not home_description_dir.exists():
         print(f"Warning: Home description directory not found: {home_description_dir}")
@@ -906,7 +926,7 @@ async def lifespan(_app: FastAPI):
         simulator = SmartHomeSimulator(home_description_dir)
     else:
         simulator = SmartHomeSimulator(home_description_dir)
-        simulator.load_homes()
+        simulator.load_homes(home_ids=home_ids)
         print(f"Loaded {len(simulator.devices)} devices")
         print(f"Registered {len(simulator.property_routes)} property endpoints")
         print(f"Registered {len(simulator.action_routes)} action endpoints")
@@ -1043,8 +1063,9 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python smart_home_simulator.py
-  python smart_home_simulator.py --data-dir ../datasets/HomeBench/hmas_format/home_description
+  python smart_home_simulator.py                           # Load all homes
+  python smart_home_simulator.py --home 0                  # Load only home 0
+  python smart_home_simulator.py --home 0,1,5              # Load homes 0, 1, and 5
   python smart_home_simulator.py --data-dir /path/to/data --port 8081
         """
     )
@@ -1055,6 +1076,14 @@ Examples:
         default=Path("../datasets/HomeBench/hmas_format/home_description"),
         metavar='DIR',
         help='Path to home description data directory (default: ../datasets/HomeBench/hmas_format/home_description)'
+    )
+
+    parser.add_argument(
+        '--home',
+        type=str,
+        default=None,
+        metavar='ID',
+        help='Specific home ID(s) to load (e.g., "0" or "0,1,5"). If not specified, loads all homes.'
     )
 
     parser.add_argument(
@@ -1076,8 +1105,19 @@ Examples:
     # Update global config
     config["home_description_dir"] = args.data_dir
 
+    # Parse --home argument (can be "0" or "0,1,5")
+    if args.home is not None:
+        home_ids = [int(h.strip()) for h in args.home.split(",")]
+        config["home_ids"] = home_ids
+    else:
+        config["home_ids"] = None
+
     print(f"Starting Smart Home Simulator...")
     print(f"  Data directory: {args.data_dir}")
+    if config["home_ids"]:
+        print(f"  Loading homes: {config['home_ids']}")
+    else:
+        print(f"  Loading: all homes")
     print(f"  Host: {args.host}")
     print(f"  Port: {args.port}")
     print()
