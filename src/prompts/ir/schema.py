@@ -44,29 +44,29 @@ The behavior tree compiler supports exactly 5 node types:
 
 ```json
 // Composite node
-{
+{{
   "name": "NodeName",
   "type": "sequence" | "selector" | "parallel",
   "children": [...],
   "policy": "success_on_all" | "success_on_one"  // parallel only
-}
+}}
 
 // Action node
-{
+{{
   "name": "ActionName",
   "type": "action",
   "action_url": "http://...",
-  "parameters": {}  // optional
-}
+  "parameters": {{}}  // optional
+}}
 
 // Condition node
-{
+{{
   "name": "ConditionName",
   "type": "condition",
   "property_url": "http://.../properties/...",
   "expected_value": "on" | 25 | true,
   "operator": "=="  // optional
-}
+}}
 ```
 
 ## Rules
@@ -82,11 +82,11 @@ TOOL_SCHEMA = """Generate an executable behavior tree specification.
 The tree will be compiled to py_trees and executed via HTTP calls.
 
 IMPORTANT - Valid node types:
-- sequence: {"type": "sequence", "children": [...]} - all must succeed
-- selector: {"type": "selector", "children": [...]} - first success wins
-- parallel: {"type": "parallel", "children": [...], "policy": "success_on_all"}
-- action: {"type": "action", "action_url": "http://...", "parameters": {}}
-- condition: {"type": "condition", "property_url": "http://...", "expected_value": ...}
+- sequence: {{"type": "sequence", "children": [...]}} - all must succeed
+- selector: {{"type": "selector", "children": [...]}} - first success wins
+- parallel: {{"type": "parallel", "children": [...], "policy": "success_on_all"}}
+- action: {{"type": "action", "action_url": "http://...", "parameters": {{}}}}
+- condition: {{"type": "condition", "property_url": "http://...", "expected_value": ...}}
 
 Every node requires "name" and "type" fields.
 Use EXACT URIs from the capability model."""
