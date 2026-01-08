@@ -380,7 +380,7 @@ class HomeBenchEvaluator:
             return "parse_error"
 
         # Check for compilation errors (invalid node type, missing fields)
-        exec_error = execution.get("error", "") or ""
+        exec_error = (execution.get("error", "") or "") if execution else ""
         if "Unknown node type" in exec_error or "Compilation" in error_msg:
             return "compilation_error"
         if "KeyError" in exec_error or "missing" in exec_error.lower():

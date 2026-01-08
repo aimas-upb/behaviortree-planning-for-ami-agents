@@ -71,8 +71,9 @@ class JsonIRGenerator:
         # Get prompt template
         system_prompt, tool_description = get_prompt(prompt_strategy, "json_ir")
 
-        # Format system prompt with context
-        formatted_system = system_prompt.format(capability_model=context)
+        # Format system prompt with context (use replace instead of format to avoid
+        # conflicts with JSON braces in the template)
+        formatted_system = system_prompt.replace("{capability_model}", context)
 
         # Update tool description
         tool = dict(GENERATE_BT_TOOL)
