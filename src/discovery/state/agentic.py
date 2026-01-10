@@ -45,14 +45,10 @@ STATE_DISCOVERY_TOOLS = [
                 "properties": {
                     "property_uri": {
                         "type": "string",
-                        "description": "The EXACT property URI to read (from list_artifact_properties)",
+                        "description": "The EXACT property URI to read (from list_artifact_properties, e.g. 'http://localhost:8080/workspaces/home44/balcony/artifacts/balconyMediaPlayer/properties/volume')",
                     },
-                    "reason": {
-                        "type": "string",
-                        "description": "Why you want to read this property",
-                    }
                 },
-                "required": ["property_uri", "reason"],
+                "required": ["property_uri"],
             },
         },
     },
@@ -90,8 +86,9 @@ STRATEGY:
 
 IMPORTANT:
 - ALWAYS use list_artifact_properties before read_property
-- Use EXACT property URIs from the list - do NOT modify or guess URIs
-- If a property read fails, check that you're using the correct URI
+- Use EXACT property URIs from the list - do NOT modify or guess URIs!
+- This is the format of property URIs:
+  http://.../workspaces/{{WORKSPACE_NAME}}/{{ROOM_NAME}}/artifacts/{{ARTIFACT_NAME}}/properties/{{PROPERTY_NAME}}
 
 Goal: {goal}
 
@@ -234,7 +231,6 @@ class AgenticStateGathering:
 
                 elif fn_name == "read_property":
                     prop_uri = fn_args["property_uri"]
-                    reason = fn_args.get("reason", "")
 
                     # Validate that this property was discovered via list_artifact_properties
                     is_known = any(

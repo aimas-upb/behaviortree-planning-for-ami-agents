@@ -59,10 +59,26 @@ class IRExecutor:
                 error=f"Expected json_ir format, got {plan.format}",
             )
 
-        if not isinstance(plan.content, dict) or not plan.content:
+        if not isinstance(plan.content, dict):
             return ExecutionResult(
                 success=False,
-                error="Empty or invalid tree specification",
+                error="Invalid tree specification",
+            )
+        
+        if plan.explanation.startswith("Generation failed") or plan.explanation.startswith("JSON parse error"):
+            return ExecutionResult(
+                success=False,
+                error=f"Plan generation error: {plan.explanation}",
+            )
+        
+        if not plan.content:
+            # No behavior tree to execute
+            logger.info("No behavior tree to execute;")
+            return ExecutionResult(
+                success=True,
+                final_status="No behavior tree to execute.",
+                ticks=0,
+                tick_history=[],
             )
 
         try:

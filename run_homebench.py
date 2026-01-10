@@ -13,7 +13,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal
 
 import httpx
 from dotenv import load_dotenv
@@ -76,7 +76,7 @@ class TestCase:
 class TestResult:
     """Result of running a single test case."""
     test_id: str
-    success: bool
+    success: Literal["True", "False", "Quantifiable"]
 
     # Planning metrics
     plan_generated: bool = False
@@ -112,7 +112,7 @@ class TestResult:
     duration_seconds: float = 0.0
 
     # Failure tracking
-    failure_type: Optional[str] = None  # none, parse_error, compilation_error, execution_error, action_mismatch, property_mismatch
+    failure_type: Optional[str] = None  # none, parse_error, compilation_error, execution_error, property_mismatch
 
     # Raw data
     error: Optional[str] = None
@@ -124,6 +124,7 @@ class EvaluationMetrics:
     """Aggregated evaluation metrics."""
     total_tests: int = 0
     successful_tests: int = 0
+    quantifiable_tests: int = 0  # Partially successful - some actions/properties matched
     failed_tests: int = 0
 
     # Planning
@@ -162,7 +163,18 @@ class EvaluationMetrics:
 
     @property
     def success_rate(self) -> float:
+        """Rate of fully successful tests."""
         return self.successful_tests / self.total_tests if self.total_tests > 0 else 0.0
+
+    @property
+    def quantifiable_rate(self) -> float:
+        """Rate of quantifiable (partially successful) tests."""
+        return self.quantifiable_tests / self.total_tests if self.total_tests > 0 else 0.0
+
+    @property
+    def success_or_quantifiable_rate(self) -> float:
+        """Rate of tests that are either successful or quantifiable (not failed)."""
+        return (self.successful_tests + self.quantifiable_tests) / self.total_tests if self.total_tests > 0 else 0.0
 
     @property
     def action_precision(self) -> float:
@@ -198,8 +210,11 @@ class EvaluationMetrics:
         return {
             "total_tests": self.total_tests,
             "successful_tests": self.successful_tests,
+            "quantifiable_tests": self.quantifiable_tests,
             "failed_tests": self.failed_tests,
             "success_rate": self.success_rate,
+            "quantifiable_rate": self.quantifiable_rate,
+            "success_or_quantifiable_rate": self.success_or_quantifiable_rate,
             "plans_generated": self.plans_generated,
             "action_precision": self.action_precision,
             "action_recall": self.action_recall,
@@ -390,11 +405,7 @@ class HomeBenchEvaluator:
         if result.plan_generated and not result.execution_success:
             return "execution_error"
 
-        # Execution succeeded but actions don't match
-        if result.execution_success and (result.missing_actions or result.extra_actions):
-            return "action_mismatch"
-
-        # Execution succeeded, actions match, but properties don't
+        # Execution succeeded, but affordance properties don't match
         if result.execution_success and result.properties_checked > 0 and result.properties_matched < result.properties_checked:
             return "property_mismatch"
 
@@ -411,7 +422,7 @@ class HomeBenchEvaluator:
         from src.execution import DirectAgentExecutor
         from src.discovery import create_discovery_pipeline
 
-        result = TestResult(test_id=test.id, success=False)
+        result = TestResult(test_id=test.id, success="False")
         result.expected_actions = [o.get("affordance", "") for o in test.expected_successes if o.get("affordance")]
         result.expected_params = {o.get("affordance"): o.get("params", {}) for o in test.expected_successes if o.get("affordance")}
         result.expected_impossible = len(test.expected_errors)
@@ -483,40 +494,39 @@ class HomeBenchEvaluator:
 
             # Verify properties
             if result.execution_success and not result.is_error_input_only:
-                for expected in test.expected_successes:
-                    test_spec = expected.get("test", {})
-                    if test_spec:
-                        prop_url = test_spec.get("property")
-                        exp_val = test_spec.get("expected_value")
-                        if prop_url:
-                            matched, actual = self.verify_property(prop_url, exp_val)
-                            result.properties_checked += 1
-                            if matched:
-                                result.properties_matched += 1
-                            result.property_results.append({
-                                "property": prop_url,
-                                "expected": exp_val,
-                                "actual": actual,
-                                "matched": matched,
-                            })
+                self._verify_test_properties(test, result)
 
             # Determine success
             if result.is_error_input_only:
+                # For pure error_input cases: success only if system detected it's impossible
+                # and did NOT generate/execute a plan.
                 detected_as_impossible = (
                     len(result.detected_impossible) > 0 or
-                    not result.execution_success or
+                    not result.plan_generated or
                     len(result.actions_in_plan) == 0
                 )
-                result.handled_correctly = detected_as_impossible
-                result.success = result.handled_correctly
+                result.success = "True" if detected_as_impossible else "False"
             else:
-                all_actions_matched = len(result.missing_actions) == 0
-                all_properties_matched = result.properties_matched == result.properties_checked
-                result.handled_correctly = all_actions_matched and (result.properties_checked == 0 or all_properties_matched)
-                result.success = result.execution_success and result.handled_correctly
+                if not result.execution_success:
+                    result.success = "False"
+                else:
+                    no_extra_actions = len(result.extra_actions) == 0
+                    all_properties_matched = result.properties_matched == result.properties_checked
+
+                    result.handled_correctly = no_extra_actions and all_properties_matched
+                    
+                    if result.handled_correctly:
+                        result.success = "True"
+                    elif (result.matched_actions or result.properties_matched > 0) and len(result.expected_actions) > 1:
+                        # Some actions or properties matched, and multiple actions were expected
+                        # Quantifiable only applies when there are multiple expected actions
+                        result.success = "Quantifiable"
+                    else:
+                        # No actions or properties matched, or single expected action not completed
+                        result.success = "False"
 
             # Classify failure
-            if not result.success:
+            if result.success == "False":
                 if result.is_error_input_only:
                     result.failure_type = "error_input_not_detected"
                 else:
@@ -532,9 +542,33 @@ class HomeBenchEvaluator:
         result.duration_seconds = (datetime.now() - start_time).total_seconds()
         return result
 
+    def _verify_test_properties(self, test: TestCase, result: TestResult):
+        """
+        Verify all expected properties for a test case.
+        Args:
+            test: TestCase
+            result: TestResult to update
+        """
+        for expected in test.expected_successes:
+            test_spec = expected.get("test", {})
+            if test_spec:
+                prop_url = test_spec.get("property")
+                exp_val = test_spec.get("expected_value")
+                if prop_url:
+                    matched, actual = self.verify_property(prop_url, exp_val)
+                    result.properties_checked += 1
+                    if matched:
+                        result.properties_matched += 1
+                    result.property_results.append({
+                                "property": prop_url,
+                                "expected": exp_val,
+                                "actual": actual,
+                                "matched": matched,
+                            })
+
     def run_test(self, test: TestCase) -> TestResult:
         """Run a single test case."""
-        result = TestResult(test_id=test.id, success=False)
+        result = TestResult(test_id=test.id, success="False")
         result.expected_actions = [o.get("affordance", "") for o in test.expected_successes if o.get("affordance")]
         result.expected_params = {o.get("affordance"): o.get("params", {}) for o in test.expected_successes if o.get("affordance")}
         result.expected_impossible = len(test.expected_errors)
@@ -593,49 +627,47 @@ class HomeBenchEvaluator:
 
             # Verify properties (only if execution succeeded and not error_input case)
             if result.execution_success and not result.is_error_input_only:
-                for expected in test.expected_successes:
-                    test_spec = expected.get("test", {})
-                    if test_spec:
-                        prop_url = test_spec.get("property")
-                        exp_val = test_spec.get("expected_value")
-                        if prop_url:
-                            matched, actual = self.verify_property(prop_url, exp_val)
-                            result.properties_checked += 1
-                            if matched:
-                                result.properties_matched += 1
-                            result.property_results.append({
-                                "property": prop_url,
-                                "expected": exp_val,
-                                "actual": actual,
-                                "matched": matched,
-                            })
+                self._verify_test_properties(test, result)
 
             # Determine overall success based on case type
             if result.is_error_input_only:
-                # For pure error_input cases: success if system detected it's impossible
-                # (no plan generated, execution failed, or system reported impossible)
+                # For pure error_input cases: success only if system detected it's impossible
+                # and did NOT generate/execute a plan. If a plan was generated and executed
+                # (even if execution failed), the system didn't properly identify the impossibility.
                 detected_as_impossible = (
                     len(result.detected_impossible) > 0 or
-                    not result.execution_success or
+                    not result.plan_generated or
                     len(result.actions_in_plan) == 0
                 )
-                result.handled_correctly = detected_as_impossible
-                result.success = result.handled_correctly
+                result.success = "True" if detected_as_impossible else "False"
             else:
                 # For cases with success actions (may also have error_inputs):
                 # Success = all expected SUCCESS actions matched AND all properties matched
                 # Error_input detection is tracked separately, doesn't affect success
-                all_actions_matched = len(result.missing_actions) == 0
-                all_properties_matched = result.properties_matched == result.properties_checked
-                result.handled_correctly = all_actions_matched and (result.properties_checked == 0 or all_properties_matched)
-                result.success = (
-                    result.plan_generated and
-                    result.execution_success and
-                    result.handled_correctly
-                )
+                is_plan_executed = result.plan_generated and result.execution_success
+
+                if not is_plan_executed:
+                    # No plan or behavior tree execution failed
+                    result.success = "False"
+                else:
+                    # Behavior tree executed - check actions and properties
+                    no_extra_actions = len(result.extra_actions) == 0
+                    all_properties_matched = result.properties_matched == result.properties_checked
+
+                    result.handled_correctly = no_extra_actions and all_properties_matched
+
+                    if result.handled_correctly:
+                        result.success = "True"
+                    elif (result.matched_actions or result.properties_matched > 0) and len(result.expected_actions) > 1:
+                        # Some actions or properties matched, and multiple actions were expected
+                        # Quantifiable only applies when there are multiple expected actions
+                        result.success = "Quantifiable"
+                    else:
+                        # No actions or properties matched, or single expected action not completed
+                        result.success = "False"
 
             # Classify failure type
-            if not result.success:
+            if result.success == "False":
                 if result.is_error_input_only:
                     # Error input case that wasn't detected - system incorrectly executed
                     result.failure_type = "error_input_not_detected"
@@ -671,8 +703,10 @@ class HomeBenchEvaluator:
 
             # Update metrics
             metrics.total_tests += 1
-            if result.success:
+            if result.success == "True":
                 metrics.successful_tests += 1
+            elif result.success == "Quantifiable":
+                metrics.quantifiable_tests += 1
             else:
                 metrics.failed_tests += 1
 
@@ -871,6 +905,8 @@ def main():
     print("=" * 60)
     print(f"Total tests: {metrics.total_tests}")
     print(f"Successful: {metrics.successful_tests} ({metrics.success_rate:.1%})")
+    print(f"Quantifiable: {metrics.quantifiable_tests} ({metrics.quantifiable_rate:.1%})")
+    print(f"Success + Quantifiable: {metrics.successful_tests + metrics.quantifiable_tests} ({metrics.success_or_quantifiable_rate:.1%})")
     print(f"Failed: {metrics.failed_tests}")
     print()
     print(f"Plans generated: {metrics.plans_generated}")

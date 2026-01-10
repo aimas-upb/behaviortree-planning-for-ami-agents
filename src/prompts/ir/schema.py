@@ -74,6 +74,26 @@ The behavior tree compiler supports exactly 5 node types:
 2. Use EXACT URIs from the capability model - do not modify them
 3. Composite nodes MUST have "children" array (can be empty)
 4. Action/condition nodes MUST NOT have "children"
+
+## CRITICAL: Handling Impossible Requests
+
+**Only use actions and properties that ACTUALLY EXIST in the capability model.**
+
+If the user's goal requires a capability that does NOT exist:
+1. **DO NOT** attempt to substitute with a "close enough" alternative
+2. **DO NOT** use a simpler action as a workaround (e.g., do NOT use turn_on when set_brightness is requested but unavailable)
+3. **DO NOT** invent or guess action/property URLs that aren't in the capability model
+4. **DO** complete all achievable sub-goals
+5. **DO** report impossible sub-goals in the explanation field
+
+Examples of WRONG behavior:
+- Goal: "Set kitchen light brightness to 50%" → Using turn_on because set_brightness doesn't exist (WRONG)
+- Goal: "Set thermostat to 22°C" → Turning on the AC because thermostat doesn't exist (WRONG)
+- Goal: "Dim bedroom lights" → Turning off the light because dimming isn't available (WRONG)
+
+Examples of CORRECT behavior:
+- Goal: "Turn on light and set brightness to 80" (no brightness control) → Only turn on the light, explain that brightness cannot be set
+- Goal: "Close curtains and turn off lights" (no curtains) → Only turn off lights, explain that curtains are not available
 """
 
 # Tool description for generate_behavior_tree function

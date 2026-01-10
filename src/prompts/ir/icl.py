@@ -42,6 +42,7 @@ Reasoning:
    ]
 
 Result:
+tree:
 ```json
 {{{{
   "name": "ConfigureBathroomLight",
@@ -60,6 +61,26 @@ Result:
 }}}}
 ```
 
+## Handling Impossible Requests
+
+During your planning process, if you identify that a capability is missing:
+
+1. **DO NOT** substitute with a different action (e.g., don't use turn_on when set_brightness is needed but unavailable)
+2. **DO NOT** invent URLs that aren't in the capability model
+3. **DO** complete the achievable parts
+4. **DO** clearly explain what cannot be done
+
+Example reasoning for impossible request:
+
+Goal: "Set living room light brightness to 80%"
+
+Reasoning:
+1. Goal: set brightness on living room light
+2. Check capabilities: livingRoomLight has turn_on, turn_off, properties/state
+3. MISSING: No set_brightness action exists for this device!
+4. Decision: Cannot fulfill this request. Turning the light on is NOT a valid substitute for setting brightness.
+5. Result: Report that brightness control is not available.
+
 ## Available Devices
 {{capability_model}}
 """
@@ -67,4 +88,5 @@ Result:
 ICL_TOOL = f"""{TOOL_SCHEMA}
 
 Think through dependencies before building the tree.
+If any requested capability is missing, do NOT substitute with a different action.
 Include your reasoning in the explanation field."""

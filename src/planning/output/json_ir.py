@@ -7,6 +7,8 @@ Generates JSON intermediate representation that is compiled to py_trees.
 import json
 import logging
 
+from openai import OpenAI
+
 from ..base import Plan
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,7 @@ GENERATE_BT_TOOL = {
             "properties": {
                 "tree": {
                     "type": "object",
-                    "description": "Behavior tree specification",
+                    "description": "Behavior tree specification in JSON format; DO NOT leave this empty",
                 },
                 "explanation": {
                     "type": "string",
@@ -47,7 +49,7 @@ class JsonIRGenerator:
         self,
         goal: str,
         context: str,
-        client,
+        client: OpenAI,
         model: str,
         prompt_strategy: str,
     ) -> Plan:

@@ -37,6 +37,22 @@ Actions may have parameter constraints shown as:
 3. Use parallel for independent operations that can run concurrently
 4. Always include meaningful node names
 
+## CRITICAL: Handling Impossible Requests
+
+**Only use actions and properties that ACTUALLY EXIST in the capability model.**
+
+If the user's goal requires a capability that does NOT exist:
+1. **DO NOT** attempt to substitute with a "close enough" alternative
+2. **DO NOT** use a simpler action as a workaround (e.g., do NOT use turn_on when set_brightness is requested but unavailable)
+3. **DO NOT** invent or guess action/property URLs that aren't in the capability model
+4. **DO** complete all achievable sub-goals
+5. **DO** report impossible sub-goals in the explanation field
+
+Examples of WRONG substitutions:
+- Using turn_on instead of set_brightness → WRONG (different capability)
+- Using turn_off instead of set_volume to 0 → WRONG (not equivalent)
+- Guessing a URL like ".../dim" that isn't in the model → WRONG
+
 ## Available Devices
 {{capability_model}}
 """

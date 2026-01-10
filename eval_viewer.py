@@ -130,6 +130,7 @@ def generate_css() -> str:
             border: 2px solid #334155; overflow: hidden;
         }
         .test-card.success { border-left: 4px solid #22c55e; }
+        .test-card.quantifiable { border-left: 4px solid #f59e0b; }
         .test-card.error { border-left: 4px solid #ef4444; }
         .test-header {
             display: flex; align-items: center; padding: 12px 16px; cursor: pointer; gap: 12px;
@@ -137,6 +138,7 @@ def generate_css() -> str:
         .test-header:hover { background: #334155; }
         .test-status { font-weight: bold; font-size: 12px; padding: 4px 10px; border-radius: 4px; }
         .test-status.success { background: #166534; color: #86efac; }
+        .test-status.quantifiable { background: #92400e; color: #fbbf24; }
         .test-status.error { background: #7f1d1d; color: #fca5a5; }
         .test-id { font-family: monospace; color: #94a3b8; flex-grow: 1; }
         .test-expand-icon { color: #64748b; transition: transform 0.2s; font-size: 12px; }
@@ -263,8 +265,17 @@ def generate_css() -> str:
             background: #2d1f1f; border: 1px solid #ef4444; border-radius: 6px; padding: 12px;
         }
         .failure-analysis h4 { color: #fca5a5; margin: 0 0 10px; font-size: 14px; }
+        
+        /* Partial success analysis */
+        .partial-analysis {
+            background: #2d2a1f; border: 1px solid #f59e0b; border-radius: 6px; padding: 12px;
+        }
+        .partial-analysis h4 { color: #fbbf24; margin: 0 0 10px; font-size: 14px; }
+        
         .failure-reason { color: #fecaca; font-size: 13px; margin: 4px 0; }
         .failure-reason strong { color: #f87171; }
+        .partial-analysis .failure-reason { color: #fef3c7; }
+        .partial-analysis .failure-reason strong { color: #fbbf24; }
 
         /* Failure type badges */
         .failure-type-badge {
@@ -292,6 +303,12 @@ def generate_info_box() -> str:
         <h3>Understanding This Report</h3>
         <p><strong>Ground Truth:</strong> The expected correct behavior from the HomeBench dataset - which actions should be called with what parameters, and what property values should result.</p>
         <p><strong>Impossible Request:</strong> Test cases where the user asks for something that <em>cannot</em> be done with the available devices. For example, asking to "set brightness to 90" on a light that only has on/off capability (no brightness control). The system should recognize these and <em>not</em> attempt them - success means correctly identifying the request as impossible.</p>
+        <p><strong>Result Types:</strong></p>
+        <ul style="margin: 5px 0 5px 20px; color: #cbd5e1;">
+            <li><strong style="color: #22c55e;">Pass (Success)</strong> - All expected actions matched, all properties verified correctly</li>
+            <li><strong style="color: #fbbf24;">Partial (Quantifiable)</strong> - Plan executed but with some missing/extra actions or property mismatches</li>
+            <li><strong style="color: #ef4444;">Fail</strong> - No plan generated, execution failed, or impossible request not detected</li>
+        </ul>
         <p><strong>Action Matching:</strong> <code>Matched</code> = correctly identified action, <code>Missing</code> = expected action not in plan, <code>Extra</code> = unexpected action added to plan.</p>
         <p><strong>Property Verification:</strong> After execution, we check if device properties match expected values (e.g., temperature is actually 21 after setting it).</p>
     </div>
@@ -301,6 +318,8 @@ def generate_info_box() -> str:
 def generate_metrics_card(metrics: dict) -> str:
     """Generate the metrics summary card."""
     success_rate = metrics.get("success_rate", 0) * 100
+    quantifiable_rate = metrics.get("quantifiable_rate", 0) * 100
+    success_or_quantifiable_rate = metrics.get("success_or_quantifiable_rate", 0) * 100
     action_precision = metrics.get("action_precision", 0) * 100
     action_recall = metrics.get("action_recall", 0) * 100
     action_f1 = metrics.get("action_f1", 0) * 100
@@ -308,6 +327,8 @@ def generate_metrics_card(metrics: dict) -> str:
     impossible_detection_rate = metrics.get("impossible_detection_rate", 0) * 100
 
     success_class = "success" if success_rate >= 50 else "warning" if success_rate >= 25 else "error"
+    quantifiable_class = "warning"
+    combined_class = "success" if success_or_quantifiable_rate >= 50 else "warning" if success_or_quantifiable_rate >= 25 else "error"
 
     # Failure type breakdown
     failures_by_type = metrics.get("failures_by_type", {})
@@ -332,8 +353,18 @@ def generate_metrics_card(metrics: dict) -> str:
     <div class="metrics-grid">
         <div class="metric-card {success_class}">
             <div class="metric-value">{success_rate:.1f}%</div>
-            <div class="metric-label">Overall Success</div>
+            <div class="metric-label">Full Success</div>
             <div class="metric-detail">{metrics.get('successful_tests', 0)}/{metrics.get('total_tests', 0)} tests</div>
+        </div>
+        <div class="metric-card {quantifiable_class}">
+            <div class="metric-value">{quantifiable_rate:.1f}%</div>
+            <div class="metric-label">Quantifiable</div>
+            <div class="metric-detail">{metrics.get('quantifiable_tests', 0)} partial success</div>
+        </div>
+        <div class="metric-card {combined_class}">
+            <div class="metric-value">{success_or_quantifiable_rate:.1f}%</div>
+            <div class="metric-label">Success + Quantifiable</div>
+            <div class="metric-detail">{metrics.get('successful_tests', 0) + metrics.get('quantifiable_tests', 0)}/{metrics.get('total_tests', 0)} tests</div>
         </div>
         <div class="metric-card">
             <div class="metric-value">{action_f1:.1f}%</div>
@@ -576,16 +607,26 @@ def generate_execution_section(result: dict) -> str:
 
 
 def generate_failure_analysis(result: dict, test_data: dict) -> str:
-    """Generate failure analysis section."""
-    if result.get("success", False):
+    """Generate failure/partial success analysis section."""
+    success = result.get("success", "False")
+    if success == "True":
         return ""
 
     is_error_input = result.get("is_error_input_only", False)
     failure_type = result.get("failure_type", "")
+    is_quantifiable = success == "Quantifiable"
     reasons = []
 
-    # Add failure type as first reason if available
-    if failure_type:
+    # For quantifiable results, show what was partially successful
+    if is_quantifiable:
+        header_text = "Why is this a partial success?"
+        analysis_class = "partial-analysis"
+    else:
+        header_text = "Why did this test fail?"
+        analysis_class = "failure-analysis"
+
+    # Add failure type as first reason if available (only for actual failures)
+    if failure_type and not is_quantifiable:
         type_labels = {
             "parse_error": "Parse Error - LLM output couldn't be parsed as JSON",
             "compilation_error": "Compilation Error - Invalid node type or missing fields",
@@ -605,7 +646,7 @@ def generate_failure_analysis(result: dict, test_data: dict) -> str:
         if result.get("actions_in_plan"):
             reasons.append(f"Generated actions when none were possible: {len(result.get('actions_in_plan', []))} actions")
     else:
-        # Normal test failure analysis
+        # Normal test failure/partial analysis
         if not result.get("plan_generated"):
             reasons.append("Failed to generate a plan")
 
@@ -642,19 +683,26 @@ def generate_failure_analysis(result: dict, test_data: dict) -> str:
             reasons.append(f"<strong>Error:</strong> {_html_escape(result.get('error'))}")
 
     if not reasons:
-        reasons.append("Unknown failure reason")
+        if is_quantifiable:
+            reasons.append("Partial success - some actions or properties matched but not all")
+        else:
+            reasons.append("Unknown failure reason")
 
     reasons_html = "\n".join(f'<div class="failure-reason">{r}</div>' for r in reasons)
+
+    # Use different styling for quantifiable vs failed
+    section_title = "Partial Success Analysis" if is_quantifiable else "Failure Analysis"
+    box_class = "partial-analysis" if is_quantifiable else "failure-analysis"
 
     return f"""
     <div class="detail-section">
         <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
             <span class="section-icon">&#9660;</span>
-            <span class="section-title">Failure Analysis</span>
+            <span class="section-title">{section_title}</span>
         </div>
         <div class="section-content">
-            <div class="failure-analysis">
-                <h4>Why did this test fail?</h4>
+            <div class="{box_class}">
+                <h4>{header_text}</h4>
                 {reasons_html}
             </div>
         </div>
@@ -665,12 +713,20 @@ def generate_failure_analysis(result: dict, test_data: dict) -> str:
 def generate_test_card(result: dict, test_data: Optional[dict] = None, has_trace_html: bool = False) -> str:
     """Generate a comprehensive card for a single test result."""
     test_id = result.get("test_id", "unknown")
-    success = result.get("success", False)
+    success = result.get("success", "False")  # Can be "True", "False", or "Quantifiable"
     is_error_input = result.get("is_error_input_only", False)
     failure_type = result.get("failure_type", "")
 
-    status_class = "success" if success else "error"
-    status_text = "PASS" if success else "FAIL"
+    # Determine status class and text based on success value
+    if success == "True":
+        status_class = "success"
+        status_text = "PASS"
+    elif success == "Quantifiable":
+        status_class = "quantifiable"
+        status_text = "PARTIAL"
+    else:
+        status_class = "error"
+        status_text = "FAIL"
 
     if is_error_input:
         badge = '<span class="badge badge-impossible">IMPOSSIBLE REQUEST</span>'
@@ -679,7 +735,7 @@ def generate_test_card(result: dict, test_data: Optional[dict] = None, has_trace
 
     # Add failure type badge for failed tests
     failure_badge = ""
-    if not success and failure_type:
+    if success == "False" and failure_type:
         failure_badge = f'<span class="failure-type-badge {_html_escape(failure_type)}">{_html_escape(failure_type.replace("_", " "))}</span>'
 
     # Add link to individual trace if available
@@ -693,10 +749,10 @@ def generate_test_card(result: dict, test_data: Optional[dict] = None, has_trace
     ground_truth = generate_ground_truth_section(test_data or {}, is_error_input)
     action_comparison = generate_action_comparison_section(result)
     execution_section = generate_execution_section(result)
-    failure_analysis = generate_failure_analysis(result, test_data or {})
+    failure_analysis = generate_failure_analysis(result, test_data or {}) if success != "True" else ""
 
     return f"""
-    <div class="test-card {status_class}" data-success="{str(success).lower()}" data-error-input="{str(is_error_input).lower()}" data-failure-type="{_html_escape(failure_type)}">
+    <div class="test-card {status_class}" data-success="{_html_escape(str(success))}" data-error-input="{str(is_error_input).lower()}" data-failure-type="{_html_escape(failure_type)}">
         <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
             <div class="test-status {status_class}">{status_text}</div>
             <div class="test-id">{_html_escape(test_id)}</div>
@@ -740,8 +796,9 @@ def generate_html_report(
 
     # Counts
     total = len(results)
-    passed = sum(1 for r in results if r.get("success"))
-    failed = total - passed
+    passed = sum(1 for r in results if r.get("success") == "True")
+    quantifiable = sum(1 for r in results if r.get("success") == "Quantifiable")
+    failed = sum(1 for r in results if r.get("success") == "False")
     error_input_count = sum(1 for r in results if r.get("is_error_input_only"))
 
     # Config summary
@@ -788,6 +845,9 @@ def generate_html_report(
             <button class="filter-btn" onclick="filterTests('passed')">
                 Passed<span class="filter-count">({passed})</span>
             </button>
+            <button class="filter-btn" onclick="filterTests('quantifiable')">
+                Quantifiable<span class="filter-count">({quantifiable})</span>
+            </button>
             <button class="filter-btn" onclick="filterTests('failed')">
                 Failed<span class="filter-count">({failed})</span>
             </button>
@@ -810,12 +870,13 @@ def generate_html_report(
             event.target.classList.add('active');
 
             document.querySelectorAll('.test-card').forEach(card => {{
-                const success = card.dataset.success === 'true';
+                const success = card.dataset.success;
                 const errorInput = card.dataset.errorInput === 'true';
 
                 let show = true;
-                if (filter === 'passed') show = success;
-                else if (filter === 'failed') show = !success;
+                if (filter === 'passed') show = success === 'True';
+                else if (filter === 'quantifiable') show = success === 'Quantifiable';
+                else if (filter === 'failed') show = success === 'False';
                 else if (filter === 'impossible') show = errorInput;
 
                 card.classList.toggle('hidden', !show);

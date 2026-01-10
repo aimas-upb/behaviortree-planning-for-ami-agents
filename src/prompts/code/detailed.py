@@ -108,13 +108,21 @@ The template nodes handle this automatically:
 2. Use EXACT URIs from the capability model
 3. Choose appropriate composite types based on dependencies
 
-## Detecting Impossible Sub-goals
-If the goal contains sub-goals that CANNOT be achieved with the available devices (e.g., setting brightness on a light without brightness control), you MUST:
-1. Still generate code for the sub-goals that CAN be achieved
-2. Report the impossible sub-goals in a comment at the top of your code like:
+## CRITICAL: Handling Impossible Requests
+
+**Only use actions and properties that ACTUALLY EXIST in the capability model.**
+
+If the goal contains sub-goals that CANNOT be achieved with the available devices:
+1. **DO NOT** attempt to substitute with a "close enough" alternative
+   - WRONG: Using turn_on when set_brightness is requested but unavailable
+   - WRONG: Using turn_off when set_volume(0) is requested but unavailable
+   - WRONG: Guessing a URL like ".../dim" that isn't in the model
+2. **DO NOT** invent or guess action/property URLs
+3. **DO** generate code for the sub-goals that CAN be achieved
+4. **DO** report impossible sub-goals in a comment at the top of your code:
 ```python
-# IMPOSSIBLE: Set brightness on store room light (no brightness control available)
-# IMPOSSIBLE: Adjust curtain in kitchen (no curtain device found)
+# IMPOSSIBLE: Set brightness on store room light (device has no brightness control - cannot substitute with turn_on)
+# IMPOSSIBLE: Adjust curtain in kitchen (no curtain device found in this room)
 ```
 
 ## Available Devices
@@ -130,7 +138,7 @@ Requirements:
 4. Use PropertyConditionNode for condition checks
 5. Use EXACT URIs from the capability model
 
-Available imports (already provided):
+Do NOT use any imports. The following are already provided:
 - py_trees
 - ActionAffordanceNode
 - PropertyConditionNode
