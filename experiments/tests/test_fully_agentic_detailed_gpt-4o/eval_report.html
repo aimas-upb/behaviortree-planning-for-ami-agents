@@ -1,0 +1,2690 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>HomeBench Evaluation Report</title>
+    
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        h1 { color: #38bdf8; text-align: center; margin-bottom: 5px; }
+        h2 { color: #94a3b8; font-size: 16px; margin: 20px 0 10px; }
+        .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; }
+
+        /* Info box for explanations */
+        .info-box {
+            background: #1e3a5f;
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+        .info-box h3 { color: #60a5fa; margin: 0 0 10px; font-size: 15px; }
+        .info-box p { margin: 5px 0; color: #cbd5e1; }
+        .info-box code { background: #0f172a; padding: 2px 6px; border-radius: 3px; }
+
+        /* Config summary */
+        .config-summary {
+            display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;
+            padding: 15px; background: #1e293b; border-radius: 8px; margin-bottom: 20px; font-size: 14px;
+        }
+
+        /* Metrics grid */
+        .metrics-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px; margin-bottom: 25px;
+        }
+        .metric-card {
+            background: #1e293b; border-radius: 10px; padding: 16px; text-align: center;
+            border: 2px solid #334155;
+        }
+        .metric-card.success { border-color: #22c55e; }
+        .metric-card.warning { border-color: #eab308; }
+        .metric-card.error { border-color: #ef4444; }
+        .metric-value { font-size: 28px; font-weight: bold; color: #f8fafc; }
+        .metric-label { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+        .metric-detail { font-size: 11px; color: #64748b; margin-top: 3px; }
+
+        /* Filters */
+        .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .filter-btn {
+            padding: 8px 16px; border: 2px solid #334155; background: #1e293b;
+            color: #e2e8f0; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;
+        }
+        .filter-btn:hover { border-color: #38bdf8; }
+        .filter-btn.active { border-color: #38bdf8; background: #0c4a6e; }
+        .filter-count { margin-left: 5px; opacity: 0.7; }
+        .search-input {
+            padding: 8px 16px; border: 2px solid #334155; background: #1e293b;
+            color: #e2e8f0; border-radius: 6px; font-size: 14px; width: 300px;
+        }
+        .search-input:focus { outline: none; border-color: #38bdf8; }
+
+        /* Test cards */
+        .test-card {
+            background: #1e293b; border-radius: 8px; margin-bottom: 12px;
+            border: 2px solid #334155; overflow: hidden;
+        }
+        .test-card.success { border-left: 4px solid #22c55e; }
+        .test-card.quantifiable { border-left: 4px solid #f59e0b; }
+        .test-card.error { border-left: 4px solid #ef4444; }
+        .test-header {
+            display: flex; align-items: center; padding: 12px 16px; cursor: pointer; gap: 12px;
+        }
+        .test-header:hover { background: #334155; }
+        .test-status { font-weight: bold; font-size: 12px; padding: 4px 10px; border-radius: 4px; }
+        .test-status.success { background: #166534; color: #86efac; }
+        .test-status.quantifiable { background: #92400e; color: #fbbf24; }
+        .test-status.error { background: #7f1d1d; color: #fca5a5; }
+        .test-id { font-family: monospace; color: #94a3b8; flex-grow: 1; }
+        .test-expand-icon { color: #64748b; transition: transform 0.2s; font-size: 12px; }
+        .test-card.expanded .test-expand-icon { transform: rotate(180deg); }
+
+        .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+        .badge-impossible { background: #7c3aed; color: #e9d5ff; }
+        .badge-normal { background: #334155; color: #94a3b8; }
+        .trace-link {
+            font-size: 12px; padding: 4px 10px; border-radius: 4px;
+            background: #0c4a6e; color: #38bdf8; text-decoration: none;
+            margin-left: 8px; transition: background 0.2s;
+        }
+        .trace-link:hover { background: #075985; }
+
+        .test-goal {
+            padding: 8px 16px 12px; color: #f1f5f9; font-size: 15px;
+            border-bottom: 1px solid #334155; font-style: italic;
+        }
+        .test-details { display: none; padding: 0; background: #0f172a; }
+        .test-card.expanded .test-details { display: block; }
+
+        /* Sections within test details */
+        .detail-section {
+            border-bottom: 1px solid #1e293b; padding: 16px;
+        }
+        .detail-section:last-child { border-bottom: none; }
+        .section-header {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+            cursor: pointer;
+        }
+        .section-title {
+            font-weight: 600; font-size: 14px; color: #94a3b8;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .section-icon { color: #64748b; font-size: 10px; transition: transform 0.2s; }
+        .detail-section.collapsed .section-content { display: none; }
+        .detail-section.collapsed .section-icon { transform: rotate(-90deg); }
+
+        /* Ground truth */
+        .ground-truth {
+            background: #1a2744; border: 1px solid #3b82f6; border-radius: 6px; padding: 12px;
+        }
+        .gt-label { color: #60a5fa; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+        .gt-action {
+            background: #0f172a; padding: 8px 12px; border-radius: 4px; margin: 6px 0;
+            font-family: monospace; font-size: 13px;
+        }
+        .gt-action .action-name { color: #22c55e; }
+        .gt-action .params { color: #fbbf24; margin-left: 10px; }
+        .gt-test { color: #94a3b8; font-size: 12px; margin-top: 4px; }
+        .gt-test .prop { color: #60a5fa; }
+        .gt-test .expected { color: #22c55e; }
+
+        /* Impossible request explanation */
+        .impossible-box {
+            background: #2d1f4e; border: 1px solid #7c3aed; border-radius: 6px; padding: 12px;
+        }
+        .impossible-box h4 { color: #a78bfa; margin: 0 0 8px; font-size: 14px; }
+        .impossible-box p { color: #c4b5fd; margin: 4px 0; font-size: 13px; }
+
+        /* Comparison boxes */
+        .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 900px) { .comparison-grid { grid-template-columns: 1fr; } }
+
+        .comparison-box {
+            background: #1e293b; border-radius: 6px; padding: 12px;
+            border: 1px solid #334155;
+        }
+        .comparison-box.expected { border-color: #3b82f6; }
+        .comparison-box.actual { border-color: #f59e0b; }
+        .comparison-box h4 {
+            margin: 0 0 10px; font-size: 13px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .comparison-box.expected h4 { color: #60a5fa; }
+        .comparison-box.actual h4 { color: #fbbf24; }
+
+        /* Action lists */
+        .action-list { list-style: none; padding: 0; margin: 0; }
+        .action-list li {
+            padding: 6px 10px; background: #0f172a; border-radius: 4px; margin: 4px 0;
+            font-family: monospace; font-size: 12px; display: flex; flex-wrap: wrap; gap: 8px;
+        }
+        .action-url { color: #e2e8f0; word-break: break-all; }
+        .action-params { color: #fbbf24; }
+        .action-status { margin-left: auto; font-weight: bold; }
+        .action-status.matched { color: #22c55e; }
+        .action-status.missing { color: #ef4444; }
+        .action-status.extra { color: #f59e0b; }
+
+        /* Code blocks */
+        pre.code-block {
+            background: #0d1117; padding: 12px; border-radius: 6px;
+            overflow-x: auto; font-size: 12px; line-height: 1.4;
+            max-height: 400px; overflow-y: auto;
+        }
+
+        /* Execution result */
+        .exec-result {
+            display: flex; flex-wrap: wrap; gap: 15px; padding: 12px;
+            background: #1e293b; border-radius: 6px;
+        }
+        .exec-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+        .exec-label { color: #94a3b8; }
+        .exec-value { font-weight: 600; }
+        .exec-value.success { color: #22c55e; }
+        .exec-value.failure { color: #ef4444; }
+
+        /* Property verification */
+        .prop-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .prop-table th {
+            text-align: left; padding: 8px 10px; background: #1e293b; color: #94a3b8; font-weight: 500;
+        }
+        .prop-table td { padding: 8px 10px; border-bottom: 1px solid #334155; }
+        .prop-table tr.match { background: rgba(34, 197, 94, 0.1); }
+        .prop-table tr.mismatch { background: rgba(239, 68, 68, 0.1); }
+        .match-icon { font-size: 14px; }
+        .match-icon.yes { color: #22c55e; }
+        .match-icon.no { color: #ef4444; }
+
+        /* Failure analysis */
+        .failure-analysis {
+            background: #2d1f1f; border: 1px solid #ef4444; border-radius: 6px; padding: 12px;
+        }
+        .failure-analysis h4 { color: #fca5a5; margin: 0 0 10px; font-size: 14px; }
+        
+        /* Partial success analysis */
+        .partial-analysis {
+            background: #2d2a1f; border: 1px solid #f59e0b; border-radius: 6px; padding: 12px;
+        }
+        .partial-analysis h4 { color: #fbbf24; margin: 0 0 10px; font-size: 14px; }
+        
+        .failure-reason { color: #fecaca; font-size: 13px; margin: 4px 0; }
+        .failure-reason strong { color: #f87171; }
+        .partial-analysis .failure-reason { color: #fef3c7; }
+        .partial-analysis .failure-reason strong { color: #fbbf24; }
+
+        /* Failure type badges */
+        .failure-type-badge {
+            font-size: 10px; padding: 2px 8px; border-radius: 10px;
+            font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .failure-type-badge.parse_error { background: #7c3aed; color: #e9d5ff; }
+        .failure-type-badge.compilation_error { background: #dc2626; color: #fecaca; }
+        .failure-type-badge.execution_error { background: #ea580c; color: #fed7aa; }
+        .failure-type-badge.action_mismatch { background: #ca8a04; color: #fef3c7; }
+        .failure-type-badge.property_mismatch { background: #0891b2; color: #cffafe; }
+        .failure-type-badge.error_input_not_detected { background: #db2777; color: #fbcfe8; }
+        .failure-type-badge.other { background: #4b5563; color: #e5e7eb; }
+
+        /* Hidden */
+        .test-card.hidden { display: none; }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <h1>HomeBench Evaluation Report</h1>
+        <p class="subtitle">Generated 2026-01-11 23:27:28</p>
+
+        
+        <div class="config-summary">
+            <span><strong>Model:</strong> gpt-4o</span>
+            <span><strong>Discovery:</strong> agentic / agentic</span>
+            <span><strong>Reasoning:</strong> none</span>
+            <span><strong>Output:</strong> json_ir</span>
+        </div>
+        
+        
+    <div class="info-box">
+        <h3>Understanding This Report</h3>
+        <p><strong>Ground Truth:</strong> The expected correct behavior from the HomeBench dataset - which actions should be called with what parameters, and what property values should result.</p>
+        <p><strong>Impossible Request:</strong> Test cases where the user asks for something that <em>cannot</em> be done with the available devices. For example, asking to "set brightness to 90" on a light that only has on/off capability (no brightness control). The system should recognize these and <em>not</em> attempt them - success means correctly identifying the request as impossible.</p>
+        <p><strong>Result Types:</strong></p>
+        <ul style="margin: 5px 0 5px 20px; color: #cbd5e1;">
+            <li><strong style="color: #22c55e;">Pass (Success)</strong> - All expected actions matched, all properties verified correctly</li>
+            <li><strong style="color: #fbbf24;">Partial (Quantifiable)</strong> - Plan executed but with some missing/extra actions or property mismatches</li>
+            <li><strong style="color: #ef4444;">Fail</strong> - No plan generated, execution failed, or impossible request not detected</li>
+        </ul>
+        <p><strong>Action Matching:</strong> <code>Matched</code> = correctly identified action, <code>Missing</code> = expected action not in plan, <code>Extra</code> = unexpected action added to plan.</p>
+        <p><strong>Property Verification:</strong> After execution, we check if device properties match expected values (e.g., temperature is actually 21 after setting it).</p>
+    </div>
+    
+        
+    <div class="metrics-grid">
+        <div class="metric-card success">
+            <div class="metric-value">80.0%</div>
+            <div class="metric-label">Full Success</div>
+            <div class="metric-detail">16/20 tests</div>
+        </div>
+        <div class="metric-card warning">
+            <div class="metric-value">10.0%</div>
+            <div class="metric-label">Quantifiable</div>
+            <div class="metric-detail">2 partial success</div>
+        </div>
+        <div class="metric-card success">
+            <div class="metric-value">90.0%</div>
+            <div class="metric-label">Success + Quantifiable</div>
+            <div class="metric-detail">18/20 tests</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">82.6%</div>
+            <div class="metric-label">Action F1</div>
+            <div class="metric-detail">P:73% R:95%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">100.0%</div>
+            <div class="metric-label">Property Match</div>
+            <div class="metric-detail">17/17</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">0.0%</div>
+            <div class="metric-label">Impossible Detected</div>
+            <div class="metric-detail">0/22 sub-goals</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">10.5s</div>
+            <div class="metric-label">Avg Duration</div>
+            <div class="metric-detail">Total: 209s</div>
+        </div>
+        
+            <div class="metric-card error">
+                <div class="metric-value">2</div>
+                <div class="metric-label">Failed Tests</div>
+                <div class="metric-detail">execution_error: 1 (50%), error_input_not_detected: 1 (50%)</div>
+            </div>
+            
+    </div>
+    
+
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterTests('all')">
+                All<span class="filter-count">(20)</span>
+            </button>
+            <button class="filter-btn" onclick="filterTests('passed')">
+                Passed<span class="filter-count">(16)</span>
+            </button>
+            <button class="filter-btn" onclick="filterTests('quantifiable')">
+                Quantifiable<span class="filter-count">(2)</span>
+            </button>
+            <button class="filter-btn" onclick="filterTests('failed')">
+                Failed<span class="filter-count">(2)</span>
+            </button>
+            <button class="filter-btn" onclick="filterTests('impossible')">
+                Impossible<span class="filter-count">(6)</span>
+            </button>
+            <input type="text" class="search-input" placeholder="Search by test ID or goal..." oninput="searchTests(this.value)">
+            <button class="filter-btn" onclick="expandAll()" style="margin-left: auto;">Expand All</button>
+            <button class="filter-btn" onclick="collapseAll()">Collapse All</button>
+        </div>
+
+        <div class="tests-container">
+            
+    <div class="test-card quantifiable" data-success="Quantifiable" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status quantifiable">PARTIAL</div>
+            <div class="test-id">home86_multi_329</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home86_multi_329.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the humidifier intensity to 90 in the guest bedroom, decrease the brightness of the light in the balcony by 43 percent, decrease the brightness of the light in the master bedroom by 45 percent, adjust the dehumidifier intensity to 70 in the dining room, raise the air conditioner temperature in the master bedroom by 1 degree, increase the curtain degree by 20 percent in the living room, set the heating temperature to 29 in the study room, and turn off the light in the study room."</div>
+        <div class="test-details">
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Partial Success Analysis</span>
+        </div>
+        <div class="section-content">
+            <div class="partial-analysis">
+                <h4>Why is this a partial success?</h4>
+                <div class="failure-reason"><strong>Extra actions:</strong> 2 unexpected action(s) in plan</div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home86/balconyLight/set_brightness</span>
+            <span class="params">brightness=40</span>
+            <div class="gt-test">Verify: <span class="prop">home86/balconyLight/properties/brightness</span> = <span class="expected">40</span></div>
+        </div>
+        
+        <div class="gt-action">
+            <span class="action-name">home86/masterBedroomLight/set_brightness</span>
+            <span class="params">brightness=20</span>
+            <div class="gt-test">Verify: <span class="prop">home86/masterBedroomLight/properties/brightness</span> = <span class="expected">20</span></div>
+        </div>
+        
+        <div class="gt-action">
+            <span class="action-name">home86/livingRoomCurtain/set_degree</span>
+            <span class="params">degree=20</span>
+            <div class="gt-test">Verify: <span class="prop">home86/livingRoomCurtain/properties/degree</span> = <span class="expected">20</span></div>
+        </div>
+        
+        <div class="gt-action">
+            <span class="action-name">home86/studyRoomLight/turn_off</span>
+            <span class="params"></span>
+            <div class="gt-test">Verify: <span class="prop">home86/studyRoomLight/properties/state</span> = <span class="expected">off</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home86/balconyLight/set_brightness</span>
+                <span class="action-params">brightness=40</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home86/masterBedroomLight/set_brightness</span>
+                <span class="action-params">brightness=20</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home86/livingRoomCurtain/set_degree</span>
+                <span class="action-params">degree=20</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home86/studyRoomLight/turn_off</span>
+                <span class="action-params">(none)</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home86/guestBedroomDehumidifiers/set_intensity</span>
+                <span class="action-params">intensity=90</span>
+                <span class="action-status extra">EXTRA</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home86/balconyLight/set_brightness</span>
+                <span class="action-params">brightness=40</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home86/masterBedroomLight/set_brightness</span>
+                <span class="action-params">brightness=20</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home86/dingRoomDehumidifiers/turn_on</span>
+                <span class="action-params">(none)</span>
+                <span class="action-status extra">EXTRA</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home86/livingRoomCurtain/set_degree</span>
+                <span class="action-params">degree=20</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home86/studyRoomLight/turn_off</span>
+                <span class="action-params">(none)</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">20.06s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home86/balconyLight/properties/brightness</td>
+                <td><code>40</code></td>
+                <td><code>40</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            
+            <tr class="match">
+                <td>home86/masterBedroomLight/properties/brightness</td>
+                <td><code>20</code></td>
+                <td><code>20</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            
+            <tr class="match">
+                <td>home86/livingRoomCurtain/properties/degree</td>
+                <td><code>20</code></td>
+                <td><code>20</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            
+            <tr class="match">
+                <td>home86/studyRoomLight/properties/state</td>
+                <td><code>off</code></td>
+                <td><code>off</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home74_one_450</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home74_one_450.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the brightness of the light to 20 in the bathroom."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home74/bathroomLight/set_brightness</span>
+            <span class="params">brightness=20</span>
+            <div class="gt-test">Verify: <span class="prop">home74/bathroomLight/properties/brightness</span> = <span class="expected">20</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home74/bathroomLight/set_brightness</span>
+                <span class="action-params">brightness=20</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home74/bathroomLight/set_brightness</span>
+                <span class="action-params">brightness=20</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">8.25s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home74/bathroomLight/properties/brightness</td>
+                <td><code>20</code></td>
+                <td><code>20</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="true" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home69_one_1165</div>
+            <span class="badge badge-impossible">IMPOSSIBLE REQUEST</span>
+            
+            <a href="traces/home69_one_1165.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the intensity of the aromatherapy in the foyer to 50."</div>
+        <div class="test-details">
+            
+            
+        <div class="detail-section">
+            <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <span class="section-icon">&#9660;</span>
+                <span class="section-title">Ground Truth (Expected Behavior)</span>
+            </div>
+            <div class="section-content">
+                <div class="impossible-box">
+                    <h4>This is an Impossible Request</h4>
+                    <p>The user is asking for something that <strong>cannot be done</strong> with the available devices.</p>
+                    <p>The system should recognize this and <strong>not attempt</strong> any action, or fail gracefully.</p>
+                    <p><strong>Success criteria:</strong> No successful execution of an action, or recognizing the request is invalid.</p>
+                </div>
+            </div>
+        </div>
+        
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions expected</li></ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions generated</li></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">0</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">No behavior tree to execute.</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">20.04s</span>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home27_one_366</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home27_one_366.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the intensity of the aromatherapy device to 80 on the balcony."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home27/balconyAromatherapy/set_intensity</span>
+            <span class="params">intensity=80</span>
+            <div class="gt-test">Verify: <span class="prop">home27/balconyAromatherapy/properties/intensity</span> = <span class="expected">80</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home27/balconyAromatherapy/set_intensity</span>
+                <span class="action-params">intensity=80</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home27/balconyAromatherapy/set_intensity</span>
+                <span class="action-params">intensity=80</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">8.19s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home27/balconyAromatherapy/properties/intensity</td>
+                <td><code>80</code></td>
+                <td><code>80</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="true" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home28_one_1013</div>
+            <span class="badge badge-impossible">IMPOSSIBLE REQUEST</span>
+            
+            <a href="traces/home28_one_1013.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Close the curtains in the living room."</div>
+        <div class="test-details">
+            
+            
+        <div class="detail-section">
+            <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <span class="section-icon">&#9660;</span>
+                <span class="section-title">Ground Truth (Expected Behavior)</span>
+            </div>
+            <div class="section-content">
+                <div class="impossible-box">
+                    <h4>This is an Impossible Request</h4>
+                    <p>The user is asking for something that <strong>cannot be done</strong> with the available devices.</p>
+                    <p>The system should recognize this and <strong>not attempt</strong> any action, or fail gracefully.</p>
+                    <p><strong>Success criteria:</strong> No successful execution of an action, or recognizing the request is invalid.</p>
+                </div>
+            </div>
+        </div>
+        
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions expected</li></ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions generated</li></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">0</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">No behavior tree to execute.</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">7.40s</span>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home83_one_80</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home83_one_80.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the intensity of the dehumidifier to 50 in the master bedroom."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home83/masterBedroomDehumidifiers/set_intensity</span>
+            <span class="params">intensity=50</span>
+            <div class="gt-test">Verify: <span class="prop">home83/masterBedroomDehumidifiers/properties/intensity</span> = <span class="expected">50</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home83/masterBedroomDehumidifiers/set_intensity</span>
+                <span class="action-params">intensity=50</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home83/masterBedroomDehumidifiers/set_intensity</span>
+                <span class="action-params">intensity=50</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">8.83s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home83/masterBedroomDehumidifiers/properties/intensity</td>
+                <td><code>50</code></td>
+                <td><code>50</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="true" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home72_one_616</div>
+            <span class="badge badge-impossible">IMPOSSIBLE REQUEST</span>
+            
+            <a href="traces/home72_one_616.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the fan speed of the heating system to high in the master bedroom."</div>
+        <div class="test-details">
+            
+            
+        <div class="detail-section">
+            <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <span class="section-icon">&#9660;</span>
+                <span class="section-title">Ground Truth (Expected Behavior)</span>
+            </div>
+            <div class="section-content">
+                <div class="impossible-box">
+                    <h4>This is an Impossible Request</h4>
+                    <p>The user is asking for something that <strong>cannot be done</strong> with the available devices.</p>
+                    <p>The system should recognize this and <strong>not attempt</strong> any action, or fail gracefully.</p>
+                    <p><strong>Success criteria:</strong> No successful execution of an action, or recognizing the request is invalid.</p>
+                </div>
+            </div>
+        </div>
+        
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions expected</li></ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions generated</li></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">9.17s</span>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="true" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home65_one_1301</div>
+            <span class="badge badge-impossible">IMPOSSIBLE REQUEST</span>
+            
+            <a href="traces/home65_one_1301.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the heating temperature in the bathroom to 21 degrees."</div>
+        <div class="test-details">
+            
+            
+        <div class="detail-section">
+            <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <span class="section-icon">&#9660;</span>
+                <span class="section-title">Ground Truth (Expected Behavior)</span>
+            </div>
+            <div class="section-content">
+                <div class="impossible-box">
+                    <h4>This is an Impossible Request</h4>
+                    <p>The user is asking for something that <strong>cannot be done</strong> with the available devices.</p>
+                    <p>The system should recognize this and <strong>not attempt</strong> any action, or fail gracefully.</p>
+                    <p><strong>Success criteria:</strong> No successful execution of an action, or recognizing the request is invalid.</p>
+                </div>
+            </div>
+        </div>
+        
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions expected</li></ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions generated</li></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">0</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">No behavior tree to execute.</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">4.22s</span>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card quantifiable" data-success="Quantifiable" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status quantifiable">PARTIAL</div>
+            <div class="test-id">home88_multi_271</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home88_multi_271.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Open the blinds in the dining room, increase the intensity of the humidifier in the study room by 40 percent, set the intensity of the aromatherapy in the balcony to 70, adjust the dehumidifiers intensity to 20 in the master bedroom, set the brightness of the light to 70 in the master bedroom, set the air conditioner temperature to 24 in the guest bedroom, and set the air conditioner temperature to 30 in the living room."</div>
+        <div class="test-details">
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Partial Success Analysis</span>
+        </div>
+        <div class="section-content">
+            <div class="partial-analysis">
+                <h4>Why is this a partial success?</h4>
+                <div class="failure-reason"><strong>Extra actions:</strong> 2 unexpected action(s) in plan</div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home88/masterBedroomLight/set_brightness</span>
+            <span class="params">brightness=70</span>
+            <div class="gt-test">Verify: <span class="prop">home88/masterBedroomLight/properties/brightness</span> = <span class="expected">70</span></div>
+        </div>
+        
+        <div class="gt-action">
+            <span class="action-name">home88/guestBedroomAirConditioner/set_temperature</span>
+            <span class="params">temperature=24</span>
+            <div class="gt-test">Verify: <span class="prop">home88/guestBedroomAirConditioner/properties/temperature</span> = <span class="expected">24</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home88/masterBedroomLight/set_brightness</span>
+                <span class="action-params">brightness=70</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home88/guestBedroomAirConditioner/set_temperature</span>
+                <span class="action-params">temperature=24</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home88/studyRoomDehumidifiers/set_intensity</span>
+                <span class="action-params">intensity=56</span>
+                <span class="action-status extra">EXTRA</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home88/masterBedroomAromatherapy/set_intensity</span>
+                <span class="action-params">intensity=70</span>
+                <span class="action-status extra">EXTRA</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home88/masterBedroomLight/set_brightness</span>
+                <span class="action-params">brightness=70</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home88/guestBedroomAirConditioner/set_temperature</span>
+                <span class="action-params">temperature=24</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">25.84s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home88/masterBedroomLight/properties/brightness</td>
+                <td><code>70</code></td>
+                <td><code>70</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            
+            <tr class="match">
+                <td>home88/guestBedroomAirConditioner/properties/temperature</td>
+                <td><code>24</code></td>
+                <td><code>24</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card error" data-success="False" data-error-input="false" data-failure-type="execution_error">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status error">FAIL</div>
+            <div class="test-id">home73_multi_369</div>
+            <span class="badge badge-normal">NORMAL</span>
+            <span class="failure-type-badge execution_error">execution error</span>
+            <a href="traces/home73_multi_369.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the brightness of the light to 60 in the guest bedroom, then to 30 in the guest bedroom, decrease the heating temperature by 7 degrees in the study room, set the heating temperature to 24 in the master bedroom, lower the air conditioner temperature by 5 degrees in the living room, set the fan speed to medium in the master bedroom, adjust the air conditioner temperature to 20 in the study room, increase the brightness of the light to 100 in the balcony, and increase the intensity of the humidifier by 13 percent in the study room."</div>
+        <div class="test-details">
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Failure Analysis</span>
+        </div>
+        <div class="section-content">
+            <div class="failure-analysis">
+                <h4>Why did this test fail?</h4>
+                <div class="failure-reason"><strong>Failure Type:</strong> <span style="color: #f59e0b;">Execution Error - Behavior tree execution failed</span></div>
+<div class="failure-reason"><strong>Extra actions:</strong> 2 unexpected action(s) in plan</div>
+<div class="failure-reason">Plan was generated but <strong>execution failed</strong></div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home73/studyRoomAirConditioner/set_temperature</span>
+            <span class="params">temperature=20</span>
+            <div class="gt-test">Verify: <span class="prop">home73/studyRoomAirConditioner/properties/temperature</span> = <span class="expected">20</span></div>
+        </div>
+        
+        <div class="gt-action">
+            <span class="action-name">home73/balconyLight/set_brightness</span>
+            <span class="params">brightness=100</span>
+            <div class="gt-test">Verify: <span class="prop">home73/balconyLight/properties/brightness</span> = <span class="expected">100</span></div>
+        </div>
+        
+        <div class="gt-action">
+            <span class="action-name">home73/studyRoomHumidifier/set_intensity</span>
+            <span class="params">intensity=60</span>
+            <div class="gt-test">Verify: <span class="prop">home73/studyRoomHumidifier/properties/intensity</span> = <span class="expected">60</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home73/studyRoomAirConditioner/set_temperature</span>
+                <span class="action-params">temperature=20</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home73/balconyLight/set_brightness</span>
+                <span class="action-params">brightness=100</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home73/studyRoomHumidifier/set_intensity</span>
+                <span class="action-params">intensity=60</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home73/masterBedroomHeating/set_temperature</span>
+                <span class="action-params">temperature=24</span>
+                <span class="action-status extra">EXTRA</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home73/studyRoomAirConditioner/set_temperature</span>
+                <span class="action-params">temperature=20</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home73/balconyLight/set_brightness</span>
+                <span class="action-params">brightness=100</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home73/studyRoomHumidifier/set_intensity</span>
+                <span class="action-params">intensity=60</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            
+            <li>
+                <span class="action-url">home73/masterBedroomHeating/set_fan_speed</span>
+                <span class="action-params">fan_speed=&quot;medium&quot;</span>
+                <span class="action-status extra">EXTRA</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value failure">Failed</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">FAILURE</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">18.73s</span>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card error" data-success="False" data-error-input="true" data-failure-type="error_input_not_detected">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status error">FAIL</div>
+            <div class="test-id">home36_one_943</div>
+            <span class="badge badge-impossible">IMPOSSIBLE REQUEST</span>
+            <span class="failure-type-badge error_input_not_detected">error input not detected</span>
+            <a href="traces/home36_one_943.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the heating temperature to 30 degrees in the living room."</div>
+        <div class="test-details">
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Failure Analysis</span>
+        </div>
+        <div class="section-content">
+            <div class="failure-analysis">
+                <h4>Why did this test fail?</h4>
+                <div class="failure-reason"><strong>Failure Type:</strong> <span style="color: #f59e0b;">Error Input Not Detected - System executed an impossible goal</span></div>
+<div class="failure-reason">System <strong>incorrectly executed</strong> an action for an impossible request</div>
+<div class="failure-reason">Generated actions when none were possible: 1 actions</div>
+            </div>
+        </div>
+    </div>
+    
+            
+        <div class="detail-section">
+            <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <span class="section-icon">&#9660;</span>
+                <span class="section-title">Ground Truth (Expected Behavior)</span>
+            </div>
+            <div class="section-content">
+                <div class="impossible-box">
+                    <h4>This is an Impossible Request</h4>
+                    <p>The user is asking for something that <strong>cannot be done</strong> with the available devices.</p>
+                    <p>The system should recognize this and <strong>not attempt</strong> any action, or fail gracefully.</p>
+                    <p><strong>Success criteria:</strong> No successful execution of an action, or recognizing the request is invalid.</p>
+                </div>
+            </div>
+        </div>
+        
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions expected</li></ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home36/livingRoomAirConditioner/set_temperature</span>
+                <span class="action-params">temperature=30</span>
+                <span class="action-status extra">EXTRA</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">7.29s</span>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home66_one_650</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home66_one_650.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the brightness of the light in the corridor to 90."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home66/corridorLight/set_brightness</span>
+            <span class="params">brightness=90</span>
+            <div class="gt-test">Verify: <span class="prop">home66/corridorLight/properties/brightness</span> = <span class="expected">90</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home66/corridorLight/set_brightness</span>
+                <span class="action-params">brightness=90</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home66/corridorLight/set_brightness</span>
+                <span class="action-params">brightness=90</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">6.63s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home66/corridorLight/properties/brightness</td>
+                <td><code>90</code></td>
+                <td><code>90</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home56_one_130</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home56_one_130.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the brightness of the light to 10 in the living room."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home56/livingRoomLight/set_brightness</span>
+            <span class="params">brightness=10</span>
+            <div class="gt-test">Verify: <span class="prop">home56/livingRoomLight/properties/brightness</span> = <span class="expected">10</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home56/livingRoomLight/set_brightness</span>
+                <span class="action-params">brightness=10</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home56/livingRoomLight/set_brightness</span>
+                <span class="action-params">brightness=10</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">7.07s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home56/livingRoomLight/properties/brightness</td>
+                <td><code>10</code></td>
+                <td><code>10</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home45_one_212</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home45_one_212.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the intensity of the aromatherapy device to 80 in the guest bedroom."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home45/guestBedroomAromatherapy/set_intensity</span>
+            <span class="params">intensity=80</span>
+            <div class="gt-test">Verify: <span class="prop">home45/guestBedroomAromatherapy/properties/intensity</span> = <span class="expected">80</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home45/guestBedroomAromatherapy/set_intensity</span>
+                <span class="action-params">intensity=80</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home45/guestBedroomAromatherapy/set_intensity</span>
+                <span class="action-params">intensity=80</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">7.72s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home45/guestBedroomAromatherapy/properties/intensity</td>
+                <td><code>80</code></td>
+                <td><code>80</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home34_one_367</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home34_one_367.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Increase the brightness of the light in the study room by 8 percent."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home34/studyRoomLight/set_brightness</span>
+            <span class="params">brightness=60</span>
+            <div class="gt-test">Verify: <span class="prop">home34/studyRoomLight/properties/brightness</span> = <span class="expected">60</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home34/studyRoomLight/set_brightness</span>
+                <span class="action-params">brightness=60</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home34/studyRoomLight/set_brightness</span>
+                <span class="action-params">brightness=60</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">7.80s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home34/studyRoomLight/properties/brightness</td>
+                <td><code>60</code></td>
+                <td><code>60</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home0_multi_36</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home0_multi_36.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the curtain degree to 0 in the living room and adjust the dehumidifier intensity to 70 in the living room."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home0/livingRoomDehumidifiers/set_intensity</span>
+            <span class="params">intensity=70</span>
+            <div class="gt-test">Verify: <span class="prop">home0/livingRoomDehumidifiers/properties/intensity</span> = <span class="expected">70</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home0/livingRoomDehumidifiers/set_intensity</span>
+                <span class="action-params">intensity=70</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home0/livingRoomDehumidifiers/set_intensity</span>
+                <span class="action-params">intensity=70</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">10.24s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home0/livingRoomDehumidifiers/properties/intensity</td>
+                <td><code>70</code></td>
+                <td><code>70</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home91_one_535</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home91_one_535.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Increase the curtain degree by 10% on the balcony."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home91/balconyCurtain/set_degree</span>
+            <span class="params">degree=10</span>
+            <div class="gt-test">Verify: <span class="prop">home91/balconyCurtain/properties/degree</span> = <span class="expected">10</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home91/balconyCurtain/set_degree</span>
+                <span class="action-params">degree=10</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home91/balconyCurtain/set_degree</span>
+                <span class="action-params">degree=10</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">7.28s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home91/balconyCurtain/properties/degree</td>
+                <td><code>10</code></td>
+                <td><code>10</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="true" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home71_one_1289</div>
+            <span class="badge badge-impossible">IMPOSSIBLE REQUEST</span>
+            
+            <a href="traces/home71_one_1289.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Set the intensity of the aromatherapy in the foyer to 40."</div>
+        <div class="test-details">
+            
+            
+        <div class="detail-section">
+            <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <span class="section-icon">&#9660;</span>
+                <span class="section-title">Ground Truth (Expected Behavior)</span>
+            </div>
+            <div class="section-content">
+                <div class="impossible-box">
+                    <h4>This is an Impossible Request</h4>
+                    <p>The user is asking for something that <strong>cannot be done</strong> with the available devices.</p>
+                    <p>The system should recognize this and <strong>not attempt</strong> any action, or fail gracefully.</p>
+                    <p><strong>Success criteria:</strong> No successful execution of an action, or recognizing the request is invalid.</p>
+                </div>
+            </div>
+        </div>
+        
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions expected</li></ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions generated</li></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">0</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">No behavior tree to execute.</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">7.91s</span>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home62_one_301</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home62_one_301.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Open the curtains in the living room by increasing their degree by 90 percent."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home62/livingRoomCurtain/set_degree</span>
+            <span class="params">degree=90</span>
+            <div class="gt-test">Verify: <span class="prop">home62/livingRoomCurtain/properties/degree</span> = <span class="expected">90</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home62/livingRoomCurtain/set_degree</span>
+                <span class="action-params">degree=90</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home62/livingRoomCurtain/set_degree</span>
+                <span class="action-params">degree=90</span>
+                <span class="action-status matched">MATCHED</span>
+            </li>
+            </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">8.33s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home62/livingRoomCurtain/properties/degree</td>
+                <td><code>90</code></td>
+                <td><code>90</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+
+    <div class="test-card success" data-success="True" data-error-input="false" data-failure-type="">
+        <div class="test-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="test-status success">PASS</div>
+            <div class="test-id">home79_one_2</div>
+            <span class="badge badge-normal">NORMAL</span>
+            
+            <a href="traces/home79_one_2.html" class="trace-link" target="_blank" onclick="event.stopPropagation()">View Full Trace ↗</a>
+            <div class="test-expand-icon">&#9660;</div>
+        </div>
+        <div class="test-goal">"Turn on the air conditioner in the master bedroom."</div>
+        <div class="test-details">
+            
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Ground Truth (Expected Behavior)</span>
+        </div>
+        <div class="section-content">
+            <div class="ground-truth">
+                <div class="gt-label">Expected Actions & Results</div>
+                
+        <div class="gt-action">
+            <span class="action-name">home79/masterBedroomAirConditioner/turn_on</span>
+            <span class="params"></span>
+            <div class="gt-test">Verify: <span class="prop">home79/masterBedroomAirConditioner/properties/state</span> = <span class="expected">on</span></div>
+        </div>
+        
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Action Comparison</span>
+        </div>
+        <div class="section-content">
+            <div class="comparison-grid">
+                <div class="comparison-box expected">
+                    <h4>Expected Actions (Ground Truth)</h4>
+                    <ul class='action-list'>
+            <li>
+                <span class="action-url">home79/masterBedroomAirConditioner/turn_on</span>
+                <span class="action-params">(none)</span>
+                <span class="action-status missing">MISSING</span>
+            </li>
+            </ul>
+                </div>
+                <div class="comparison-box actual">
+                    <h4>Generated Actions (From Plan)</h4>
+                    <ul class='action-list'><li style='color: #64748b; font-style: italic;'>No actions generated</li></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            
+    <div class="detail-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="section-icon">&#9660;</span>
+            <span class="section-title">Execution Results</span>
+        </div>
+        <div class="section-content">
+            <div class="exec-result">
+                <div class="exec-item">
+                    <span class="exec-label">Plan Generated:</span>
+                    <span class="exec-value success">Yes</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Execution:</span>
+                    <span class="exec-value success">Success</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Ticks:</span>
+                    <span class="exec-value">1</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Final Status:</span>
+                    <span class="exec-value">SUCCESS</span>
+                </div>
+                <div class="exec-item">
+                    <span class="exec-label">Duration:</span>
+                    <span class="exec-value">8.32s</span>
+                </div>
+            </div>
+            
+        <h2 style="margin-top: 15px;">Property Verification</h2>
+        <table class="prop-table">
+            <tr><th>Property</th><th>Expected</th><th>Actual</th><th></th></tr>
+        
+            <tr class="match">
+                <td>home79/masterBedroomAirConditioner/properties/state</td>
+                <td><code>on</code></td>
+                <td><code>on</code></td>
+                <td><span class="match-icon yes">&#10003;</span></td>
+            </tr>
+            </table>
+        </div>
+    </div>
+    
+        </div>
+    </div>
+    
+        </div>
+    </div>
+
+    <script>
+        function filterTests(filter) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.test-card').forEach(card => {
+                const success = card.dataset.success;
+                const errorInput = card.dataset.errorInput === 'true';
+
+                let show = true;
+                if (filter === 'passed') show = success === 'True';
+                else if (filter === 'quantifiable') show = success === 'Quantifiable';
+                else if (filter === 'failed') show = success === 'False';
+                else if (filter === 'impossible') show = errorInput;
+
+                card.classList.toggle('hidden', !show);
+            });
+        }
+
+        function searchTests(query) {
+            const lowerQuery = query.toLowerCase();
+            document.querySelectorAll('.test-card').forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.classList.toggle('hidden', !text.includes(lowerQuery));
+            });
+            if (query) {
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            } else {
+                document.querySelector('.filter-btn').classList.add('active');
+            }
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.test-card').forEach(card => {
+                if (!card.classList.contains('hidden')) {
+                    card.classList.add('expanded');
+                }
+            });
+        }
+
+        function collapseAll() {
+            document.querySelectorAll('.test-card').forEach(card => {
+                card.classList.remove('expanded');
+            });
+        }
+
+        // Auto-expand failed tests
+        document.querySelectorAll('.test-card.error').forEach((card, idx) => {
+            if (idx < 5) card.classList.add('expanded');
+        });
+    </script>
+</body>
+</html>

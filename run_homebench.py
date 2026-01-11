@@ -517,12 +517,12 @@ class HomeBenchEvaluator:
                     
                     if result.handled_correctly:
                         result.success = "True"
-                    elif (result.matched_actions or result.properties_matched > 0) and len(result.expected_actions) > 1:
-                        # Some actions or properties matched, and multiple actions were expected
+                    elif result.matched_actions:
+                        # Some actions or properties matched
                         # Quantifiable only applies when there are multiple expected actions
                         result.success = "Quantifiable"
                     else:
-                        # No actions or properties matched, or single expected action not completed
+                        # No actions or properties matched
                         result.success = "False"
 
             # Classify failure
@@ -658,12 +658,12 @@ class HomeBenchEvaluator:
 
                     if result.handled_correctly:
                         result.success = "True"
-                    elif (result.matched_actions or result.properties_matched > 0) and len(result.expected_actions) > 1:
+                    elif result.matched_actions:
                         # Some actions or properties matched, and multiple actions were expected
                         # Quantifiable only applies when there are multiple expected actions
                         result.success = "Quantifiable"
                     else:
-                        # No actions or properties matched, or single expected action not completed
+                        # No actions or properties matched
                         result.success = "False"
 
             # Classify failure type

@@ -42,7 +42,6 @@ Reasoning:
    ]
 
 Result:
-tree:
 ```json
 {{{{
   "name": "ConfigureBathroomLight",

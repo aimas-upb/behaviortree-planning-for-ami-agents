@@ -25,7 +25,7 @@ GENERATE_BT_TOOL = {
             "properties": {
                 "tree": {
                     "type": "object",
-                    "description": "Behavior tree specification in JSON format; DO NOT leave this empty",
+                    "description": "Behavior tree specification in JSON format; DO NOT leave this empty (i.e. it should be an object with at least name and type).",
                 },
                 "explanation": {
                     "type": "string",

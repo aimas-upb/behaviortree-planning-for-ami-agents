@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Experiment Trace - Unknown</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            padding: 20px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4a9eff;
+            text-align: center;
+            border-bottom: 2px solid #4a9eff;
+            padding-bottom: 10px;
+        }
+        .card {
+            border: 2px solid;
+            border-radius: 8px;
+            margin: 20px 0;
+            background: #16213e;
+        }
+        .card-title {
+            font-weight: bold;
+            font-size: 16px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #333;
+            background: rgba(0,0,0,0.2);
+            border-radius: 6px 6px 0 0;
+        }
+        .card-content {
+            padding: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #333;
+        }
+        td.label {
+            color: #06b6d4;
+            font-weight: bold;
+            width: 200px;
+        }
+        .success { color: #22c55e; font-weight: bold; }
+        .error { color: #ef4444; font-weight: bold; }
+        .highlight { color: #eab308; }
+        .dim { color: #888; }
+        .workspace { color: #06b6d4; }
+        .artifact { color: #eab308; }
+        .action { color: #22c55e; }
+        .property { color: #4a9eff; }
+        .constraint { color: #a855f7; }
+        .tree { margin: 10px 0; }
+        .tree-node { margin: 4px 0; }
+        .indent { margin-left: 20px; }
+        .indent2 { margin-left: 40px; }
+        .indent3 { margin-left: 60px; }
+        .trace-steps { margin: 10px 0; }
+        .trace-step {
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+        .trace-result {
+            margin-left: 20px;
+            color: #888;
+            font-size: 13px;
+        }
+        .step-num { color: #06b6d4; font-weight: bold; }
+        .code {
+            background: #0d1117;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .explanation {
+            font-style: italic;
+            color: #888;
+            margin-bottom: 16px;
+        }
+        .stats { color: #666; font-size: 12px; margin-top: 10px; }
+        .reasoning-block {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        hr { border: none; border-top: 1px solid #333; margin: 16px 0; }
+        /* Collapsible card styles */
+        .collapsible .card-title {
+            cursor: pointer;
+            user-select: none;
+        }
+        .collapsible .card-title:hover {
+            opacity: 0.8;
+        }
+        .collapsible .collapse-icon {
+            display: inline-block;
+            transition: transform 0.2s ease;
+            margin-right: 8px;
+        }
+        .collapsible.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        .collapsible.collapsed .card-content {
+            display: none;
+        }
+        .planning-context {
+            background: #0d1117;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Experiment Trace Viewer</h1>
+        
+    <div class="card" style="border-color: #4a9eff;">
+        <div class="card-title" style="color: #4a9eff;">Experiment Overview</div>
+        <div class="card-content"><table><tr><td class="label">Status</td><td><span class="error">FAILED</span></td></tr>
+<tr><td class="label">Goal</td><td>Set the brightness of the light to 60 in the guest bedroom, then to 30 in the guest bedroom, decrease the heating temperature by 7 degrees in the study room, set the heating temperature to 24 in the master bedroom, lower the air conditioner temperature by 5 degrees in the living room, set the fan speed to medium in the master bedroom, adjust the air conditioner temperature to 20 in the study room, increase the brightness of the light to 100 in the balcony, and increase the intensity of the humidifier by 13 percent in the study room.</td></tr>
+<tr><td class="label">Config</td><td>homebench_eval</td></tr>
+<tr><td class="label">Model</td><td>gpt-4o</td></tr>
+<tr><td class="label">Duration</td><td>18.7s</td></tr>
+<tr><td class="label">Affordance Strategy</td><td>agentic</td></tr>
+<tr><td class="label">State Strategy</td><td>agentic</td></tr>
+<tr><td class="label">Reasoning</td><td>disabled</td></tr>
+<tr><td class="label">Output Format</td><td>json_ir</td></tr></table></div>
+    </div>
+    
+    <div class="card" style="border-color: #22c55e;">
+        <div class="card-title" style="color: #22c55e;">Discovery Phase</div>
+        <div class="card-content">
+    <p><strong>Workspaces:</strong> 6 |
+    <strong>Artifacts:</strong> 7 |
+    <strong>Actions:</strong> 26 |
+    <strong>Properties:</strong> 20</p>
+    <p><strong>State Values:</strong> 6</p>
+    <div class='tree'><div class='tree-node'><span class='workspace'>home73/</span></div><div class='tree-node'><span class='workspace'>guest_bedroom/</span><div class='tree-node indent'><span class='artifact'>Guestbedroomlight</span><div class='tree-node indent2'><span class='dim'>Actions:</span><div class='tree-node indent3'><span class='action'>turnOn</span>()</div><div class='tree-node indent3'><span class='action'>turnOff</span>()</div></div><div class='tree-node indent2'><span class='dim'>Properties:</span><div class='tree-node indent3'><span class='property'>state</span>: string</div></div></div></div><div class='tree-node'><span class='workspace'>study_room/</span><div class='tree-node indent'><span class='artifact'>Studyroomairconditioner</span><div class='tree-node indent2'><span class='dim'>Actions:</span><div class='tree-node indent3'><span class='action'>setSwing</span>(swing: string <span class='constraint'>(values: ['auto', 'down', 'middle', 'up'])</span>)</div><div class='tree-node indent3'><span class='action'>setFanSpeed</span>(fan_speed: string <span class='constraint'>(values: ['auto', 'high', 'low', 'medium'])</span>)</div><div class='tree-node indent3'><span class='action'>turnOn</span>()</div><div class='tree-node indent3'><span class='action'>setTemperature</span>(temperature: integer <span class='constraint'>(range: 16-30)</span>)</div><div class='tree-node indent3'><span class='action'>turnOff</span>()</div><div class='tree-node indent3'><span class='action'>setMode</span>(mode: string <span class='constraint'>(values: ['cool', 'dry', 'fan_only', 'heat'])</span>)</div></div><div class='tree-node indent2'><span class='dim'>Properties:</span><div class='tree-node indent3'><span class='property'>mode</span>: string</div><div class='tree-node indent3'><span class='property'>swing</span>: string</div><div class='tree-node indent3'><span class='property'>temperature</span>: integer</div><div class='tree-node indent3'><span class='property'>state</span>: string</div><div class='tree-node indent3'><span class='property'>fan_speed</span>: string</div></div></div><div class='tree-node indent'><span class='artifact'>Studyroomhumidifier</span><div class='tree-node indent2'><span class='dim'>Actions:</span><div class='tree-node indent3'><span class='action'>turnOn</span>()</div><div class='tree-node indent3'><span class='action'>turnOff</span>()</div><div class='tree-node indent3'><span class='action'>setMode</span>(mode: string <span class='constraint'>(values: ['auto', 'sleep'])</span>)</div><div class='tree-node indent3'><span class='action'>setIntensity</span>(intensity: integer)</div></div><div class='tree-node indent2'><span class='dim'>Properties:</span><div class='tree-node indent3'><span class='property'>mode</span>: string</div><div class='tree-node indent3'><span class='property'>intensity</span>: integer</div><div class='tree-node indent3'><span class='property'>state</span>: string</div><div class='tree-node indent3'><span class='property'>tank</span>: integer</div></div></div></div><div class='tree-node'><span class='workspace'>living_room/</span><div class='tree-node indent'><span class='artifact'>Livingroomairpurifiers</span><div class='tree-node indent2'><span class='dim'>Actions:</span><div class='tree-node indent3'><span class='action'>turnOn</span>()</div><div class='tree-node indent3'><span class='action'>turnOff</span>()</div><div class='tree-node indent3'><span class='action'>setFanSpeed</span>(fan_speed: string <span class='constraint'>(values: ['auto', 'high', 'low', 'medium'])</span>)</div></div><div class='tree-node indent2'><span class='dim'>Properties:</span><div class='tree-node indent3'><span class='property'>fan_speed</span>: string</div><div class='tree-node indent3'><span class='property'>state</span>: string</div></div></div></div><div class='tree-node'><span class='workspace'>master_bedroom/</span><div class='tree-node indent'><span class='artifact'>Masterbedroomfan</span><div class='tree-node indent2'><span class='dim'>Actions:</span><div class='tree-node indent3'><span class='action'>turnOff</span>()</div><div class='tree-node indent3'><span class='action'>turnOn</span>()</div><div class='tree-node indent3'><span class='action'>setSwing</span>(swing: string <span class='constraint'>(values: ['auto', 'down', 'middle', 'up'])</span>)</div></div><div class='tree-node indent2'><span class='dim'>Properties:</span><div class='tree-node indent3'><span class='property'>swing</span>: string</div><div class='tree-node indent3'><span class='property'>state</span>: string</div></div></div><div class='tree-node indent'><span class='artifact'>Masterbedroomheating</span><div class='tree-node indent2'><span class='dim'>Actions:</span><div class='tree-node indent3'><span class='action'>setFanSpeed</span>(fan_speed: string <span class='constraint'>(values: ['auto', 'high', 'low', 'medium'])</span>)</div><div class='tree-node indent3'><span class='action'>setMode</span>(mode: string <span class='constraint'>(values: ['fan_only', 'heat'])</span>)</div><div class='tree-node indent3'><span class='action'>turnOn</span>()</div><div class='tree-node indent3'><span class='action'>turnOff</span>()</div></div><div class='tree-node indent2'><span class='dim'>Properties:</span><div class='tree-node indent3'><span class='property'>fan_speed</span>: string</div><div class='tree-node indent3'><span class='property'>state</span>: string</div><div class='tree-node indent3'><span class='property'>mode</span>: string</div></div></div></div><div class='tree-node'><span class='workspace'>balcony/</span><div class='tree-node indent'><span class='artifact'>Balconylight</span><div class='tree-node indent2'><span class='dim'>Actions:</span><div class='tree-node indent3'><span class='action'>turnOff</span>()</div><div class='tree-node indent3'><span class='action'>turnOn</span>()</div><div class='tree-node indent3'><span class='action'>setBrightness</span>(brightness: integer <span class='constraint'>(range: 0-100)</span>)</div><div class='tree-node indent3'><span class='action'>setColor</span>(color: array)</div></div><div class='tree-node indent2'><span class='dim'>Properties:</span><div class='tree-node indent3'><span class='property'>color</span>: array</div><div class='tree-node indent3'><span class='property'>brightness</span>: integer</div><div class='tree-node indent3'><span class='property'>state</span>: string</div></div></div></div></div></div>
+    </div>
+    
+    <div class="card" style="border-color: #4a9eff;">
+        <div class="card-title" style="color: #4a9eff;">Agentic Discovery Trace (16 tool calls)</div>
+        <div class="card-content"><div class='trace-steps'><div class='trace-step'><span class='step-num'>Step 1:</span> explore_workspace(<span class='highlight'>home73</span>)<div class='trace-result'>Sub-workspaces: ['balcony', 'bathroom', 'corridor', 'ding_room', 'foyer', 'garage', 'guest_bedroom', 'kitchen', 'living_room', 'master_bedroom', 'store_room', 'study_room']</div></div><div class='trace-step'><span class='step-num'>Step 2:</span> explore_workspace(<span class='highlight'>guest_bedroom</span>)<div class='trace-result'>Artifacts: ['Guestbedroomairconditioner', 'Guestbedroomaromatherapy', 'Guestbedroomhumidifier', 'Guestbedroomlight']</div></div><div class='trace-step'><span class='step-num'>Step 2:</span> explore_workspace(<span class='highlight'>study_room</span>)<div class='trace-result'>Artifacts: ['Studyroomairconditioner', 'Studyroomcurtain', 'Studyroomhumidifier', 'Studyroomlight']</div></div><div class='trace-step'><span class='step-num'>Step 2:</span> explore_workspace(<span class='highlight'>living_room</span>)<div class='trace-result'>Artifacts: ['Livingroomairpurifiers', 'Livingroomaromatherapy', 'Livingroomcurtain', 'Livingroomfan', 'Livingroomheating', 'Livingroomhumidifier', 'Livingroomlight', 'Livingroommediaplayer']</div></div><div class='trace-step'><span class='step-num'>Step 2:</span> explore_workspace(<span class='highlight'>master_bedroom</span>)<div class='trace-result'>Artifacts: ['Masterbedroomairpurifiers', 'Masterbedroomcurtain', 'Masterbedroomdehumidifiers', 'Masterbedroomfan', 'Masterbedroomheating', 'Masterbedroomlight', 'Masterbedroommediaplayer', 'Masterbedroomtrash']</div></div><div class='trace-step'><span class='step-num'>Step 2:</span> explore_workspace(<span class='highlight'>balcony</span>)<div class='trace-result'>Artifacts: ['Balconylight', 'Balconymediaplayer']</div></div><div class='trace-step'><span class='step-num'>Step 3:</span> inspect_artifact(<span class='highlight'>guestBedroomLight</span>)<div class='trace-result'>Actions: <span class='action'>['turnOn', 'turnOff']</span></div><div class='trace-result'>Properties: <span class='property'>['state']</span></div></div><div class='trace-step'><span class='step-num'>Step 3:</span> inspect_artifact(<span class='highlight'>studyRoomHumidifier</span>)<div class='trace-result'>Actions: <span class='action'>['turnOn', 'turnOff', 'setMode', 'setIntensity']</span></div><div class='trace-result'>Properties: <span class='property'>['mode', 'intensity', 'state', 'tank']</span></div></div><div class='trace-step'><span class='step-num'>Step 3:</span> inspect_artifact(<span class='highlight'>studyRoomAirConditioner</span>)<div class='trace-result'>Actions: <span class='action'>['setSwing', 'setFanSpeed', 'turnOn', 'setTemperature', 'turnOff', 'setMode']</span></div><div class='trace-result'>Properties: <span class='property'>['mode', 'swing', 'temperature', 'state', 'fan_speed']</span></div></div><div class='trace-step'><span class='step-num'>Step 3:</span> inspect_artifact(<span class='highlight'>masterBedroomHeating</span>)<div class='trace-result'>Actions: <span class='action'>['setFanSpeed', 'setMode', 'turnOn', 'turnOff']</span></div><div class='trace-result'>Properties: <span class='property'>['fan_speed', 'state', 'mode']</span></div></div><div class='trace-step'><span class='step-num'>Step 3:</span> inspect_artifact(<span class='highlight'>masterBedroomFan</span>)<div class='trace-result'>Actions: <span class='action'>['turnOff', 'turnOn', 'setSwing']</span></div><div class='trace-result'>Properties: <span class='property'>['swing', 'state']</span></div></div><div class='trace-step'><span class='step-num'>Step 3:</span> inspect_artifact(<span class='highlight'>livingRoomAirPurifiers</span>)<div class='trace-result'>Actions: <span class='action'>['turnOn', 'turnOff', 'setFanSpeed']</span></div><div class='trace-result'>Properties: <span class='property'>['fan_speed', 'state']</span></div></div><div class='trace-step'><span class='step-num'>Step 3:</span> inspect_artifact(<span class='highlight'>balconyLight</span>)<div class='trace-result'>Actions: <span class='action'>['turnOff', 'turnOn', 'setBrightness', 'setColor']</span></div><div class='trace-result'>Properties: <span class='property'>['color', 'brightness', 'state']</span></div></div><div class='trace-step'><span class='step-num'>Step 4:</span> inspect_artifact(<span class='highlight'>livingRoomAirPurifiers</span>)<div class='trace-result'>Actions: <span class='action'>['turnOn', 'turnOff', 'setFanSpeed']</span></div><div class='trace-result'>Properties: <span class='property'>['fan_speed', 'state']</span></div></div><div class='trace-step'><span class='step-num'>Step 4:</span> inspect_artifact(<span class='highlight'>balconyLight</span>)<div class='trace-result'>Actions: <span class='action'>['turnOff', 'turnOn', 'setBrightness', 'setColor']</span></div><div class='trace-result'>Properties: <span class='property'>['color', 'brightness', 'state']</span></div></div><div class='trace-step'><span class='step-num'>Step 5:</span> done_exploring(<span class='success'>"I have found the necessary capabilities to control the lights in the guest bedroom and balcony, adjust the humidifier and air conditioner in the study room, set the heating and fan in the master bedroom, and manage the air purifier in the living room."</span>)</div></div></div>
+    </div>
+    
+    <div class="card" style="border-color: #06b6d4;">
+        <div class="card-title" style="color: #06b6d4;">Agentic State Trace (13 reads)</div>
+        <div class="card-content"><div class='trace-steps'><div class='trace-step'><span class='step-num'>Step 2:</span> read_property(<span class='highlight'>guestBedroomLight.state</span>) -> <span class='success'>on</span></div><div class='trace-step'><span class='step-num'>Step 2:</span> read_property(<span class='highlight'>studyRoomHumidifier.intensity</span>) -> <span class='success'>47</span></div><div class='trace-step'><span class='step-num'>Step 2:</span> read_property(<span class='highlight'>studyRoomAirConditioner.temperature</span>) -> <span class='success'>21</span></div><div class='trace-step'><span class='step-num'>Step 2:</span> read_property(<span class='highlight'>masterBedroomHeating.fan_speed</span>) -> <span class='success'>auto</span></div><div class='trace-step'><span class='step-num'>Step 2:</span> read_property(<span class='highlight'>masterBedroomFan.state</span>) -> <span class='success'>off</span></div><div class='trace-step'><span class='step-num'>Step 2:</span> read_property(<span class='highlight'>balconyLight.brightness</span>) -> <span class='success'>26</span></div><div class='trace-step'><span class='step-num'>Step 3:</span> done_gathering(<span class='success'>"Gathered information includes the state of relevant artifacts: 
+1. The guest bedroom light is currently on, facilitating the setting of brightness.
+2. The study room humidifier's intensity is at 47%, which will be increased by 13%.
+3. The study room air conditioner's current temperature is 21, to be adjusted to 20.
+4. The balcony light's brightness is 26, which will be increased to 100.
+5. The master bedroom heating fan speed is set to auto, and will need to be adjusted when setting specific temperatures.
+6. The master bedroom fan is currently off, which will need to be turned on when setting the fan speed to medium.
+This state is sufficient for preparing to modify each system as per the goal requirements."</span>)</div></div></div>
+    </div>
+    
+    <div class="card collapsible collapsed" style="border-color: #f59e0b;">
+        <div class="card-title" style="color: #f59e0b;" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="collapse-icon">▼</span> Planning Context (What the Model Sees)
+        </div>
+        <div class="card-content"><pre class='planning-context'># Available Devices and Capabilities
+
+
+## home73
+
+## guest_bedroom
+
+### Guestbedroomlight
+URI: `http://localhost:8080/workspaces/home73/guest_bedroom/artifacts/guestBedroomLight#artifact`
+**Actions:**
+  - `turnOn`: `http://localhost:8080/workspaces/home73/guest_bedroom/artifacts/guestBedroomLight/turn_on`
+  - `turnOff`: `http://localhost:8080/workspaces/home73/guest_bedroom/artifacts/guestBedroomLight/turn_off`
+**Properties:**
+  - `state`: `http://localhost:8080/workspaces/home73/guest_bedroom/artifacts/guestBedroomLight/properties/state` (string, values: ['off', 'on'])
+
+## study_room
+
+### Studyroomairconditioner
+URI: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner#artifact`
+**Actions:**
+  - `setSwing`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/set_swing` - Parameters: swing: string (values: ['auto', 'down', 'middle', 'up'])
+  - `setFanSpeed`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/set_fan_speed` - Parameters: fan_speed: string (values: ['auto', 'high', 'low', 'medium'])
+  - `turnOn`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/turn_on`
+  - `setTemperature`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/set_temperature` - Parameters: temperature: integer (range: 16-30)
+  - `turnOff`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/turn_off`
+  - `setMode`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/set_mode` - Parameters: mode: string (values: ['cool', 'dry', 'fan_only', 'heat'])
+**Properties:**
+  - `mode`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/properties/mode` (string, values: ['cool', 'dry', 'fan_only', 'heat'])
+  - `swing`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/properties/swing` (string, values: ['auto', 'down', 'middle', 'up'])
+  - `temperature`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/properties/temperature` (integer)
+  - `state`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/properties/state` (string, values: ['off', 'on'])
+  - `fan_speed`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/properties/fan_speed` (string, values: ['auto', 'high', 'low', 'medium'])
+
+### Studyroomhumidifier
+URI: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier#artifact`
+**Actions:**
+  - `turnOn`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier/turn_on`
+  - `turnOff`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier/turn_off`
+  - `setMode`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier/set_mode` - Parameters: mode: string (values: ['auto', 'sleep'])
+  - `setIntensity`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier/set_intensity` - Parameters: intensity: integer
+**Properties:**
+  - `mode`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier/properties/mode` (string, values: ['auto', 'sleep'])
+  - `intensity`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier/properties/intensity` (integer)
+  - `state`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier/properties/state` (string, values: ['off', 'on'])
+  - `tank`: `http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier/properties/tank` (integer)
+
+## living_room
+
+### Livingroomairpurifiers
+URI: `http://localhost:8080/workspaces/home73/living_room/artifacts/livingRoomAirPurifiers#artifact`
+**Actions:**
+  - `turnOn`: `http://localhost:8080/workspaces/home73/living_room/artifacts/livingRoomAirPurifiers/turn_on`
+  - `turnOff`: `http://localhost:8080/workspaces/home73/living_room/artifacts/livingRoomAirPurifiers/turn_off`
+  - `setFanSpeed`: `http://localhost:8080/workspaces/home73/living_room/artifacts/livingRoomAirPurifiers/set_fan_speed` - Parameters: fan_speed: string (values: ['auto', 'high', 'low', 'medium'])
+**Properties:**
+  - `fan_speed`: `http://localhost:8080/workspaces/home73/living_room/artifacts/livingRoomAirPurifiers/properties/fan_speed` (string, values: ['auto', 'high', 'low', 'medium'])
+  - `state`: `http://localhost:8080/workspaces/home73/living_room/artifacts/livingRoomAirPurifiers/properties/state` (string, values: ['off', 'on'])
+
+## master_bedroom
+
+### Masterbedroomfan
+URI: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomFan#artifact`
+**Actions:**
+  - `turnOff`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomFan/turn_off`
+  - `turnOn`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomFan/turn_on`
+  - `setSwing`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomFan/set_swing` - Parameters: swing: string (values: ['auto', 'down', 'middle', 'up'])
+**Properties:**
+  - `swing`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomFan/properties/swing` (string, values: ['auto', 'down', 'middle', 'up'])
+  - `state`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomFan/properties/state` (string, values: ['off', 'on'])
+
+### Masterbedroomheating
+URI: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating#artifact`
+**Actions:**
+  - `setFanSpeed`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating/set_fan_speed` - Parameters: fan_speed: string (values: ['auto', 'high', 'low', 'medium'])
+  - `setMode`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating/set_mode` - Parameters: mode: string (values: ['fan_only', 'heat'])
+  - `turnOn`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating/turn_on`
+  - `turnOff`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating/turn_off`
+**Properties:**
+  - `fan_speed`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating/properties/fan_speed` (string, values: ['auto', 'high', 'low', 'medium'])
+  - `state`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating/properties/state` (string, values: ['off', 'on'])
+  - `mode`: `http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating/properties/mode` (string, values: ['fan_only', 'heat'])
+
+## balcony
+
+### Balconylight
+URI: `http://localhost:8080/workspaces/home73/balcony/artifacts/balconyLight#artifact`
+**Actions:**
+  - `turnOff`: `http://localhost:8080/workspaces/home73/balcony/artifacts/balconyLight/turn_off`
+  - `turnOn`: `http://localhost:8080/workspaces/home73/balcony/artifacts/balconyLight/turn_on`
+  - `setBrightness`: `http://localhost:8080/workspaces/home73/balcony/artifacts/balconyLight/set_brightness` - Parameters: brightness: integer (range: 0-100)
+  - `setColor`: `http://localhost:8080/workspaces/home73/balcony/artifacts/balconyLight/set_color` - Parameters: color: array
+**Properties:**
+  - `color`: `http://localhost:8080/workspaces/home73/balcony/artifacts/balconyLight/properties/color` (array)
+  - `brightness`: `http://localhost:8080/workspaces/home73/balcony/artifacts/balconyLight/properties/brightness` (integer)
+  - `state`: `http://localhost:8080/workspaces/home73/balcony/artifacts/balconyLight/properties/state` (string, values: ['off', 'on'])
+
+
+# Current State
+
+- `state`: `on` (http://localhost:8080/workspaces/home73/guest_bedroom/artifacts/guestBedroomLight/properties/state)
+- `intensity`: `47` (http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier/properties/intensity)
+- `temperature`: `21` (http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/properties/temperature)
+- `fan_speed`: `auto` (http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating/properties/fan_speed)
+- `state`: `off` (http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomFan/properties/state)
+- `brightness`: `26` (http://localhost:8080/workspaces/home73/balcony/artifacts/balconyLight/properties/brightness)</pre></div>
+    </div>
+    
+    <div class="card" style="border-color: #a855f7;">
+        <div class="card-title" style="color: #a855f7;">Generated Plan (json_ir)</div>
+        <div class="card-content"><p class='explanation'>The requested actions involve setting brightness, temperature, and intensity for various devices. However, the guest bedroom light does not support brightness control, and the living room does not have an air conditioner. Therefore, only achievable actions are executed: setting the heating temperature in the master bedroom, adjusting the air conditioner temperature and humidifier intensity in the study room, setting the fan speed in the master bedroom, and adjusting the balcony light brightness.</p><hr><pre class='code json'>{
+  "name": "MainSequence",
+  "type": "sequence",
+  "children": [
+    {
+      "name": "Set Master Bedroom Heating Temperature to 24",
+      "type": "action",
+      "action_url": "http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating/set_temperature",
+      "parameters": {
+        "temperature": 24
+      }
+    },
+    {
+      "name": "Adjust Study Room Air Conditioner Temperature to 20",
+      "type": "action",
+      "action_url": "http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomAirConditioner/set_temperature",
+      "parameters": {
+        "temperature": 20
+      }
+    },
+    {
+      "name": "Increase Balcony Light Brightness to 100",
+      "type": "action",
+      "action_url": "http://localhost:8080/workspaces/home73/balcony/artifacts/balconyLight/set_brightness",
+      "parameters": {
+        "brightness": 100
+      }
+    },
+    {
+      "name": "Increase Study Room Humidifier Intensity by 13",
+      "type": "action",
+      "action_url": "http://localhost:8080/workspaces/home73/study_room/artifacts/studyRoomHumidifier/set_intensity",
+      "parameters": {
+        "intensity": 60
+      }
+    },
+    {
+      "name": "Set Master Bedroom Fan Speed to Medium",
+      "type": "action",
+      "action_url": "http://localhost:8080/workspaces/home73/master_bedroom/artifacts/masterBedroomHeating/set_fan_speed",
+      "parameters": {
+        "fan_speed": "medium"
+      }
+    }
+  ]
+}</pre><p class='stats'>LLM Calls: 1</p></div>
+    </div>
+    
+    <div class="card" style="border-color: #ef4444;">
+        <div class="card-title" style="color: #ef4444;">Execution Results</div>
+        <div class="card-content"><table><tr><td class="label">Result</td><td><span class="error">FAILED</span></td></tr>
+<tr><td class="label">Tree Name</td><td>MainSequence</td></tr>
+<tr><td class="label">Ticks</td><td>1</td></tr>
+<tr><td class="label">Final Status</td><td>FAILURE</td></tr>
+<tr><td class="label">Tick History</td><td>FAILURE</td></tr></table></div>
+    </div>
+    
+    </div>
+</body>
+</html>

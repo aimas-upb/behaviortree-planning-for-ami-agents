@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Experiment Trace - Unknown</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            padding: 20px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4a9eff;
+            text-align: center;
+            border-bottom: 2px solid #4a9eff;
+            padding-bottom: 10px;
+        }
+        .card {
+            border: 2px solid;
+            border-radius: 8px;
+            margin: 20px 0;
+            background: #16213e;
+        }
+        .card-title {
+            font-weight: bold;
+            font-size: 16px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #333;
+            background: rgba(0,0,0,0.2);
+            border-radius: 6px 6px 0 0;
+        }
+        .card-content {
+            padding: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #333;
+        }
+        td.label {
+            color: #06b6d4;
+            font-weight: bold;
+            width: 200px;
+        }
+        .success { color: #22c55e; font-weight: bold; }
+        .error { color: #ef4444; font-weight: bold; }
+        .highlight { color: #eab308; }
+        .dim { color: #888; }
+        .workspace { color: #06b6d4; }
+        .artifact { color: #eab308; }
+        .action { color: #22c55e; }
+        .property { color: #4a9eff; }
+        .constraint { color: #a855f7; }
+        .tree { margin: 10px 0; }
+        .tree-node { margin: 4px 0; }
+        .indent { margin-left: 20px; }
+        .indent2 { margin-left: 40px; }
+        .indent3 { margin-left: 60px; }
+        .trace-steps { margin: 10px 0; }
+        .trace-step {
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+        .trace-result {
+            margin-left: 20px;
+            color: #888;
+            font-size: 13px;
+        }
+        .step-num { color: #06b6d4; font-weight: bold; }
+        .code {
+            background: #0d1117;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .explanation {
+            font-style: italic;
+            color: #888;
+            margin-bottom: 16px;
+        }
+        .stats { color: #666; font-size: 12px; margin-top: 10px; }
+        .reasoning-block {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        hr { border: none; border-top: 1px solid #333; margin: 16px 0; }
+        /* Collapsible card styles */
+        .collapsible .card-title {
+            cursor: pointer;
+            user-select: none;
+        }
+        .collapsible .card-title:hover {
+            opacity: 0.8;
+        }
+        .collapsible .collapse-icon {
+            display: inline-block;
+            transition: transform 0.2s ease;
+            margin-right: 8px;
+        }
+        .collapsible.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        .collapsible.collapsed .card-content {
+            display: none;
+        }
+        .planning-context {
+            background: #0d1117;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Experiment Trace Viewer</h1>
+        
+    <div class="card" style="border-color: #4a9eff;">
+        <div class="card-title" style="color: #4a9eff;">Experiment Overview</div>
+        <div class="card-content"><table><tr><td class="label">Status</td><td><span class="success">SUCCESS</span></td></tr>
+<tr><td class="label">Goal</td><td>Set the brightness of the light to 20 in the bathroom.</td></tr>
+<tr><td class="label">Config</td><td>homebench_eval</td></tr>
+<tr><td class="label">Model</td><td>gpt-4o</td></tr>
+<tr><td class="label">Duration</td><td>8.3s</td></tr>
+<tr><td class="label">Affordance Strategy</td><td>agentic</td></tr>
+<tr><td class="label">State Strategy</td><td>agentic</td></tr>
+<tr><td class="label">Reasoning</td><td>disabled</td></tr>
+<tr><td class="label">Output Format</td><td>json_ir</td></tr></table></div>
+    </div>
+    
+    <div class="card" style="border-color: #22c55e;">
+        <div class="card-title" style="color: #22c55e;">Discovery Phase</div>
+        <div class="card-content">
+    <p><strong>Workspaces:</strong> 2 |
+    <strong>Artifacts:</strong> 1 |
+    <strong>Actions:</strong> 3 |
+    <strong>Properties:</strong> 2</p>
+    <p><strong>State Values:</strong> 1</p>
+    <div class='tree'><div class='tree-node'><span class='workspace'>home74/</span></div><div class='tree-node'><span class='workspace'>bathroom/</span><div class='tree-node indent'><span class='artifact'>Bathroomlight</span><div class='tree-node indent2'><span class='dim'>Actions:</span><div class='tree-node indent3'><span class='action'>turnOn</span>()</div><div class='tree-node indent3'><span class='action'>setBrightness</span>(brightness: integer)</div><div class='tree-node indent3'><span class='action'>turnOff</span>()</div></div><div class='tree-node indent2'><span class='dim'>Properties:</span><div class='tree-node indent3'><span class='property'>state</span>: string</div><div class='tree-node indent3'><span class='property'>brightness</span>: integer</div></div></div></div></div></div>
+    </div>
+    
+    <div class="card" style="border-color: #4a9eff;">
+        <div class="card-title" style="color: #4a9eff;">Agentic Discovery Trace (4 tool calls)</div>
+        <div class="card-content"><div class='trace-steps'><div class='trace-step'><span class='step-num'>Step 1:</span> explore_workspace(<span class='highlight'>home74</span>)<div class='trace-result'>Sub-workspaces: ['balcony', 'bathroom', 'corridor', 'ding_room', 'foyer', 'garage', 'guest_bedroom', 'kitchen', 'living_room', 'master_bedroom', 'store_room', 'study_room']</div></div><div class='trace-step'><span class='step-num'>Step 2:</span> explore_workspace(<span class='highlight'>bathroom</span>)<div class='trace-result'>Artifacts: ['Bathroomblinds', 'Bathroomlight']</div></div><div class='trace-step'><span class='step-num'>Step 3:</span> inspect_artifact(<span class='highlight'>bathroomLight</span>)<div class='trace-result'>Actions: <span class='action'>['turnOn', 'setBrightness', 'turnOff']</span></div><div class='trace-result'>Properties: <span class='property'>['state', 'brightness']</span></div></div><div class='trace-step'><span class='step-num'>Step 4:</span> done_exploring(<span class='success'>"I found that the Bathroomlight has a 'setBrightness' action which can be used to set the brightness to 20 as needed."</span>)</div></div></div>
+    </div>
+    
+    <div class="card" style="border-color: #06b6d4;">
+        <div class="card-title" style="color: #06b6d4;">Agentic State Trace (3 reads)</div>
+        <div class="card-content"><div class='trace-steps'><div class='trace-step'><span class='step-num'>Step 2:</span> read_property(<span class='highlight'>bathroomLight.brightness</span>) -> <span class='success'>83</span></div><div class='trace-step'><span class='step-num'>Step 3:</span> done_gathering(<span class='success'>"The current brightness level of the bathroom light is 83. This information is sufficient to plan the action of setting the brightness to 20."</span>)</div></div></div>
+    </div>
+    
+    <div class="card collapsible collapsed" style="border-color: #f59e0b;">
+        <div class="card-title" style="color: #f59e0b;" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="collapse-icon">▼</span> Planning Context (What the Model Sees)
+        </div>
+        <div class="card-content"><pre class='planning-context'># Available Devices and Capabilities
+
+
+## home74
+
+## bathroom
+
+### Bathroomlight
+URI: `http://localhost:8080/workspaces/home74/bathroom/artifacts/bathroomLight#artifact`
+**Actions:**
+  - `turnOn`: `http://localhost:8080/workspaces/home74/bathroom/artifacts/bathroomLight/turn_on`
+  - `setBrightness`: `http://localhost:8080/workspaces/home74/bathroom/artifacts/bathroomLight/set_brightness` - Parameters: brightness: integer
+  - `turnOff`: `http://localhost:8080/workspaces/home74/bathroom/artifacts/bathroomLight/turn_off`
+**Properties:**
+  - `state`: `http://localhost:8080/workspaces/home74/bathroom/artifacts/bathroomLight/properties/state` (string, values: ['off', 'on'])
+  - `brightness`: `http://localhost:8080/workspaces/home74/bathroom/artifacts/bathroomLight/properties/brightness` (integer)
+
+
+# Current State
+
+- `brightness`: `83` (http://localhost:8080/workspaces/home74/bathroom/artifacts/bathroomLight/properties/brightness)</pre></div>
+    </div>
+    
+    <div class="card" style="border-color: #a855f7;">
+        <div class="card-title" style="color: #a855f7;">Generated Plan (json_ir)</div>
+        <div class="card-content"><p class='explanation'>The goal is to set the brightness of the bathroom light to 20. The bathroom light supports the 'setBrightness' action, which allows setting the brightness to any integer value up to 100. Therefore, we can directly use this action to achieve the desired brightness level.</p><hr><pre class='code json'>{
+  "name": "Set Bathroom Light Brightness",
+  "type": "action",
+  "action_url": "http://localhost:8080/workspaces/home74/bathroom/artifacts/bathroomLight/set_brightness",
+  "parameters": {
+    "brightness": 20
+  }
+}</pre><p class='stats'>LLM Calls: 1</p></div>
+    </div>
+    
+    <div class="card" style="border-color: #22c55e;">
+        <div class="card-title" style="color: #22c55e;">Execution Results</div>
+        <div class="card-content"><table><tr><td class="label">Result</td><td><span class="success">SUCCESS</span></td></tr>
+<tr><td class="label">Tree Name</td><td>Set Bathroom Light Brightness</td></tr>
+<tr><td class="label">Ticks</td><td>1</td></tr>
+<tr><td class="label">Final Status</td><td>SUCCESS</td></tr>
+<tr><td class="label">Tick History</td><td>SUCCESS</td></tr></table></div>
+    </div>
+    
+    </div>
+</body>
+</html>

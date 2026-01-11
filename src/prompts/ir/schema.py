@@ -109,4 +109,7 @@ IMPORTANT - Valid node types:
 - condition: {{"type": "condition", "property_url": "http://...", "expected_value": ...}}
 
 Every node requires "name" and "type" fields.
-Use EXACT URIs from the capability model."""
+Use EXACT URIs from the capability model.
+
+CRITICAL - The generated nodes should be encapsulated in a "tree" object: "{"tree": { ... }}".
+"""

@@ -22,7 +22,6 @@ The examples below show the `tree` object that should be passed to the tool.
 
 ### Example 1: Turn on a single device (idempotent pattern)
 Goal: "Turn on the bathroom light"
-tree:
 ```json
 {{{{
   "name": "EnsureBathroomLightOn",
@@ -37,7 +36,6 @@ explanation: "Selector checks if already on, only turns on if needed (idempotent
 
 ### Example 2: Multiple devices in parallel
 Goal: "Turn on lights in bathroom and corridor"
-tree:
 ```json
 {{{{
   "name": "TurnOnMultipleLights",
@@ -53,7 +51,6 @@ explanation: "Parallel executes both actions concurrently."
 
 ### Example 3: Sequential with parameters
 Goal: "Turn on AC and set to 22 degrees"
-tree:
 ```json
 {{{{
   "name": "ConfigureAC",
@@ -68,7 +65,6 @@ explanation: "Sequence ensures AC is on before setting temperature."
 
 ### Example 4: Conditional action
 Goal: "If temperature is above 25, turn on AC"
-tree:
 ```json
 {{{{
   "name": "ConditionalCooling",
@@ -86,7 +82,6 @@ Goal: "Turn on bedroom light and set brightness to 50%"
 Capability model shows: bedroomLight has only turn_on and turn_off (NO set_brightness)
 
 CORRECT approach:
-tree:
 ```json
 {{{{
   "name": "TurnOnBedroomLight",
