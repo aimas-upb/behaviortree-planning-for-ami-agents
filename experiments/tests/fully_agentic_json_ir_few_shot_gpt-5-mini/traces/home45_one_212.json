@@ -1,0 +1,372 @@
+{
+  "config": {
+    "experiment": {
+      "name": "homebench_eval",
+      "description": "HomeBench evaluation: homebench_eval"
+    },
+    "discovery": {
+      "affordances": {
+        "strategy": "agentic",
+        "max_workspaces": 10
+      },
+      "state": {
+        "strategy": "agentic"
+      }
+    },
+    "planning": {
+      "reasoning": {
+        "enabled": false,
+        "strategy": "chain_of_thought",
+        "max_turns": 3
+      },
+      "output": {
+        "format": "json_ir"
+      },
+      "prompt_strategy": "few_shot"
+    },
+    "execution": {
+      "max_ticks": 10
+    },
+    "model": {
+      "name": "gpt-5-mini",
+      "temperature": 0.0,
+      "base_url": null,
+      "api_key": null
+    },
+    "tracing": {
+      "enabled": false,
+      "output_dir": "traces/",
+      "verbose": false
+    }
+  },
+  "goal": "Set the intensity of the aromatherapy device to 80 in the guest bedroom.",
+  "entry_point": "http://localhost:8080/workspaces/home45#workspace",
+  "start_time": "2026-01-13T22:23:43.572203",
+  "discovery": {
+    "affordances": {
+      "entry_point": "http://localhost:8080/workspaces/home45#workspace",
+      "workspaces": {
+        "home45": [],
+        "guest_bedroom": [
+          {
+            "name": "Guestbedroomaromatherapy",
+            "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy#artifact",
+            "workspace": "http://localhost:8080/workspaces/home45/guest_bedroom#workspace",
+            "actions": [
+              {
+                "name": "turnOff",
+                "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/turn_off",
+                "schema": {}
+              },
+              {
+                "name": "turnOn",
+                "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/turn_on",
+                "schema": {}
+              },
+              {
+                "name": "setIntensity",
+                "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/set_intensity",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "intensity": {
+                      "type": "integer",
+                      "maximum": 100
+                    }
+                  },
+                  "required": [
+                    "intensity"
+                  ]
+                }
+              }
+            ],
+            "properties": [
+              {
+                "name": "intensity",
+                "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/intensity",
+                "schema": {
+                  "type": "integer",
+                  "maximum": 100
+                }
+              },
+              {
+                "name": "state",
+                "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/state",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "off",
+                    "on"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "stats": {
+        "entry_point": "http://localhost:8080/workspaces/home45#workspace",
+        "workspace_count": 2,
+        "artifact_count": 1,
+        "action_count": 3,
+        "property_count": 2
+      }
+    },
+    "state": {
+      "property_values": {
+        "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/intensity": 26,
+        "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/state": "off"
+      },
+      "timestamp": "2026-01-13T22:23:51.717177",
+      "errors": {},
+      "property_count": 2,
+      "error_count": 0
+    },
+    "exploration_trace": [
+      {
+        "iteration": 1,
+        "function": "explore_workspace",
+        "arguments": {
+          "workspace_uri": "http://localhost:8080/workspaces/home45#workspace"
+        },
+        "result": {
+          "workspace": "home45",
+          "sub_workspaces": [
+            {
+              "uri": "http://localhost:8080/workspaces/home45/balcony#workspace",
+              "name": "balcony"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/bathroom#workspace",
+              "name": "bathroom"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/corridor#workspace",
+              "name": "corridor"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/ding_room#workspace",
+              "name": "ding_room"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/foyer#workspace",
+              "name": "foyer"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/garage#workspace",
+              "name": "garage"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom#workspace",
+              "name": "guest_bedroom"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/kitchen#workspace",
+              "name": "kitchen"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/living_room#workspace",
+              "name": "living_room"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/master_bedroom#workspace",
+              "name": "master_bedroom"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/store_room#workspace",
+              "name": "store_room"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/study_room#workspace",
+              "name": "study_room"
+            }
+          ],
+          "artifacts": []
+        }
+      },
+      {
+        "iteration": 2,
+        "function": "explore_workspace",
+        "arguments": {
+          "workspace_uri": "http://localhost:8080/workspaces/home45/guest_bedroom#workspace"
+        },
+        "result": {
+          "workspace": "guest_bedroom",
+          "sub_workspaces": [],
+          "artifacts": [
+            {
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAirConditioner#artifact",
+              "name": "Guestbedroomairconditioner"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAirPurifiers#artifact",
+              "name": "Guestbedroomairpurifiers"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy#artifact",
+              "name": "Guestbedroomaromatherapy"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomCurtain#artifact",
+              "name": "Guestbedroomcurtain"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomHumidifier#artifact",
+              "name": "Guestbedroomhumidifier"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomLight#artifact",
+              "name": "Guestbedroomlight"
+            }
+          ]
+        }
+      },
+      {
+        "iteration": 3,
+        "function": "inspect_artifact",
+        "arguments": {
+          "artifact_uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy#artifact"
+        },
+        "result": {
+          "name": "Guestbedroomaromatherapy",
+          "actions": [
+            {
+              "name": "turnOff",
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/turn_off"
+            },
+            {
+              "name": "turnOn",
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/turn_on"
+            },
+            {
+              "name": "setIntensity",
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/set_intensity"
+            }
+          ],
+          "properties": [
+            {
+              "name": "intensity",
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/intensity"
+            },
+            {
+              "name": "state",
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/state"
+            }
+          ]
+        }
+      },
+      {
+        "iteration": 4,
+        "function": "done_exploring",
+        "arguments": {
+          "reason": "Found aromatherapy device in guest bedroom with setIntensity action and intensity property; enough to set intensity to 80."
+        },
+        "result": {
+          "reason": "Found aromatherapy device in guest bedroom with setIntensity action and intensity property; enough to set intensity to 80."
+        }
+      }
+    ],
+    "state_trace": [
+      {
+        "iteration": 1,
+        "function": "list_artifact_properties",
+        "arguments": {
+          "artifact_uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy#artifact"
+        },
+        "result": {
+          "properties": [
+            {
+              "name": "intensity",
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/intensity"
+            },
+            {
+              "name": "state",
+              "uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/state"
+            }
+          ],
+          "success": true
+        }
+      },
+      {
+        "iteration": 2,
+        "function": "read_property",
+        "arguments": {
+          "property_uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/intensity"
+        },
+        "result": {
+          "value": 26,
+          "success": true
+        }
+      },
+      {
+        "iteration": 2,
+        "function": "read_property",
+        "arguments": {
+          "property_uri": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/state"
+        },
+        "result": {
+          "value": "off",
+          "success": true
+        }
+      },
+      {
+        "iteration": 3,
+        "function": "done_gathering",
+        "arguments": {
+          "summary": "Read 'intensity' (current value 26) and 'state' (current value 'off') of guestBedroomAromatherapy in guest bedroom. This is sufficient to plan setting intensity to 80 because we know current intensity and that the device is off, so we can decide whether to turn it on and set intensity to 80."
+        },
+        "result": {
+          "summary": "Read 'intensity' (current value 26) and 'state' (current value 'off') of guestBedroomAromatherapy in guest bedroom. This is sufficient to plan setting intensity to 80 because we know current intensity and that the device is off, so we can decide whether to turn it on and set intensity to 80."
+        }
+      }
+    ]
+  },
+  "planning": {
+    "plan": {
+      "format": "json_ir",
+      "content": {
+        "name": "SetGuestBedroomAromatherapyIntensity",
+        "type": "selector",
+        "children": [
+          {
+            "name": "IsIntensity80",
+            "type": "condition",
+            "property_url": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/properties/intensity",
+            "expected_value": 80
+          },
+          {
+            "name": "SetIntensityTo80",
+            "type": "action",
+            "action_url": "http://localhost:8080/workspaces/home45/guest_bedroom/artifacts/guestBedroomAromatherapy/set_intensity",
+            "parameters": {
+              "intensity": 80
+            }
+          }
+        ]
+      },
+      "explanation": "Idempotent selector: check if the aromatherapy intensity is already 80; if not, call set_intensity with intensity=80. This only changes the intensity setting and does not turn the device on.",
+      "reasoning_trace": [],
+      "has_reasoning": false,
+      "detected_impossible": []
+    },
+    "success": true,
+    "error": null,
+    "llm_calls": 1,
+    "total_tokens": 0
+  },
+  "execution": {
+    "success": true,
+    "tree_name": "SetGuestBedroomAromatherapyIntensity",
+    "ticks": 1,
+    "final_status": "SUCCESS",
+    "tick_history": [
+      "SUCCESS"
+    ],
+    "error": null
+  },
+  "success": true,
+  "error": null,
+  "end_time": "2026-01-13T22:24:13.226842",
+  "duration_seconds": 29.654639,
+  "config_name": "homebench_home45_one_212"
+}

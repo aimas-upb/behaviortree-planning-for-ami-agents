@@ -93,6 +93,10 @@ STRATEGY:
 Entry point: {entry_point}
 Goal: {goal}
 
+VERIFICATION:
+- The goal can implicitly request control of non-existent devices or affordances.
+- DO NOT assume the existence of any device or affordance not verified through exploration.
+
 Explore efficiently - only what's needed for the goal."""
 
 

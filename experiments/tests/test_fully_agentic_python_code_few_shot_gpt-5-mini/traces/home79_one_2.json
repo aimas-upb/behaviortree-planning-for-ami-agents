@@ -1,0 +1,505 @@
+{
+  "config": {
+    "experiment": {
+      "name": "homebench_eval",
+      "description": "HomeBench evaluation: homebench_eval"
+    },
+    "discovery": {
+      "affordances": {
+        "strategy": "agentic",
+        "max_workspaces": 10
+      },
+      "state": {
+        "strategy": "agentic"
+      }
+    },
+    "planning": {
+      "reasoning": {
+        "enabled": false,
+        "strategy": "chain_of_thought",
+        "max_turns": 3
+      },
+      "output": {
+        "format": "python_code"
+      },
+      "prompt_strategy": "few_shot"
+    },
+    "execution": {
+      "max_ticks": 10
+    },
+    "model": {
+      "name": "gpt-5-mini",
+      "temperature": 0.0,
+      "base_url": null,
+      "api_key": null
+    },
+    "tracing": {
+      "enabled": false,
+      "output_dir": "traces/",
+      "verbose": false
+    }
+  },
+  "goal": "Turn on the air conditioner in the master bedroom.",
+  "entry_point": "http://localhost:8080/workspaces/home79#workspace",
+  "start_time": "2026-01-12T19:53:53.627775",
+  "discovery": {
+    "affordances": {
+      "entry_point": "http://localhost:8080/workspaces/home79#workspace",
+      "workspaces": {
+        "home79": [],
+        "master_bedroom": [
+          {
+            "name": "Masterbedroomairconditioner",
+            "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner#artifact",
+            "workspace": "http://localhost:8080/workspaces/home79/master_bedroom#workspace",
+            "actions": [
+              {
+                "name": "turnOff",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/turn_off",
+                "schema": {}
+              },
+              {
+                "name": "setSwing",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/set_swing",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "swing": {
+                      "type": "string",
+                      "enum": [
+                        "auto",
+                        "down",
+                        "middle",
+                        "up"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "swing"
+                  ]
+                }
+              },
+              {
+                "name": "setFanSpeed",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/set_fan_speed",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fan_speed": {
+                      "type": "string",
+                      "enum": [
+                        "auto",
+                        "high",
+                        "low",
+                        "medium"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "fan_speed"
+                  ]
+                }
+              },
+              {
+                "name": "setMode",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/set_mode",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "cool",
+                        "dry",
+                        "fan_only",
+                        "heat"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "mode"
+                  ]
+                }
+              },
+              {
+                "name": "setTemperature",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/set_temperature",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "temperature": {
+                      "type": "integer",
+                      "minimum": 16,
+                      "maximum": 30
+                    }
+                  },
+                  "required": [
+                    "temperature"
+                  ]
+                }
+              },
+              {
+                "name": "turnOn",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/turn_on",
+                "schema": {}
+              }
+            ],
+            "properties": [
+              {
+                "name": "swing",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/swing",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "down",
+                    "middle",
+                    "up"
+                  ]
+                }
+              },
+              {
+                "name": "fan_speed",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/fan_speed",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "high",
+                    "low",
+                    "medium"
+                  ]
+                }
+              },
+              {
+                "name": "temperature",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/temperature",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 16,
+                  "maximum": 30
+                }
+              },
+              {
+                "name": "mode",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/mode",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "cool",
+                    "dry",
+                    "fan_only",
+                    "heat"
+                  ]
+                }
+              },
+              {
+                "name": "state",
+                "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/state",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "off",
+                    "on"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "stats": {
+        "entry_point": "http://localhost:8080/workspaces/home79#workspace",
+        "workspace_count": 2,
+        "artifact_count": 1,
+        "action_count": 6,
+        "property_count": 5
+      }
+    },
+    "state": {
+      "property_values": {
+        "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/state": "on",
+        "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/mode": "fan_only",
+        "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/temperature": 27
+      },
+      "timestamp": "2026-01-12T19:54:01.914667",
+      "errors": {},
+      "property_count": 3,
+      "error_count": 0
+    },
+    "exploration_trace": [
+      {
+        "iteration": 1,
+        "function": "explore_workspace",
+        "arguments": {
+          "workspace_uri": "http://localhost:8080/workspaces/home79#workspace"
+        },
+        "result": {
+          "workspace": "home79",
+          "sub_workspaces": [
+            {
+              "uri": "http://localhost:8080/workspaces/home79/balcony#workspace",
+              "name": "balcony"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/bathroom#workspace",
+              "name": "bathroom"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/corridor#workspace",
+              "name": "corridor"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/ding_room#workspace",
+              "name": "ding_room"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/foyer#workspace",
+              "name": "foyer"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/garage#workspace",
+              "name": "garage"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/guest_bedroom#workspace",
+              "name": "guest_bedroom"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/kitchen#workspace",
+              "name": "kitchen"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/living_room#workspace",
+              "name": "living_room"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom#workspace",
+              "name": "master_bedroom"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/store_room#workspace",
+              "name": "store_room"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/study_room#workspace",
+              "name": "study_room"
+            }
+          ],
+          "artifacts": []
+        }
+      },
+      {
+        "iteration": 2,
+        "function": "explore_workspace",
+        "arguments": {
+          "workspace_uri": "http://localhost:8080/workspaces/home79/master_bedroom#workspace"
+        },
+        "result": {
+          "workspace": "master_bedroom",
+          "sub_workspaces": [],
+          "artifacts": [
+            {
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner#artifact",
+              "name": "Masterbedroomairconditioner"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirPurifiers#artifact",
+              "name": "Masterbedroomairpurifiers"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAromatherapy#artifact",
+              "name": "Masterbedroomaromatherapy"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomHumidifier#artifact",
+              "name": "Masterbedroomhumidifier"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomLight#artifact",
+              "name": "Masterbedroomlight"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomTrash#artifact",
+              "name": "Masterbedroomtrash"
+            }
+          ]
+        }
+      },
+      {
+        "iteration": 3,
+        "function": "inspect_artifact",
+        "arguments": {
+          "artifact_uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner#artifact"
+        },
+        "result": {
+          "name": "Masterbedroomairconditioner",
+          "actions": [
+            {
+              "name": "turnOff",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/turn_off"
+            },
+            {
+              "name": "setSwing",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/set_swing"
+            },
+            {
+              "name": "setFanSpeed",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/set_fan_speed"
+            },
+            {
+              "name": "setMode",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/set_mode"
+            },
+            {
+              "name": "setTemperature",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/set_temperature"
+            },
+            {
+              "name": "turnOn",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/turn_on"
+            }
+          ],
+          "properties": [
+            {
+              "name": "swing",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/swing"
+            },
+            {
+              "name": "fan_speed",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/fan_speed"
+            },
+            {
+              "name": "temperature",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/temperature"
+            },
+            {
+              "name": "mode",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/mode"
+            },
+            {
+              "name": "state",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/state"
+            }
+          ]
+        }
+      },
+      {
+        "iteration": 4,
+        "function": "done_exploring",
+        "arguments": {
+          "reason": "Found the Master Bedroom AC artifact and its actions (turnOn, turnOff, setTemperature, setMode, setFanSpeed, setSwing) and relevant properties; enough to perform the goal."
+        },
+        "result": {
+          "reason": "Found the Master Bedroom AC artifact and its actions (turnOn, turnOff, setTemperature, setMode, setFanSpeed, setSwing) and relevant properties; enough to perform the goal."
+        }
+      }
+    ],
+    "state_trace": [
+      {
+        "iteration": 1,
+        "function": "list_artifact_properties",
+        "arguments": {
+          "artifact_uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner#artifact"
+        },
+        "result": {
+          "properties": [
+            {
+              "name": "swing",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/swing"
+            },
+            {
+              "name": "fan_speed",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/fan_speed"
+            },
+            {
+              "name": "temperature",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/temperature"
+            },
+            {
+              "name": "mode",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/mode"
+            },
+            {
+              "name": "state",
+              "uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/state"
+            }
+          ],
+          "success": true
+        }
+      },
+      {
+        "iteration": 2,
+        "function": "read_property",
+        "arguments": {
+          "property_uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/state"
+        },
+        "result": {
+          "value": "on",
+          "success": true
+        }
+      },
+      {
+        "iteration": 2,
+        "function": "read_property",
+        "arguments": {
+          "property_uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/mode"
+        },
+        "result": {
+          "value": "fan_only",
+          "success": true
+        }
+      },
+      {
+        "iteration": 2,
+        "function": "read_property",
+        "arguments": {
+          "property_uri": "http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/temperature"
+        },
+        "result": {
+          "value": 27,
+          "success": true
+        }
+      },
+      {
+        "iteration": 3,
+        "function": "done_gathering",
+        "arguments": {
+          "summary": "Read master bedroom AC properties: state = \"on\", mode = \"fan_only\", temperature = 27. This is sufficient to plan because the unit is already powered on; next actions to achieve an AC (cooling) state would be to change mode from fan_only to a cooling mode (e.g., \"cool\") and set an appropriate target temperature and optional fan_speed/swing adjustments."
+        },
+        "result": {
+          "summary": "Read master bedroom AC properties: state = \"on\", mode = \"fan_only\", temperature = 27. This is sufficient to plan because the unit is already powered on; next actions to achieve an AC (cooling) state would be to change mode from fan_only to a cooling mode (e.g., \"cool\") and set an appropriate target temperature and optional fan_speed/swing adjustments."
+        }
+      }
+    ]
+  },
+  "planning": {
+    "plan": {
+      "format": "python_code",
+      "content": "# Behavior tree to ensure the master bedroom air conditioner is turned on\n# The tree checks the AC state property and calls the turn_on action only if needed.\n\ntree = py_trees.composites.Selector(\n    name=\"EnsureMasterACOn\",\n    memory=False,\n    children=[\n        PropertyConditionNode(\n            name=\"ACIsOn\",\n            property_url=\"http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/properties/state\",\n            expected_value=\"on\"\n        ),\n        ActionAffordanceNode(\n            name=\"TurnOnAC\",\n            action_url=\"http://localhost:8080/workspaces/home79/master_bedroom/artifacts/masterBedroomAirConditioner/turn_on\"\n        ),\n    ]\n)",
+      "explanation": "This tree is a Selector named EnsureMasterACOn. It first checks the master bedroom air conditioner 'state' property (using the exact property URL). If the state equals \"on\" the condition succeeds and no action is taken. If the condition fails (AC is not on), the tree runs the TurnOnAC ActionAffordanceNode which POSTs to the exact turn_on action URL to turn the AC on. The Selector pattern makes the operation idempotent.",
+      "reasoning_trace": [],
+      "has_reasoning": false,
+      "detected_impossible": []
+    },
+    "success": true,
+    "error": null,
+    "llm_calls": 1,
+    "total_tokens": 0
+  },
+  "execution": {
+    "success": true,
+    "tree_name": "EnsureMasterACOn",
+    "ticks": 1,
+    "final_status": "SUCCESS",
+    "tick_history": [
+      "SUCCESS"
+    ],
+    "error": null
+  },
+  "success": true,
+  "error": null,
+  "end_time": "2026-01-12T19:54:34.853881",
+  "duration_seconds": 41.226106,
+  "config_name": "homebench_home79_one_2"
+}

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Experiment Trace - Unknown</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            padding: 20px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4a9eff;
+            text-align: center;
+            border-bottom: 2px solid #4a9eff;
+            padding-bottom: 10px;
+        }
+        .card {
+            border: 2px solid;
+            border-radius: 8px;
+            margin: 20px 0;
+            background: #16213e;
+        }
+        .card-title {
+            font-weight: bold;
+            font-size: 16px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #333;
+            background: rgba(0,0,0,0.2);
+            border-radius: 6px 6px 0 0;
+        }
+        .card-content {
+            padding: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #333;
+        }
+        td.label {
+            color: #06b6d4;
+            font-weight: bold;
+            width: 200px;
+        }
+        .success { color: #22c55e; font-weight: bold; }
+        .error { color: #ef4444; font-weight: bold; }
+        .highlight { color: #eab308; }
+        .dim { color: #888; }
+        .workspace { color: #06b6d4; }
+        .artifact { color: #eab308; }
+        .action { color: #22c55e; }
+        .property { color: #4a9eff; }
+        .constraint { color: #a855f7; }
+        .tree { margin: 10px 0; }
+        .tree-node { margin: 4px 0; }
+        .indent { margin-left: 20px; }
+        .indent2 { margin-left: 40px; }
+        .indent3 { margin-left: 60px; }
+        .trace-steps { margin: 10px 0; }
+        .trace-step {
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+        .trace-result {
+            margin-left: 20px;
+            color: #888;
+            font-size: 13px;
+        }
+        .step-num { color: #06b6d4; font-weight: bold; }
+        .code {
+            background: #0d1117;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .explanation {
+            font-style: italic;
+            color: #888;
+            margin-bottom: 16px;
+        }
+        .stats { color: #666; font-size: 12px; margin-top: 10px; }
+        .reasoning-block {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        hr { border: none; border-top: 1px solid #333; margin: 16px 0; }
+        /* Collapsible card styles */
+        .collapsible .card-title {
+            cursor: pointer;
+            user-select: none;
+        }
+        .collapsible .card-title:hover {
+            opacity: 0.8;
+        }
+        .collapsible .collapse-icon {
+            display: inline-block;
+            transition: transform 0.2s ease;
+            margin-right: 8px;
+        }
+        .collapsible.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        .collapsible.collapsed .card-content {
+            display: none;
+        }
+        .planning-context {
+            background: #0d1117;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Experiment Trace Viewer</h1>
+        
+    <div class="card" style="border-color: #4a9eff;">
+        <div class="card-title" style="color: #4a9eff;">Experiment Overview</div>
+        <div class="card-content"><table><tr><td class="label">Status</td><td><span class="success">SUCCESS</span></td></tr>
+<tr><td class="label">Goal</td><td>Set the heating temperature to 30 degrees in the living room.</td></tr>
+<tr><td class="label">Config</td><td>homebench_eval</td></tr>
+<tr><td class="label">Model</td><td>gpt-4o</td></tr>
+<tr><td class="label">Duration</td><td>27.1s</td></tr>
+<tr><td class="label">Affordance Strategy</td><td>relevant</td></tr>
+<tr><td class="label">State Strategy</td><td>agentic</td></tr>
+<tr><td class="label">Reasoning</td><td>chain_of_thought</td></tr>
+<tr><td class="label">Output Format</td><td>python_code</td></tr></table></div>
+    </div>
+    
+    <div class="card" style="border-color: #22c55e;">
+        <div class="card-title" style="color: #22c55e;">Discovery Phase</div>
+        <div class="card-content">
+    <p><strong>Workspaces:</strong> 1 |
+    <strong>Artifacts:</strong> 1 |
+    <strong>Actions:</strong> 6 |
+    <strong>Properties:</strong> 5</p>
+    <p><strong>State Values:</strong> 1</p>
+    <div class='tree'><div class='tree-node'><span class='workspace'>living_room/</span><div class='tree-node indent'><span class='artifact'>Livingroomairconditioner</span><div class='tree-node indent2'><span class='dim'>Actions:</span><div class='tree-node indent3'><span class='action'>setFanSpeed</span>(fan_speed: string <span class='constraint'>(values: ['auto', 'high', 'low', 'medium'])</span>)</div><div class='tree-node indent3'><span class='action'>setSwing</span>(swing: string <span class='constraint'>(values: ['auto', 'down', 'middle', 'up'])</span>)</div><div class='tree-node indent3'><span class='action'>turnOff</span>()</div><div class='tree-node indent3'><span class='action'>setMode</span>(mode: string <span class='constraint'>(values: ['cool', 'dry', 'fan_only', 'heat'])</span>)</div><div class='tree-node indent3'><span class='action'>setTemperature</span>(temperature: integer <span class='constraint'>(range: 16-30)</span>)</div><div class='tree-node indent3'><span class='action'>turnOn</span>()</div></div><div class='tree-node indent2'><span class='dim'>Properties:</span><div class='tree-node indent3'><span class='property'>swing</span>: string</div><div class='tree-node indent3'><span class='property'>mode</span>: string</div><div class='tree-node indent3'><span class='property'>temperature</span>: integer</div><div class='tree-node indent3'><span class='property'>fan_speed</span>: string</div><div class='tree-node indent3'><span class='property'>state</span>: string</div></div></div></div></div></div>
+    </div>
+    
+    <div class="card" style="border-color: #06b6d4;">
+        <div class="card-title" style="color: #06b6d4;">Agentic State Trace (3 reads)</div>
+        <div class="card-content"><div class='trace-steps'><div class='trace-step'><span class='step-num'>Step 2:</span> read_property(<span class='highlight'>livingRoomAirConditioner.temperature</span>) -> <span class='success'>21</span></div><div class='trace-step'><span class='step-num'>Step 3:</span> done_gathering(<span class='success'>"The current temperature setting of the living room air conditioner is 21 degrees. This information is sufficient to plan the action of setting the heating temperature to 30 degrees in the living room."</span>)</div></div></div>
+    </div>
+    
+    <div class="card collapsible collapsed" style="border-color: #f59e0b;">
+        <div class="card-title" style="color: #f59e0b;" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="collapse-icon">▼</span> Planning Context (What the Model Sees)
+        </div>
+        <div class="card-content"><pre class='planning-context'># Available Devices and Capabilities
+
+
+## living_room
+
+### Livingroomairconditioner
+URI: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner#artifact`
+**Actions:**
+  - `setFanSpeed`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_fan_speed` - Parameters: fan_speed: string (values: ['auto', 'high', 'low', 'medium'])
+  - `setSwing`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_swing` - Parameters: swing: string (values: ['auto', 'down', 'middle', 'up'])
+  - `turnOff`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/turn_off`
+  - `setMode`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_mode` - Parameters: mode: string (values: ['cool', 'dry', 'fan_only', 'heat'])
+  - `setTemperature`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_temperature` - Parameters: temperature: integer (range: 16-30)
+  - `turnOn`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/turn_on`
+**Properties:**
+  - `swing`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/swing` (string, values: ['auto', 'down', 'middle', 'up'])
+  - `mode`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/mode` (string, values: ['cool', 'dry', 'fan_only', 'heat'])
+  - `temperature`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/temperature` (integer)
+  - `fan_speed`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/fan_speed` (string, values: ['auto', 'high', 'low', 'medium'])
+  - `state`: `http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/state` (string, values: ['off', 'on'])
+
+
+# Current State
+
+- `temperature`: `21` (http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/temperature)</pre></div>
+    </div>
+    
+    <div class="card" style="border-color: #eab308;">
+        <div class="card-title" style="color: #eab308;">Reasoning Trace (LLM Analysis)</div>
+        <div class="card-content"><div class='reasoning-block'>## Analysis<br><br>1. **Goal Decomposition**: <br>   - The primary goal is to set the heating temperature to 30 degrees in the living room.<br><br>2. **Device Identification**: <br>   - The device needed is the `Livingroomairconditioner`.<br><br>3. **Action Mapping**: <br>   - Sub-goal: Turn on the air conditioner if it is off.<br>     - Action: `turnOn`<br>   - Sub-goal: Set the mode to 'heat'.<br>     - Action: `setMode` with parameter `mode: 'heat'`<br>   - Sub-goal: Set the temperature to 30 degrees.<br>     - Action: `setTemperature` with parameter `temperature: 30`<br><br>4. **Constraint Validation**: <br>   - The requested temperature is 30 degrees, which is within the valid range of 16-30 degrees for the `setTemperature` action. No adjustments are needed.<br><br>5. **Dependency Analysis**: <br>   - The air conditioner must be turned on before setting the mode or temperature.<br>   - The mode must be set to 'heat' before setting the temperature to ensure the correct operation.<br><br>6. **Pattern Selection**: <br>   - Use a sequence pattern to ensure actions are executed in the correct order: <br>     1. Check and turn on the air conditioner if needed.<br>     2. Set the mode to 'heat'.<br>     3. Set the temperature to 30 degrees.<br><br>7. **Edge Cases**: <br>   - The air conditioner might already be on, so check the current state before attempting to turn it on.<br>   - If the air conditioner fails to turn on, retry or notify the user.<br>   - If setting the mode or temperature fails, retry the action or notify the user.<br><br>This structured analysis will guide the generation of a behavior tree to achieve the goal effectively.</div></div>
+    </div>
+    
+    <div class="card" style="border-color: #a855f7;">
+        <div class="card-title" style="color: #a855f7;">Generated Plan (python_code)</div>
+        <div class="card-content"><p class='explanation'>The behavior tree is designed to set the heating temperature to 30 degrees in the living room using the air conditioner. It follows these steps:
+
+1. **Ensure the Air Conditioner is On**: 
+   - A Selector node checks if the air conditioner is already on using a PropertyConditionNode. If it is not on, it uses an ActionAffordanceNode to turn it on.
+
+2. **Set the Mode to Heat**: 
+   - An ActionAffordanceNode sets the air conditioner's mode to 'heat'.
+
+3. **Set the Temperature to 30 Degrees**: 
+   - Another ActionAffordanceNode sets the temperature to 30 degrees.
+
+The Sequence composite ensures these actions are performed in order, and the Selector ensures the air conditioner is only turned on if necessary.</p><hr><pre class='code python'>tree = py_trees.composites.Sequence(
+    name="SetHeatingTemperature",
+    memory=True,
+    children=[
+        py_trees.composites.Selector(
+            name="EnsureACOn",
+            memory=False,
+            children=[
+                PropertyConditionNode(
+                    name="IsACOn",
+                    property_url="http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/state",
+                    expected_value="on"
+                ),
+                ActionAffordanceNode(
+                    name="TurnACOn",
+                    action_url="http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/turn_on"
+                )
+            ]
+        ),
+        ActionAffordanceNode(
+            name="SetModeHeat",
+            action_url="http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_mode",
+            parameters={"mode": "heat"}
+        ),
+        ActionAffordanceNode(
+            name="SetTemperature30",
+            action_url="http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_temperature",
+            parameters={"temperature": 30}
+        )
+    ]
+)</pre><p class='stats'>LLM Calls: 2</p></div>
+    </div>
+    
+    <div class="card" style="border-color: #22c55e;">
+        <div class="card-title" style="color: #22c55e;">Execution Results</div>
+        <div class="card-content"><table><tr><td class="label">Result</td><td><span class="success">SUCCESS</span></td></tr>
+<tr><td class="label">Tree Name</td><td>SetHeatingTemperature</td></tr>
+<tr><td class="label">Ticks</td><td>1</td></tr>
+<tr><td class="label">Final Status</td><td>SUCCESS</td></tr>
+<tr><td class="label">Tick History</td><td>SUCCESS</td></tr></table></div>
+    </div>
+    
+    </div>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Experiment Trace - Unknown</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            padding: 20px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4a9eff;
+            text-align: center;
+            border-bottom: 2px solid #4a9eff;
+            padding-bottom: 10px;
+        }
+        .card {
+            border: 2px solid;
+            border-radius: 8px;
+            margin: 20px 0;
+            background: #16213e;
+        }
+        .card-title {
+            font-weight: bold;
+            font-size: 16px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #333;
+            background: rgba(0,0,0,0.2);
+            border-radius: 6px 6px 0 0;
+        }
+        .card-content {
+            padding: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #333;
+        }
+        td.label {
+            color: #06b6d4;
+            font-weight: bold;
+            width: 200px;
+        }
+        .success { color: #22c55e; font-weight: bold; }
+        .error { color: #ef4444; font-weight: bold; }
+        .highlight { color: #eab308; }
+        .dim { color: #888; }
+        .workspace { color: #06b6d4; }
+        .artifact { color: #eab308; }
+        .action { color: #22c55e; }
+        .property { color: #4a9eff; }
+        .constraint { color: #a855f7; }
+        .tree { margin: 10px 0; }
+        .tree-node { margin: 4px 0; }
+        .indent { margin-left: 20px; }
+        .indent2 { margin-left: 40px; }
+        .indent3 { margin-left: 60px; }
+        .trace-steps { margin: 10px 0; }
+        .trace-step {
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+        .trace-result {
+            margin-left: 20px;
+            color: #888;
+            font-size: 13px;
+        }
+        .step-num { color: #06b6d4; font-weight: bold; }
+        .code {
+            background: #0d1117;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .explanation {
+            font-style: italic;
+            color: #888;
+            margin-bottom: 16px;
+        }
+        .stats { color: #666; font-size: 12px; margin-top: 10px; }
+        .reasoning-block {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        hr { border: none; border-top: 1px solid #333; margin: 16px 0; }
+        /* Collapsible card styles */
+        .collapsible .card-title {
+            cursor: pointer;
+            user-select: none;
+        }
+        .collapsible .card-title:hover {
+            opacity: 0.8;
+        }
+        .collapsible .collapse-icon {
+            display: inline-block;
+            transition: transform 0.2s ease;
+            margin-right: 8px;
+        }
+        .collapsible.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        .collapsible.collapsed .card-content {
+            display: none;
+        }
+        .planning-context {
+            background: #0d1117;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Experiment Trace Viewer</h1>
+        
+    <div class="card" style="border-color: #4a9eff;">
+        <div class="card-title" style="color: #4a9eff;">Experiment Overview</div>
+        <div class="card-content"><table><tr><td class="label">Status</td><td><span class="success">SUCCESS</span></td></tr>
+<tr><td class="label">Goal</td><td>Set the curtain degree to 0 in the living room and adjust the dehumidifier intensity to 70 in the living room.</td></tr>
+<tr><td class="label">Config</td><td>homebench_eval</td></tr>
+<tr><td class="label">Model</td><td>gpt-4o</td></tr>
+<tr><td class="label">Duration</td><td>23.8s</td></tr>
+<tr><td class="label">Affordance Strategy</td><td>relevant</td></tr>
+<tr><td class="label">State Strategy</td><td>agentic</td></tr>
+<tr><td class="label">Reasoning</td><td>chain_of_thought</td></tr>
+<tr><td class="label">Output Format</td><td>json_ir</td></tr></table></div>
+    </div>
+    
+    <div class="card" style="border-color: #22c55e;">
+        <div class="card-title" style="color: #22c55e;">Discovery Phase</div>
+        <div class="card-content">
+    <p><strong>Workspaces:</strong> 1 |
+    <strong>Artifacts:</strong> 1 |
+    <strong>Actions:</strong> 4 |
+    <strong>Properties:</strong> 4</p>
+    <p><strong>State Values:</strong> 1</p>
+    <div class='tree'><div class='tree-node'><span class='workspace'>living_room/</span><div class='tree-node indent'><span class='artifact'>Livingroomdehumidifiers</span><div class='tree-node indent2'><span class='dim'>Actions:</span><div class='tree-node indent3'><span class='action'>setMode</span>(mode: string <span class='constraint'>(values: ['auto', 'sleep'])</span>)</div><div class='tree-node indent3'><span class='action'>turnOff</span>()</div><div class='tree-node indent3'><span class='action'>setIntensity</span>(intensity: integer <span class='constraint'>(range: 0-100)</span>)</div><div class='tree-node indent3'><span class='action'>turnOn</span>()</div></div><div class='tree-node indent2'><span class='dim'>Properties:</span><div class='tree-node indent3'><span class='property'>intensity</span>: integer</div><div class='tree-node indent3'><span class='property'>state</span>: string</div><div class='tree-node indent3'><span class='property'>mode</span>: string</div><div class='tree-node indent3'><span class='property'>tank</span>: integer</div></div></div></div></div></div>
+    </div>
+    
+    <div class="card" style="border-color: #06b6d4;">
+        <div class="card-title" style="color: #06b6d4;">Agentic State Trace (3 reads)</div>
+        <div class="card-content"><div class='trace-steps'><div class='trace-step'><span class='step-num'>Step 2:</span> read_property(<span class='highlight'>livingRoomDehumidifiers.intensity</span>) -> <span class='success'>35</span></div><div class='trace-step'><span class='step-num'>Step 3:</span> done_gathering(<span class='success'>"Gathered the current intensity of the living room dehumidifier, which is set at 35. This information is sufficient to adjust the intensity to the desired level of 70. The curtain state did not need to be gathered as it is not listed among the known artifacts in the living room."</span>)</div></div></div>
+    </div>
+    
+    <div class="card collapsible collapsed" style="border-color: #f59e0b;">
+        <div class="card-title" style="color: #f59e0b;" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="collapse-icon">▼</span> Planning Context (What the Model Sees)
+        </div>
+        <div class="card-content"><pre class='planning-context'># Available Devices and Capabilities
+
+
+## living_room
+
+### Livingroomdehumidifiers
+URI: `http://localhost:8080/workspaces/home0/living_room/artifacts/livingRoomDehumidifiers#artifact`
+**Actions:**
+  - `setMode`: `http://localhost:8080/workspaces/home0/living_room/artifacts/livingRoomDehumidifiers/set_mode` - Parameters: mode: string (values: ['auto', 'sleep'])
+  - `turnOff`: `http://localhost:8080/workspaces/home0/living_room/artifacts/livingRoomDehumidifiers/turn_off`
+  - `setIntensity`: `http://localhost:8080/workspaces/home0/living_room/artifacts/livingRoomDehumidifiers/set_intensity` - Parameters: intensity: integer (range: 0-100)
+  - `turnOn`: `http://localhost:8080/workspaces/home0/living_room/artifacts/livingRoomDehumidifiers/turn_on`
+**Properties:**
+  - `intensity`: `http://localhost:8080/workspaces/home0/living_room/artifacts/livingRoomDehumidifiers/properties/intensity` (integer)
+  - `state`: `http://localhost:8080/workspaces/home0/living_room/artifacts/livingRoomDehumidifiers/properties/state` (string, values: ['off', 'on'])
+  - `mode`: `http://localhost:8080/workspaces/home0/living_room/artifacts/livingRoomDehumidifiers/properties/mode` (string, values: ['auto', 'sleep'])
+  - `tank`: `http://localhost:8080/workspaces/home0/living_room/artifacts/livingRoomDehumidifiers/properties/tank` (integer)
+
+
+# Current State
+
+- `intensity`: `35` (http://localhost:8080/workspaces/home0/living_room/artifacts/livingRoomDehumidifiers/properties/intensity)</pre></div>
+    </div>
+    
+    <div class="card" style="border-color: #eab308;">
+        <div class="card-title" style="color: #eab308;">Reasoning Trace (LLM Analysis)</div>
+        <div class="card-content"><div class='reasoning-block'>## Analysis<br><br>1. **Goal Decomposition**: <br>   - Sub-goal 1: Set the curtain degree to 0 in the living room.<br>   - Sub-goal 2: Adjust the dehumidifier intensity to 70 in the living room.<br><br>2. **Device Identification**:<br>   - For Sub-goal 1: No device is specified for curtain control in the provided capabilities.<br>   - For Sub-goal 2: Device needed is `Livingroomdehumidifiers`.<br><br>3. **Action Mapping**:<br>   - Sub-goal 1: No action can be mapped due to the absence of curtain control capabilities.<br>   - Sub-goal 2: Use `setIntensity` action on `Livingroomdehumidifiers` with parameter `intensity` set to 70.<br><br>4. **Constraint Validation**:<br>   - Sub-goal 1: Not applicable as no device is available.<br>   - Sub-goal 2: The requested intensity of 70 is within the valid range of 0-100 for the `setIntensity` action.<br><br>5. **Dependency Analysis**:<br>   - Sub-goal 1: No dependencies can be established due to lack of device.<br>   - Sub-goal 2: <br>     - Check if the dehumidifier is turned on. If not, use `turnOn` action before setting intensity.<br>     - Set intensity to 70 using `setIntensity`.<br><br>6. **Pattern Selection**:<br>   - Use a **sequence** pattern for Sub-goal 2 to ensure the dehumidifier is turned on before setting the intensity.<br><br>7. **Edge Cases**:<br>   - Sub-goal 1: The absence of curtain control capabilities is a critical edge case. This needs to be addressed by either adding the capability or revising the goal.<br>   - Sub-goal 2: <br>     - The dehumidifier might be in a mode that does not allow intensity adjustment. Ensure the mode is compatible or set to a default mode that allows intensity change.<br>     - The tank property should be checked to ensure it is not full, which might prevent operation.<br><br>This structured analysis will guide the generation of a behavior tree to achieve the specified goals, considering the current capabilities and constraints.</div></div>
+    </div>
+    
+    <div class="card" style="border-color: #a855f7;">
+        <div class="card-title" style="color: #a855f7;">Generated Plan (json_ir)</div>
+        <div class="card-content"><p class='explanation'>The goal consists of two sub-goals: setting the curtain degree to 0 and adjusting the dehumidifier intensity to 70. However, the capability model does not include any device or action for controlling curtains in the living room, making the first sub-goal impossible to achieve. For the second sub-goal, the living room dehumidifier can be adjusted using the 'setIntensity' action. Before setting the intensity, we must ensure the dehumidifier is turned on. Therefore, a sequence is used to first check if the dehumidifier is on, and if not, turn it on, followed by setting the intensity to 70. The tree will only include actions for the achievable sub-goal, and the explanation will note the missing curtain control capability.</p><hr><pre class='code json'>{}</pre><p class='stats'>LLM Calls: 2</p></div>
+    </div>
+    
+    <div class="card" style="border-color: #22c55e;">
+        <div class="card-title" style="color: #22c55e;">Execution Results</div>
+        <div class="card-content"><table><tr><td class="label">Result</td><td><span class="success">SUCCESS</span></td></tr>
+<tr><td class="label">Tree Name</td><td></td></tr>
+<tr><td class="label">Ticks</td><td>0</td></tr>
+<tr><td class="label">Final Status</td><td>No behavior tree to execute.</td></tr></table></div>
+    </div>
+    
+    </div>
+</body>
+</html>

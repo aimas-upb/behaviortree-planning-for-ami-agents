@@ -1,0 +1,353 @@
+{
+  "config": {
+    "experiment": {
+      "name": "homebench_eval",
+      "description": "HomeBench evaluation: homebench_eval"
+    },
+    "discovery": {
+      "affordances": {
+        "strategy": "agentic",
+        "max_workspaces": 10
+      },
+      "state": {
+        "strategy": "agentic"
+      }
+    },
+    "planning": {
+      "reasoning": {
+        "enabled": false,
+        "strategy": "chain_of_thought",
+        "max_turns": 3
+      },
+      "output": {
+        "format": "json_ir"
+      },
+      "prompt_strategy": "detailed"
+    },
+    "execution": {
+      "max_ticks": 10
+    },
+    "model": {
+      "name": "gpt-5-mini",
+      "temperature": 0.0,
+      "base_url": null,
+      "api_key": null
+    },
+    "tracing": {
+      "enabled": false,
+      "output_dir": "traces/",
+      "verbose": false
+    }
+  },
+  "goal": "Set the brightness of the light in the corridor to 90.",
+  "entry_point": "http://localhost:8080/workspaces/home66#workspace",
+  "start_time": "2026-01-13T23:27:41.255374",
+  "discovery": {
+    "affordances": {
+      "entry_point": "http://localhost:8080/workspaces/home66#workspace",
+      "workspaces": {
+        "home66": [],
+        "corridor": [
+          {
+            "name": "Corridorlight",
+            "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight#artifact",
+            "workspace": "http://localhost:8080/workspaces/home66/corridor#workspace",
+            "actions": [
+              {
+                "name": "setBrightness",
+                "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/set_brightness",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "brightness": {
+                      "type": "integer",
+                      "maximum": 100
+                    }
+                  },
+                  "required": [
+                    "brightness"
+                  ]
+                }
+              },
+              {
+                "name": "turnOff",
+                "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/turn_off",
+                "schema": {}
+              },
+              {
+                "name": "turnOn",
+                "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/turn_on",
+                "schema": {}
+              }
+            ],
+            "properties": [
+              {
+                "name": "state",
+                "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/state",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "off",
+                    "on"
+                  ]
+                }
+              },
+              {
+                "name": "brightness",
+                "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/brightness",
+                "schema": {
+                  "type": "integer",
+                  "maximum": 100
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "stats": {
+        "entry_point": "http://localhost:8080/workspaces/home66#workspace",
+        "workspace_count": 2,
+        "artifact_count": 1,
+        "action_count": 3,
+        "property_count": 2
+      }
+    },
+    "state": {
+      "property_values": {
+        "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/brightness": 83,
+        "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/state": "off"
+      },
+      "timestamp": "2026-01-13T23:27:47.737599",
+      "errors": {},
+      "property_count": 2,
+      "error_count": 0
+    },
+    "exploration_trace": [
+      {
+        "iteration": 1,
+        "function": "explore_workspace",
+        "arguments": {
+          "workspace_uri": "http://localhost:8080/workspaces/home66#workspace"
+        },
+        "result": {
+          "workspace": "home66",
+          "sub_workspaces": [
+            {
+              "uri": "http://localhost:8080/workspaces/home66/balcony#workspace",
+              "name": "balcony"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/bathroom#workspace",
+              "name": "bathroom"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/corridor#workspace",
+              "name": "corridor"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/ding_room#workspace",
+              "name": "ding_room"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/foyer#workspace",
+              "name": "foyer"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/garage#workspace",
+              "name": "garage"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/guest_bedroom#workspace",
+              "name": "guest_bedroom"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/kitchen#workspace",
+              "name": "kitchen"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/living_room#workspace",
+              "name": "living_room"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/master_bedroom#workspace",
+              "name": "master_bedroom"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/store_room#workspace",
+              "name": "store_room"
+            },
+            {
+              "uri": "http://localhost:8080/workspaces/home66/study_room#workspace",
+              "name": "study_room"
+            }
+          ],
+          "artifacts": []
+        }
+      },
+      {
+        "iteration": 2,
+        "function": "explore_workspace",
+        "arguments": {
+          "workspace_uri": "http://localhost:8080/workspaces/home66/corridor#workspace"
+        },
+        "result": {
+          "workspace": "corridor",
+          "sub_workspaces": [],
+          "artifacts": [
+            {
+              "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight#artifact",
+              "name": "Corridorlight"
+            }
+          ]
+        }
+      },
+      {
+        "iteration": 3,
+        "function": "inspect_artifact",
+        "arguments": {
+          "artifact_uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight#artifact"
+        },
+        "result": {
+          "name": "Corridorlight",
+          "actions": [
+            {
+              "name": "setBrightness",
+              "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/set_brightness"
+            },
+            {
+              "name": "turnOff",
+              "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/turn_off"
+            },
+            {
+              "name": "turnOn",
+              "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/turn_on"
+            }
+          ],
+          "properties": [
+            {
+              "name": "state",
+              "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/state"
+            },
+            {
+              "name": "brightness",
+              "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/brightness"
+            }
+          ]
+        }
+      },
+      {
+        "iteration": 4,
+        "function": "done_exploring",
+        "arguments": {
+          "reason": "Found corridor light with setBrightness action and brightness property needed to set brightness to 90."
+        },
+        "result": {
+          "reason": "Found corridor light with setBrightness action and brightness property needed to set brightness to 90."
+        }
+      }
+    ],
+    "state_trace": [
+      {
+        "iteration": 1,
+        "function": "list_artifact_properties",
+        "arguments": {
+          "artifact_uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight#artifact"
+        },
+        "result": {
+          "properties": [
+            {
+              "name": "state",
+              "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/state"
+            },
+            {
+              "name": "brightness",
+              "uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/brightness"
+            }
+          ],
+          "success": true
+        }
+      },
+      {
+        "iteration": 2,
+        "function": "read_property",
+        "arguments": {
+          "property_uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/brightness"
+        },
+        "result": {
+          "value": 83,
+          "success": true
+        }
+      },
+      {
+        "iteration": 3,
+        "function": "read_property",
+        "arguments": {
+          "property_uri": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/state"
+        },
+        "result": {
+          "value": "off",
+          "success": true
+        }
+      },
+      {
+        "iteration": 4,
+        "function": "done_gathering",
+        "arguments": {
+          "summary": "Queried corridorLight artifact properties: brightness (current value 83) and state (current value \"off\"). This is sufficient to plan setting brightness to 90 because we know current brightness and that the light is off; action plan can include turning the light on (if required) and setting brightness to 90."
+        },
+        "result": {
+          "summary": "Queried corridorLight artifact properties: brightness (current value 83) and state (current value \"off\"). This is sufficient to plan setting brightness to 90 because we know current brightness and that the light is off; action plan can include turning the light on (if required) and setting brightness to 90."
+        }
+      }
+    ]
+  },
+  "planning": {
+    "plan": {
+      "format": "json_ir",
+      "content": {
+        "name": "Set corridor light brightness to 90 (selector: check then act)",
+        "type": "selector",
+        "children": [
+          {
+            "name": "Corridor brightness is already 90?",
+            "type": "condition",
+            "property_url": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/properties/brightness",
+            "expected_value": 90,
+            "operator": "=="
+          },
+          {
+            "name": "Set corridor brightness to 90",
+            "type": "action",
+            "action_url": "http://localhost:8080/workspaces/home66/corridor/artifacts/corridorLight/set_brightness",
+            "parameters": {
+              "brightness": 90
+            }
+          }
+        ]
+      },
+      "explanation": "This tree first checks whether the corridor light's brightness is already 90. If so, it does nothing. Otherwise it calls the set_brightness action with brightness=90. The set_brightness action exists at the exact URI from the capability model and accepts an integer brightness up to 100; 90 is within this allowed range. Current reported brightness is 83 and state is 'off' \u2014 the tree will set brightness to 90. I did not turn the light on because the user only requested setting brightness; the capability to turn on the light exists but was not requested. The goal is achievable with the available capabilities.",
+      "reasoning_trace": [],
+      "has_reasoning": false,
+      "detected_impossible": []
+    },
+    "success": true,
+    "error": null,
+    "llm_calls": 1,
+    "total_tokens": 0
+  },
+  "execution": {
+    "success": true,
+    "tree_name": "Set corridor light brightness to 90 (selector: check then act)",
+    "ticks": 1,
+    "final_status": "SUCCESS",
+    "tick_history": [
+      "SUCCESS"
+    ],
+    "error": null
+  },
+  "success": true,
+  "error": null,
+  "end_time": "2026-01-13T23:28:17.641454",
+  "duration_seconds": 36.38608,
+  "config_name": "homebench_home66_one_650"
+}

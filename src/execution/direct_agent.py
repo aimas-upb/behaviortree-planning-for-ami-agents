@@ -162,6 +162,11 @@ CORRECT: execute_action(turn_on_url, {{}})  // No parameters needed for toggle a
 
 ## Current Device State
 {current_state}
+
+## Verification
+- The goal of the user can implicitly request control of non-existent devices or affordances.
+- DO NOT assume the existence of any device or affordance;
+- Ensure that each device and capability is verified through the provided capability model and current state.
 """
 
 
@@ -252,7 +257,7 @@ class DirectAgentExecutor:
                 messages=messages,
                 tools=DIRECT_AGENT_TOOLS,
                 tool_choice="auto",
-                temperature=0.0,
+                # temperature=0.0,
             )
 
             message = response.choices[0].message

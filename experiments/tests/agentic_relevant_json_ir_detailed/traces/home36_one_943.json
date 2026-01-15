@@ -1,0 +1,340 @@
+{
+  "config": {
+    "experiment": {
+      "name": "homebench_eval",
+      "description": "HomeBench evaluation: homebench_eval"
+    },
+    "discovery": {
+      "affordances": {
+        "strategy": "relevant",
+        "max_workspaces": 10
+      },
+      "state": {
+        "strategy": "agentic"
+      }
+    },
+    "planning": {
+      "reasoning": {
+        "enabled": true,
+        "strategy": "chain_of_thought",
+        "max_turns": 3
+      },
+      "output": {
+        "format": "json_ir"
+      },
+      "prompt_strategy": "detailed"
+    },
+    "execution": {
+      "max_ticks": 10
+    },
+    "model": {
+      "name": "gpt-4o",
+      "temperature": 0.0,
+      "base_url": null,
+      "api_key": null
+    },
+    "tracing": {
+      "enabled": false,
+      "output_dir": "traces/",
+      "verbose": false
+    }
+  },
+  "goal": "Set the heating temperature to 30 degrees in the living room.",
+  "entry_point": "http://localhost:8080/workspaces/home36#workspace",
+  "start_time": "2026-01-12T21:21:21.232136",
+  "discovery": {
+    "affordances": {
+      "entry_point": "http://localhost:8080/workspaces/home36#workspace",
+      "workspaces": {
+        "living_room": [
+          {
+            "name": "Livingroomairconditioner",
+            "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner#artifact",
+            "workspace": "http://localhost:8080/workspaces/home36/living_room#workspace",
+            "actions": [
+              {
+                "name": "setFanSpeed",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_fan_speed",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fan_speed": {
+                      "type": "string",
+                      "enum": [
+                        "auto",
+                        "high",
+                        "low",
+                        "medium"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "fan_speed"
+                  ]
+                }
+              },
+              {
+                "name": "setSwing",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_swing",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "swing": {
+                      "type": "string",
+                      "enum": [
+                        "auto",
+                        "down",
+                        "middle",
+                        "up"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "swing"
+                  ]
+                }
+              },
+              {
+                "name": "turnOff",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/turn_off",
+                "schema": {}
+              },
+              {
+                "name": "setMode",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_mode",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "cool",
+                        "dry",
+                        "fan_only",
+                        "heat"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "mode"
+                  ]
+                }
+              },
+              {
+                "name": "setTemperature",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_temperature",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "temperature": {
+                      "type": "integer",
+                      "minimum": 16,
+                      "maximum": 30
+                    }
+                  },
+                  "required": [
+                    "temperature"
+                  ]
+                }
+              },
+              {
+                "name": "turnOn",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/turn_on",
+                "schema": {}
+              }
+            ],
+            "properties": [
+              {
+                "name": "swing",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/swing",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "down",
+                    "middle",
+                    "up"
+                  ]
+                }
+              },
+              {
+                "name": "mode",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/mode",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "cool",
+                    "dry",
+                    "fan_only",
+                    "heat"
+                  ]
+                }
+              },
+              {
+                "name": "temperature",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/temperature",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 16,
+                  "maximum": 30
+                }
+              },
+              {
+                "name": "fan_speed",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/fan_speed",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "high",
+                    "low",
+                    "medium"
+                  ]
+                }
+              },
+              {
+                "name": "state",
+                "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/state",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "off",
+                    "on"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "stats": {
+        "entry_point": "http://localhost:8080/workspaces/home36#workspace",
+        "workspace_count": 1,
+        "artifact_count": 1,
+        "action_count": 6,
+        "property_count": 5
+      }
+    },
+    "state": {
+      "property_values": {
+        "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/temperature": 21
+      },
+      "timestamp": "2026-01-12T21:21:23.693829",
+      "errors": {},
+      "property_count": 1,
+      "error_count": 0
+    },
+    "state_trace": [
+      {
+        "iteration": 1,
+        "function": "list_artifact_properties",
+        "arguments": {
+          "artifact_uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner#artifact"
+        },
+        "result": {
+          "properties": [
+            {
+              "name": "swing",
+              "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/swing"
+            },
+            {
+              "name": "mode",
+              "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/mode"
+            },
+            {
+              "name": "temperature",
+              "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/temperature"
+            },
+            {
+              "name": "fan_speed",
+              "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/fan_speed"
+            },
+            {
+              "name": "state",
+              "uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/state"
+            }
+          ],
+          "success": true
+        }
+      },
+      {
+        "iteration": 2,
+        "function": "read_property",
+        "arguments": {
+          "property_uri": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/properties/temperature"
+        },
+        "result": {
+          "value": 21,
+          "success": true
+        }
+      },
+      {
+        "iteration": 3,
+        "function": "done_gathering",
+        "arguments": {
+          "summary": "The current temperature setting of the living room air conditioner is 21 degrees. To achieve the goal of setting the heating temperature to 30 degrees, I have gathered the relevant information regarding the current temperature property. No additional state information is needed for planning this adjustment."
+        },
+        "result": {
+          "summary": "The current temperature setting of the living room air conditioner is 21 degrees. To achieve the goal of setting the heating temperature to 30 degrees, I have gathered the relevant information regarding the current temperature property. No additional state information is needed for planning this adjustment."
+        }
+      }
+    ]
+  },
+  "planning": {
+    "plan": {
+      "format": "json_ir",
+      "content": {
+        "name": "Set Living Room Heating Temperature",
+        "type": "sequence",
+        "children": [
+          {
+            "name": "Turn On Air Conditioner",
+            "type": "action",
+            "action_url": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/turn_on"
+          },
+          {
+            "name": "Set Mode to Heat",
+            "type": "action",
+            "action_url": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_mode",
+            "parameters": {
+              "mode": "heat"
+            }
+          },
+          {
+            "name": "Set Temperature to 30",
+            "type": "action",
+            "action_url": "http://localhost:8080/workspaces/home36/living_room/artifacts/livingRoomAirConditioner/set_temperature",
+            "parameters": {
+              "temperature": 30
+            }
+          }
+        ]
+      },
+      "explanation": "To set the heating temperature to 30 degrees in the living room, we need to interact with the Livingroomairconditioner. The process involves three main steps: turning on the air conditioner, setting the mode to 'heat', and then setting the temperature to 30 degrees. These actions must be executed in sequence to ensure the air conditioner is in the correct state before adjusting the temperature. The temperature setting of 30 degrees is within the valid range of 16-30, so no adjustments are needed. The behavior tree will ensure these actions are performed in the correct order to achieve the desired outcome.",
+      "reasoning_trace": [
+        "## Analysis\n\n1. **Goal Decomposition**: \n   - The primary goal is to set the heating temperature to 30 degrees in the living room.\n\n2. **Device Identification**: \n   - The device needed is the `Livingroomairconditioner`.\n\n3. **Action Mapping**: \n   - Sub-goal: Set the air conditioner to heating mode.\n     - Action: `setMode` with parameter `mode: 'heat'`.\n   - Sub-goal: Set the temperature to 30 degrees.\n     - Action: `setTemperature` with parameter `temperature: 30`.\n   - Sub-goal: Ensure the air conditioner is turned on.\n     - Action: `turnOn`.\n\n4. **Constraint Validation**: \n   - The requested temperature is 30 degrees, which is within the valid range of 16-30 for the `setTemperature` action. No adjustments are needed.\n\n5. **Dependency Analysis**: \n   - The air conditioner must be turned on before setting the mode or temperature.\n   - The mode should be set to 'heat' before setting the temperature to ensure the device is in the correct operational state.\n\n6. **Pattern Selection**: \n   - Use a sequence pattern to ensure actions are executed in the correct order: \n     1. Turn on the air conditioner.\n     2. Set the mode to 'heat'.\n     3. Set the temperature to 30 degrees.\n\n7. **Edge Cases**: \n   - The air conditioner might already be on; check the current state before attempting to turn it on.\n   - If the air conditioner fails to turn on, retry or notify the user.\n   - If setting the mode or temperature fails, retry the action or notify the user.\n   - Ensure the current temperature is updated after setting to verify the change.\n\nThis structured analysis will guide the generation of a behavior tree to achieve the goal effectively."
+      ],
+      "has_reasoning": true,
+      "detected_impossible": []
+    },
+    "success": true,
+    "error": null,
+    "llm_calls": 2,
+    "total_tokens": 0
+  },
+  "execution": {
+    "success": true,
+    "tree_name": "Set Living Room Heating Temperature",
+    "ticks": 1,
+    "final_status": "SUCCESS",
+    "tick_history": [
+      "SUCCESS"
+    ],
+    "error": null
+  },
+  "success": true,
+  "error": null,
+  "end_time": "2026-01-12T21:21:42.859460",
+  "duration_seconds": 21.627324,
+  "config_name": "homebench_home36_one_943"
+}
