@@ -182,13 +182,28 @@ def start_worker(
 
 def monitor_progress(work_dir: Path, total: int) -> dict:
     """Monitor the progress of tests."""
+    import fcntl
+
     queue_file = work_dir / "queue.json"
+    lock_file = work_dir / "queue.lock"
 
     if not queue_file.exists():
         return {'pending': total, 'running': 0, 'completed': 0, 'failed': 0}
 
-    with open(queue_file, 'r') as f:
-        queue = json.load(f)
+    # Use file locking to avoid race condition with workers
+    lock_file.touch(exist_ok=True)
+    try:
+        with open(lock_file, 'r') as lock:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_SH)  # Shared lock for reading
+            try:
+                with open(queue_file, 'r') as f:
+                    queue = json.load(f)
+            finally:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+    except (json.JSONDecodeError, IOError) as e:
+        # If we can't read the file, return current estimate
+        print(f"Warning: Could not read queue file: {e}")
+        return {'pending': total, 'running': 0, 'completed': 0, 'failed': 0}
 
     stats = {'pending': 0, 'running': 0, 'completed': 0, 'failed': 0}
     for item in queue:
