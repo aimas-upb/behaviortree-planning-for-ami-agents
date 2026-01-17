@@ -12,6 +12,7 @@ from datetime import datetime
 from openai import OpenAI
 
 from ..base import CapabilityModel, EnvironmentState
+from ...config import get_model_kwargs
 from hmas_client import get_property_by_uri, GetPropertyError, list_properties
 
 logger = logging.getLogger(__name__)
@@ -168,12 +169,13 @@ class AgenticStateGathering:
         state = EnvironmentState(timestamp=datetime.now().isoformat())
 
         for iteration in range(self.max_iterations):
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                tools=STATE_DISCOVERY_TOOLS,
-                tool_choice="auto",
-            )
+            api_kwargs = get_model_kwargs(self.model)
+            api_kwargs.update({
+                "messages": messages,
+                "tools": STATE_DISCOVERY_TOOLS,
+                "tool_choice": "auto",
+            })
+            response = self.client.chat.completions.create(**api_kwargs)
 
             message = response.choices[0].message
             messages.append(message)

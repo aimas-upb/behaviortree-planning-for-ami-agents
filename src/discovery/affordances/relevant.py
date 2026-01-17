@@ -12,6 +12,7 @@ from openai import OpenAI
 
 from ..base import CapabilityModel, Artifact
 from .exhaustive import ExhaustiveAffordanceDiscovery
+from ...config import get_model_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -91,11 +92,10 @@ Devices:
 Return ONLY a JSON array of relevant URIs, nothing else."""
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": filter_prompt}],
-                temperature=0,
-            )
+            api_kwargs = get_model_kwargs(self.model)
+            api_kwargs["messages"] = [{"role": "user", "content": filter_prompt}]
+
+            response = self.client.chat.completions.create(**api_kwargs)
 
             content = response.choices[0].message.content.strip()
 

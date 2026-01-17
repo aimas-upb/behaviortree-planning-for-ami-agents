@@ -7,6 +7,8 @@ Multi-turn conversation for deeper exploration before generation.
 import json
 import logging
 
+from ...config import get_model_kwargs
+
 logger = logging.getLogger(__name__)
 
 
@@ -187,12 +189,13 @@ class MultiTurnReasoning:
         analysis_results = []
 
         for turn in range(self.max_turns):
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                tools=MULTI_TURN_TOOLS,
-                tool_choice="auto",
-            )
+            api_kwargs = get_model_kwargs(model)
+            api_kwargs.update({
+                "messages": messages,
+                "tools": MULTI_TURN_TOOLS,
+                "tool_choice": "auto",
+            })
+            response = client.chat.completions.create(**api_kwargs)
 
             message = response.choices[0].message
             messages.append(message)

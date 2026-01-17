@@ -11,6 +11,7 @@ import logging
 from openai import OpenAI
 
 from ..base import CapabilityModel, Artifact, Affordance
+from ...config import get_model_kwargs
 from hmas_client import (
     list_workspaces,
     list_artifacts,
@@ -149,12 +150,13 @@ class AgenticAffordanceDiscovery:
         ]
 
         for iteration in range(self.max_iterations):
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                tools=DISCOVERY_TOOLS,
-                tool_choice="auto",
-            )
+            api_kwargs = get_model_kwargs(self.model)
+            api_kwargs.update({
+                "messages": messages,
+                "tools": DISCOVERY_TOOLS,
+                "tool_choice": "auto",
+            })
+            response = self.client.chat.completions.create(**api_kwargs)
 
             message = response.choices[0].message
             messages.append(message)

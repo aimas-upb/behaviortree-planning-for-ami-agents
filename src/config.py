@@ -99,6 +99,42 @@ class ExperimentConfig(BaseModel):
             f.write(self.to_yaml())
 
 
+# Reasoning models that use reasoning_effort instead of temperature
+REASONING_MODELS = frozenset([
+    "gpt-5-nano",
+    "gpt-5-mini",
+    # Add other reasoning models here as needed
+])
+
+# Default reasoning effort for reasoning models
+DEFAULT_REASONING_EFFORT = "medium"
+
+
+def is_reasoning_model(model: str) -> bool:
+    """Check if a model is a reasoning model that uses reasoning_effort."""
+    return model in REASONING_MODELS
+
+
+def supports_temperature(model: str) -> bool:
+    """Check if a model supports the temperature parameter."""
+    return model not in REASONING_MODELS
+
+
+def get_model_kwargs(model: str, temperature: float = 0.0) -> dict:
+    """
+    Get appropriate kwargs for OpenAI API calls based on model type.
+
+    Non-reasoning models (gpt-4o, gpt-4.1-mini): use temperature=0
+    Reasoning models (gpt-5-mini, gpt-5-nano): use reasoning_effort="medium"
+    """
+    kwargs = {"model": model}
+    if model in REASONING_MODELS:
+        kwargs["reasoning_effort"] = DEFAULT_REASONING_EFFORT
+    else:
+        kwargs["temperature"] = temperature
+    return kwargs
+
+
 def load_config(path: str | Path) -> ExperimentConfig:
     """Load experiment configuration from YAML file."""
     path = Path(path)

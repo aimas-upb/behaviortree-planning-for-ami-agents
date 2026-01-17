@@ -10,6 +10,7 @@ import logging
 from openai import OpenAI
 
 from ..base import Plan
+from ...config import get_model_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -169,13 +170,13 @@ class JsonIRGenerator:
         validation_errors: list[str] = []
 
         for attempt in range(max_attempts):
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                tools=[tool],
-                tool_choice={"type": "function", "function": {"name": "generate_behavior_tree"}},
-                # temperature=0.0,
-            )
+            api_kwargs = get_model_kwargs(model)
+            api_kwargs.update({
+                "messages": messages,
+                "tools": [tool],
+                "tool_choice": {"type": "function", "function": {"name": "generate_behavior_tree"}},
+            })
+            response = client.chat.completions.create(**api_kwargs)
 
             message = response.choices[0].message
 
