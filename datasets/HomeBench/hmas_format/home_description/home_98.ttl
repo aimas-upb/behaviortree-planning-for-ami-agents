@@ -13,7 +13,7 @@
         <http://localhost:8080/workspaces/home98/balcony#workspace>,
         <http://localhost:8080/workspaces/home98/bathroom#workspace>,
         <http://localhost:8080/workspaces/home98/corridor#workspace>,
-        <http://localhost:8080/workspaces/home98/ding_room#workspace>,
+        <http://localhost:8080/workspaces/home98/dining_room#workspace>,
         <http://localhost:8080/workspaces/home98/foyer#workspace>,
         <http://localhost:8080/workspaces/home98/garage#workspace>,
         <http://localhost:8080/workspaces/home98/guest_bedroom#workspace>,
@@ -74,22 +74,22 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/balcony#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/balcony/artifacts/balconyLight/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ],
-        [ a ex:TurnOnCommand,
+    td:hasActionAffordance [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/balcony/artifacts/balconyLight/turn_on> ] ;
             td:name "turnOn" ;
-            td:title "turnOn" ] ;
+            td:title "turnOn" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/balcony/artifacts/balconyLight/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "state of balconyLight" ;
             td:hasForm [ http:methodName "GET" ;
@@ -108,28 +108,7 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/bathroom#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/bathroom/artifacts/bathroomLight/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ],
-        [ a ex:SetColorCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/bathroom/artifacts/bathroomLight/set_color> ] ;
-            td:hasInputSchema [ a jsonschema:ObjectSchema ;
-                    jsonschema:properties [ a jsonschema:ArraySchema ;
-                            jsonschema:items [ a jsonschema:IntegerSchema ] ;
-                            jsonschema:propertyName "color" ] ;
-                    jsonschema:required "color" ] ;
-            td:name "setColor" ;
-            td:title "setColor" ],
-        [ a ex:SetBrightnessCommand,
+    td:hasActionAffordance [ a ex:SetBrightnessCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -150,8 +129,40 @@
                     hctl:hasOperationType td:invokeAction ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/bathroom/artifacts/bathroomLight/turn_on> ] ;
             td:name "turnOn" ;
-            td:title "turnOn" ] ;
+            td:title "turnOn" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/bathroom/artifacts/bathroomLight/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
+        [ a ex:SetColorCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/bathroom/artifacts/bathroomLight/set_color> ] ;
+            td:hasInputSchema [ a jsonschema:ObjectSchema ;
+                    jsonschema:properties [ a jsonschema:ArraySchema ;
+                            jsonschema:items [ a jsonschema:IntegerSchema ] ;
+                            jsonschema:propertyName "color" ] ;
+                    jsonschema:required "color" ] ;
+            td:name "setColor" ;
+            td:title "setColor" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
+            rdfs:comment "color of bathroomLight" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/bathroom/artifacts/bathroomLight/properties/color> ] ;
+            td:hasOutputSchema [ a jsonschema:ArraySchema ;
+                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
+            td:isObservable true ;
+            td:name "color" ;
+            td:title "color" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment "brightness of bathroomLight" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -163,17 +174,6 @@
             td:isObservable true ;
             td:name "brightness" ;
             td:title "brightness" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "color of bathroomLight" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/bathroom/artifacts/bathroomLight/properties/color> ] ;
-            td:hasOutputSchema [ a jsonschema:ArraySchema ;
-                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
-            td:isObservable true ;
-            td:name "color" ;
-            td:title "color" ],
         [ a td:PropertyAffordance ;
             rdfs:comment "state of bathroomLight" ;
             td:hasForm [ http:methodName "GET" ;
@@ -200,14 +200,6 @@
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorAromatherapy/turn_off> ] ;
             td:name "turnOff" ;
             td:title "turnOff" ],
-        [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorAromatherapy/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
         [ a ex:SetIntensityCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -221,20 +213,16 @@
                             jsonschema:propertyName "intensity" ] ;
                     jsonschema:required "intensity" ] ;
             td:name "setIntensity" ;
-            td:title "setIntensity" ] ;
-    td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "state of corridorAromatherapy" ;
-            td:hasForm [ http:methodName "GET" ;
+            td:title "setIntensity" ],
+        [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorAromatherapy/properties/state> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "off",
-                        "on" ] ;
-            td:isObservable true ;
-            td:name "state" ;
-            td:title "state" ],
-        [ a td:PropertyAffordance ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorAromatherapy/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ] ;
+    td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "intensity of corridorAromatherapy" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -245,35 +233,26 @@
                     jsonschema:minimum 0 ] ;
             td:isObservable true ;
             td:name "intensity" ;
-            td:title "intensity" ] ;
+            td:title "intensity" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "state of corridorAromatherapy" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorAromatherapy/properties/state> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "off",
+                        "on" ] ;
+            td:isObservable true ;
+            td:name "state" ;
+            td:title "state" ] ;
     td:title "Corridoraromatherapy" .
 
 <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorLight#artifact> a ex:Light,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/corridor#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorLight/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ],
-        [ a ex:SetColorCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorLight/set_color> ] ;
-            td:hasInputSchema [ a jsonschema:ObjectSchema ;
-                    jsonschema:properties [ a jsonschema:ArraySchema ;
-                            jsonschema:items [ a jsonschema:IntegerSchema ] ;
-                            jsonschema:propertyName "color" ] ;
-                    jsonschema:required "color" ] ;
-            td:name "setColor" ;
-            td:title "setColor" ],
-        [ a ex:SetBrightnessCommand,
+    td:hasActionAffordance [ a ex:SetBrightnessCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -287,6 +266,27 @@
                     jsonschema:required "brightness" ] ;
             td:name "setBrightness" ;
             td:title "setBrightness" ],
+        [ a ex:SetColorCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorLight/set_color> ] ;
+            td:hasInputSchema [ a jsonschema:ObjectSchema ;
+                    jsonschema:properties [ a jsonschema:ArraySchema ;
+                            jsonschema:items [ a jsonschema:IntegerSchema ] ;
+                            jsonschema:propertyName "color" ] ;
+                    jsonschema:required "color" ] ;
+            td:name "setColor" ;
+            td:title "setColor" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorLight/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
         [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -296,17 +296,6 @@
             td:name "turnOn" ;
             td:title "turnOn" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "color of corridorLight" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorLight/properties/color> ] ;
-            td:hasOutputSchema [ a jsonschema:ArraySchema ;
-                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
-            td:isObservable true ;
-            td:name "color" ;
-            td:title "color" ],
-        [ a td:PropertyAffordance ;
             rdfs:comment "brightness of corridorLight" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -318,6 +307,17 @@
             td:isObservable true ;
             td:name "brightness" ;
             td:title "brightness" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "color of corridorLight" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/corridor/artifacts/corridorLight/properties/color> ] ;
+            td:hasOutputSchema [ a jsonschema:ArraySchema ;
+                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
+            td:isObservable true ;
+            td:name "color" ;
+            td:title "color" ],
         [ a td:PropertyAffordance ;
             rdfs:comment "state of corridorLight" ;
             td:hasForm [ http:methodName "GET" ;
@@ -332,50 +332,50 @@
             td:title "state" ] ;
     td:title "Corridorlight" .
 
-<http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomBlinds#artifact> a ex:Blinds,
+<http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomBlinds#artifact> a ex:Blinds,
         hmas:Artifact,
         td:Thing ;
-    hmas:isContainedIn <http://localhost:8080/workspaces/home98/ding_room#workspace> ;
-    td:hasActionAffordance [ a ex:CloseCommand,
+    hmas:isContainedIn <http://localhost:8080/workspaces/home98/dining_room#workspace> ;
+    td:hasActionAffordance [ a ex:OpenCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomBlinds/close> ] ;
-            td:name "close" ;
-            td:title "close" ],
-        [ a ex:OpenCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomBlinds/open> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomBlinds/open> ] ;
             td:name "open" ;
-            td:title "open" ] ;
+            td:title "open" ],
+        [ a ex:CloseCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomBlinds/close> ] ;
+            td:name "close" ;
+            td:title "close" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "state of dingRoomBlinds" ;
+            rdfs:comment "state of diningRoomBlinds" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomBlinds/properties/state> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomBlinds/properties/state> ] ;
             td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "closed",
-                        "open" ] ;
+                    jsonschema:enum "off",
+                        "on" ] ;
             td:isObservable true ;
             td:name "state" ;
             td:title "state" ] ;
-    td:title "Dingroomblinds" .
+    td:title "Diningroomblinds" .
 
-<http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomDehumidifiers#artifact> a ex:Dehumidifiers,
+<http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomDehumidifiers#artifact> a ex:Dehumidifiers,
         hmas:Artifact,
         td:Thing ;
-    hmas:isContainedIn <http://localhost:8080/workspaces/home98/ding_room#workspace> ;
+    hmas:isContainedIn <http://localhost:8080/workspaces/home98/dining_room#workspace> ;
     td:hasActionAffordance [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomDehumidifiers/turn_on> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomDehumidifiers/turn_on> ] ;
             td:name "turnOn" ;
             td:title "turnOn" ],
         [ a ex:TurnOffCommand,
@@ -383,33 +383,33 @@
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomDehumidifiers/turn_off> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomDehumidifiers/turn_off> ] ;
             td:name "turnOff" ;
             td:title "turnOff" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "state of dingRoomDehumidifiers" ;
+            rdfs:comment "state of diningRoomDehumidifiers" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomDehumidifiers/properties/state> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomDehumidifiers/properties/state> ] ;
             td:hasOutputSchema [ a jsonschema:StringSchema ;
                     jsonschema:enum "off",
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
             td:title "state" ] ;
-    td:title "Dingroomdehumidifiers" .
+    td:title "Diningroomdehumidifiers" .
 
-<http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomLight#artifact> a ex:Light,
+<http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomLight#artifact> a ex:Light,
         hmas:Artifact,
         td:Thing ;
-    hmas:isContainedIn <http://localhost:8080/workspaces/home98/ding_room#workspace> ;
+    hmas:isContainedIn <http://localhost:8080/workspaces/home98/dining_room#workspace> ;
     td:hasActionAffordance [ a ex:TurnOffCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomLight/turn_off> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomLight/turn_off> ] ;
             td:name "turnOff" ;
             td:title "turnOff" ],
         [ a ex:TurnOnCommand,
@@ -417,48 +417,48 @@
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomLight/turn_on> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomLight/turn_on> ] ;
             td:name "turnOn" ;
             td:title "turnOn" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "state of dingRoomLight" ;
+            rdfs:comment "state of diningRoomLight" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomLight/properties/state> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomLight/properties/state> ] ;
             td:hasOutputSchema [ a jsonschema:StringSchema ;
                     jsonschema:enum "off",
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
             td:title "state" ] ;
-    td:title "Dingroomlight" .
+    td:title "Diningroomlight" .
 
-<http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomTrash#artifact> a ex:Trash,
+<http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomTrash#artifact> a ex:Trash,
         hmas:Artifact,
         td:Thing ;
-    hmas:isContainedIn <http://localhost:8080/workspaces/home98/ding_room#workspace> ;
+    hmas:isContainedIn <http://localhost:8080/workspaces/home98/dining_room#workspace> ;
     td:hasActionAffordance [ a ex:PackCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomTrash/pack> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomTrash/pack> ] ;
             td:name "pack" ;
             td:title "pack" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "state of dingRoomTrash" ;
+            rdfs:comment "state of diningRoomTrash" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomTrash/properties/state> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomTrash/properties/state> ] ;
             td:hasOutputSchema [ a jsonschema:StringSchema ;
                     jsonschema:enum "off",
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
             td:title "state" ] ;
-    td:title "Dingroomtrash" .
+    td:title "Diningroomtrash" .
 
 <http://localhost:8080/workspaces/home98/foyer/artifacts/foyerLight#artifact> a ex:Light,
         hmas:Artifact,
@@ -472,6 +472,14 @@
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/foyer/artifacts/foyerLight/turn_on> ] ;
             td:name "turnOn" ;
             td:title "turnOn" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/foyer/artifacts/foyerLight/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
         [ a ex:SetColorCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -484,27 +492,8 @@
                             jsonschema:propertyName "color" ] ;
                     jsonschema:required "color" ] ;
             td:name "setColor" ;
-            td:title "setColor" ],
-        [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/foyer/artifacts/foyerLight/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ] ;
+            td:title "setColor" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "color of foyerLight" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/foyer/artifacts/foyerLight/properties/color> ] ;
-            td:hasOutputSchema [ a jsonschema:ArraySchema ;
-                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
-            td:isObservable true ;
-            td:name "color" ;
-            td:title "color" ],
-        [ a td:PropertyAffordance ;
             rdfs:comment "state of foyerLight" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -515,14 +504,41 @@
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
-            td:title "state" ] ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "color of foyerLight" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/foyer/artifacts/foyerLight/properties/color> ] ;
+            td:hasOutputSchema [ a jsonschema:ArraySchema ;
+                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
+            td:isObservable true ;
+            td:name "color" ;
+            td:title "color" ] ;
     td:title "Foyerlight" .
 
 <http://localhost:8080/workspaces/home98/garage/artifacts/garageAirPurifiers#artifact> a ex:AirPurifiers,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/garage#workspace> ;
-    td:hasActionAffordance [ a ex:SetModeCommand,
+    td:hasActionAffordance [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageAirPurifiers/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
+        [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageAirPurifiers/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ],
+        [ a ex:SetModeCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -535,23 +551,7 @@
                             jsonschema:propertyName "mode" ] ;
                     jsonschema:required "mode" ] ;
             td:name "setMode" ;
-            td:title "setMode" ],
-        [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageAirPurifiers/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
-        [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageAirPurifiers/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ] ;
+            td:title "setMode" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "mode of garageAirPurifiers" ;
             td:hasForm [ http:methodName "GET" ;
@@ -582,22 +582,22 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/garage#workspace> ;
-    td:hasActionAffordance [ a ex:OpenCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageBlinds/open> ] ;
-            td:name "open" ;
-            td:title "open" ],
-        [ a ex:CloseCommand,
+    td:hasActionAffordance [ a ex:CloseCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageBlinds/close> ] ;
             td:name "close" ;
-            td:title "close" ] ;
+            td:title "close" ],
+        [ a ex:OpenCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageBlinds/open> ] ;
+            td:name "open" ;
+            td:title "open" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "state of garageBlinds" ;
             td:hasForm [ http:methodName "GET" ;
@@ -605,8 +605,8 @@
                     hctl:hasOperationType td:readProperty ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageBlinds/properties/state> ] ;
             td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "closed",
-                        "open" ] ;
+                    jsonschema:enum "off",
+                        "on" ] ;
             td:isObservable true ;
             td:name "state" ;
             td:title "state" ] ;
@@ -616,22 +616,22 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/garage#workspace> ;
-    td:hasActionAffordance [ a ex:OpenCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageGarageDoor/open> ] ;
-            td:name "open" ;
-            td:title "open" ],
-        [ a ex:CloseCommand,
+    td:hasActionAffordance [ a ex:CloseCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageGarageDoor/close> ] ;
             td:name "close" ;
-            td:title "close" ] ;
+            td:title "close" ],
+        [ a ex:OpenCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageGarageDoor/open> ] ;
+            td:name "open" ;
+            td:title "open" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "state of garageGarageDoor" ;
             td:hasForm [ http:methodName "GET" ;
@@ -639,8 +639,8 @@
                     hctl:hasOperationType td:readProperty ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageGarageDoor/properties/state> ] ;
             td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "closed",
-                        "open" ] ;
+                    jsonschema:enum "off",
+                        "on" ] ;
             td:isObservable true ;
             td:name "state" ;
             td:title "state" ] ;
@@ -650,7 +650,23 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/garage#workspace> ;
-    td:hasActionAffordance [ a ex:SetColorCommand,
+    td:hasActionAffordance [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageLight/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageLight/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
+        [ a ex:SetColorCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -676,24 +692,19 @@
                             jsonschema:propertyName "brightness" ] ;
                     jsonschema:required "brightness" ] ;
             td:name "setBrightness" ;
-            td:title "setBrightness" ],
-        [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageLight/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
-        [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageLight/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ] ;
+            td:title "setBrightness" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
+            rdfs:comment "color of garageLight" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageLight/properties/color> ] ;
+            td:hasOutputSchema [ a jsonschema:ArraySchema ;
+                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
+            td:isObservable true ;
+            td:name "color" ;
+            td:title "color" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment "brightness of garageLight" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -716,18 +727,7 @@
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
-            td:title "state" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "color of garageLight" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/garage/artifacts/garageLight/properties/color> ] ;
-            td:hasOutputSchema [ a jsonschema:ArraySchema ;
-                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
-            td:isObservable true ;
-            td:name "color" ;
-            td:title "color" ] ;
+            td:title "state" ] ;
     td:title "Garagelight" .
 
 <http://localhost:8080/workspaces/home98/garage/artifacts/garageTrash#artifact> a ex:Trash,
@@ -760,7 +760,23 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/guest_bedroom#workspace> ;
-    td:hasActionAffordance [ a ex:SetIntensityCommand,
+    td:hasActionAffordance [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomAromatherapy/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
+        [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomAromatherapy/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ],
+        [ a ex:SetIntensityCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -773,23 +789,7 @@
                             jsonschema:propertyName "intensity" ] ;
                     jsonschema:required "intensity" ] ;
             td:name "setIntensity" ;
-            td:title "setIntensity" ],
-        [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomAromatherapy/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
-        [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomAromatherapy/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ] ;
+            td:title "setIntensity" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "intensity of guestBedroomAromatherapy" ;
             td:hasForm [ http:methodName "GET" ;
@@ -820,7 +820,15 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/guest_bedroom#workspace> ;
-    td:hasActionAffordance [ a ex:SetDegreeCommand,
+    td:hasActionAffordance [ a ex:CloseCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomCurtain/close> ] ;
+            td:name "close" ;
+            td:title "close" ],
+        [ a ex:SetDegreeCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -832,14 +840,6 @@
                     jsonschema:required "degree" ] ;
             td:name "setDegree" ;
             td:title "setDegree" ],
-        [ a ex:CloseCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomCurtain/close> ] ;
-            td:name "close" ;
-            td:title "close" ],
         [ a ex:OpenCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -849,6 +849,18 @@
             td:name "open" ;
             td:title "open" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
+            rdfs:comment "state of guestBedroomCurtain" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomCurtain/properties/state> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "off",
+                        "on" ] ;
+            td:isObservable true ;
+            td:name "state" ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment " degree of guestBedroomCurtain" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -858,34 +870,22 @@
                     jsonschema:maximum "100" ;
                     jsonschema:minimum 0 ] ;
             td:isObservable true ;
-            td:name "degree" ;
-            td:title "degree" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "state of guestBedroomCurtain" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomCurtain/properties/state> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "closed",
-                        "open" ] ;
-            td:isObservable true ;
-            td:name "state" ;
-            td:title "state" ] ;
+            td:name " degree" ;
+            td:title " degree" ] ;
     td:title "Guestbedroomcurtain" .
 
 <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomFan#artifact> a ex:Fan,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/guest_bedroom#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOnCommand,
+    td:hasActionAffordance [ a ex:TurnOffCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomFan/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomFan/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
         [ a ex:SetSwingCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -902,15 +902,27 @@
                     jsonschema:required "swing" ] ;
             td:name "setSwing" ;
             td:title "setSwing" ],
-        [ a ex:TurnOffCommand,
+        [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomFan/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomFan/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
+            rdfs:comment "state of guestBedroomFan" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomFan/properties/state> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "off",
+                        "on" ] ;
+            td:isObservable true ;
+            td:name "state" ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment "swing of guestBedroomFan" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -923,26 +935,22 @@
                         "up" ] ;
             td:isObservable true ;
             td:name "swing" ;
-            td:title "swing" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "state of guestBedroomFan" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomFan/properties/state> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "off",
-                        "on" ] ;
-            td:isObservable true ;
-            td:name "state" ;
-            td:title "state" ] ;
+            td:title "swing" ] ;
     td:title "Guestbedroomfan" .
 
 <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomHeating#artifact> a ex:Heating,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/guest_bedroom#workspace> ;
-    td:hasActionAffordance [ a ex:SetTemperatureCommand,
+    td:hasActionAffordance [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomHeating/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ],
+        [ a ex:SetTemperatureCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -970,14 +978,6 @@
                     jsonschema:required "mode" ] ;
             td:name "setMode" ;
             td:title "setMode" ],
-        [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomHeating/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
         [ a ex:TurnOffCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -987,18 +987,6 @@
             td:name "turnOff" ;
             td:title "turnOff" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "mode of guestBedroomHeating" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomHeating/properties/mode> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "fan_only",
-                        "heat" ] ;
-            td:isObservable true ;
-            td:name "mode" ;
-            td:title "mode" ],
-        [ a td:PropertyAffordance ;
             rdfs:comment "temperature of guestBedroomHeating" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -1021,14 +1009,34 @@
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
-            td:title "state" ] ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "mode of guestBedroomHeating" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomHeating/properties/mode> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "fan_only",
+                        "heat" ] ;
+            td:isObservable true ;
+            td:name "mode" ;
+            td:title "mode" ] ;
     td:title "Guestbedroomheating" .
 
 <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomHumidifier#artifact> a ex:Humidifier,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/guest_bedroom#workspace> ;
-    td:hasActionAffordance [ a ex:SetIntensityCommand,
+    td:hasActionAffordance [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomHumidifier/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ],
+        [ a ex:SetIntensityCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -1049,15 +1057,7 @@
                     hctl:hasOperationType td:invokeAction ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomHumidifier/turn_off> ] ;
             td:name "turnOff" ;
-            td:title "turnOff" ],
-        [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomHumidifier/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ] ;
+            td:title "turnOff" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "state of guestBedroomHumidifier" ;
             td:hasForm [ http:methodName "GET" ;
@@ -1088,14 +1088,14 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/guest_bedroom#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOnCommand,
+    td:hasActionAffordance [ a ex:TurnOffCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomLight/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomLight/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
         [ a ex:SetBrightnessCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -1110,27 +1110,15 @@
                     jsonschema:required "brightness" ] ;
             td:name "setBrightness" ;
             td:title "setBrightness" ],
-        [ a ex:TurnOffCommand,
+        [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomLight/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomLight/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "brightness of guestBedroomLight" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomLight/properties/brightness> ] ;
-            td:hasOutputSchema [ a jsonschema:IntegerSchema ;
-                    jsonschema:maximum 100 ;
-                    jsonschema:minimum 0 ] ;
-            td:isObservable true ;
-            td:name "brightness" ;
-            td:title "brightness" ],
-        [ a td:PropertyAffordance ;
             rdfs:comment "state of guestBedroomLight" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -1141,30 +1129,26 @@
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
-            td:title "state" ] ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "brightness of guestBedroomLight" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/guest_bedroom/artifacts/guestBedroomLight/properties/brightness> ] ;
+            td:hasOutputSchema [ a jsonschema:IntegerSchema ;
+                    jsonschema:maximum 100 ;
+                    jsonschema:minimum 0 ] ;
+            td:isObservable true ;
+            td:name "brightness" ;
+            td:title "brightness" ] ;
     td:title "Guestbedroomlight" .
 
 <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenFan#artifact> a ex:Fan,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/kitchen#workspace> ;
-    td:hasActionAffordance [ a ex:SetSpeedCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenFan/set_speed> ] ;
-            td:hasInputSchema [ a jsonschema:ObjectSchema ;
-                    jsonschema:properties [ a jsonschema:StringSchema ;
-                            jsonschema:enum "auto",
-                                "high",
-                                "low",
-                                "medium" ;
-                            jsonschema:propertyName "speed" ] ;
-                    jsonschema:required "speed" ] ;
-            td:name "setSpeed" ;
-            td:title "setSpeed" ],
-        [ a ex:TurnOnCommand,
+    td:hasActionAffordance [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -1179,8 +1163,36 @@
                     hctl:hasOperationType td:invokeAction ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenFan/turn_off> ] ;
             td:name "turnOff" ;
-            td:title "turnOff" ] ;
+            td:title "turnOff" ],
+        [ a ex:SetSpeedCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenFan/set_speed> ] ;
+            td:hasInputSchema [ a jsonschema:ObjectSchema ;
+                    jsonschema:properties [ a jsonschema:StringSchema ;
+                            jsonschema:enum "auto",
+                                "high",
+                                "low",
+                                "medium" ;
+                            jsonschema:propertyName "speed" ] ;
+                    jsonschema:required "speed" ] ;
+            td:name "setSpeed" ;
+            td:title "setSpeed" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
+            rdfs:comment "state of kitchenFan" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenFan/properties/state> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "off",
+                        "on" ] ;
+            td:isObservable true ;
+            td:name "state" ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment "speed of kitchenFan" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -1193,34 +1205,14 @@
                         "medium" ] ;
             td:isObservable true ;
             td:name "speed" ;
-            td:title "speed" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "state of kitchenFan" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenFan/properties/state> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "off",
-                        "on" ] ;
-            td:isObservable true ;
-            td:name "state" ;
-            td:title "state" ] ;
+            td:title "speed" ] ;
     td:title "Kitchenfan" .
 
 <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenLight#artifact> a ex:Light,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/kitchen#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenLight/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
-        [ a ex:TurnOffCommand,
+    td:hasActionAffordance [ a ex:TurnOffCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -1241,6 +1233,14 @@
                     jsonschema:required "color" ] ;
             td:name "setColor" ;
             td:title "setColor" ],
+        [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenLight/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ],
         [ a ex:SetBrightnessCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -1268,6 +1268,17 @@
             td:name "brightness" ;
             td:title "brightness" ],
         [ a td:PropertyAffordance ;
+            rdfs:comment "color of kitchenLight" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenLight/properties/color> ] ;
+            td:hasOutputSchema [ a jsonschema:ArraySchema ;
+                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
+            td:isObservable true ;
+            td:name "color" ;
+            td:title "color" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment "state of kitchenLight" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -1278,25 +1289,22 @@
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
-            td:title "state" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "color of kitchenLight" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenLight/properties/color> ] ;
-            td:hasOutputSchema [ a jsonschema:ArraySchema ;
-                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
-            td:isObservable true ;
-            td:name "color" ;
-            td:title "color" ] ;
+            td:title "state" ] ;
     td:title "Kitchenlight" .
 
 <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenWaterHeater#artifact> a ex:WaterHeater,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/kitchen#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOffCommand,
+    td:hasActionAffordance [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenWaterHeater/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ],
+        [ a ex:TurnOffCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -1317,15 +1325,7 @@
                             jsonschema:propertyName "temperature" ] ;
                     jsonschema:required "temperature" ] ;
             td:name "setTemperature" ;
-            td:title "setTemperature" ],
-        [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenWaterHeater/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ] ;
+            td:title "setTemperature" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "state of kitchenWaterHeater" ;
             td:hasForm [ http:methodName "GET" ;
@@ -1390,22 +1390,22 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/living_room#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOnCommand,
+    td:hasActionAffordance [ a ex:SetSwingCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomFan/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
-        [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomFan/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ],
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomFan/set_swing> ] ;
+            td:hasInputSchema [ a jsonschema:ObjectSchema ;
+                    jsonschema:properties [ a jsonschema:StringSchema ;
+                            jsonschema:enum "auto",
+                                "down",
+                                "middle",
+                                "up" ;
+                            jsonschema:propertyName "swing" ] ;
+                    jsonschema:required "swing" ] ;
+            td:name "setSwing" ;
+            td:title "setSwing" ],
         [ a ex:SetSpeedCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -1422,23 +1422,37 @@
                     jsonschema:required "speed" ] ;
             td:name "setSpeed" ;
             td:title "setSpeed" ],
-        [ a ex:SetSwingCommand,
+        [ a ex:TurnOffCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomFan/set_swing> ] ;
-            td:hasInputSchema [ a jsonschema:ObjectSchema ;
-                    jsonschema:properties [ a jsonschema:StringSchema ;
-                            jsonschema:enum "auto",
-                                "down",
-                                "middle",
-                                "up" ;
-                            jsonschema:propertyName "swing" ] ;
-                    jsonschema:required "swing" ] ;
-            td:name "setSwing" ;
-            td:title "setSwing" ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomFan/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
+        [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomFan/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
+            rdfs:comment "swing of livingRoomFan" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomFan/properties/swing> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "auto",
+                        "down",
+                        "middle",
+                        "up" ] ;
+            td:isObservable true ;
+            td:name "swing" ;
+            td:title "swing" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment "speed of livingRoomFan" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -1463,28 +1477,36 @@
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
-            td:title "state" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "swing of livingRoomFan" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomFan/properties/swing> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "auto",
-                        "down",
-                        "middle",
-                        "up" ] ;
-            td:isObservable true ;
-            td:name "swing" ;
-            td:title "swing" ] ;
+            td:title "state" ] ;
     td:title "Livingroomfan" .
 
 <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHeating#artifact> a ex:Heating,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/living_room#workspace> ;
-    td:hasActionAffordance [ a ex:SetModeCommand,
+    td:hasActionAffordance [ a ex:SetTemperatureCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHeating/set_temperature> ] ;
+            td:hasInputSchema [ a jsonschema:ObjectSchema ;
+                    jsonschema:properties [ a jsonschema:IntegerSchema ;
+                            jsonschema:maximum 100 ;
+                            jsonschema:minimum 30 ;
+                            jsonschema:propertyName "temperature" ] ;
+                    jsonschema:required "temperature" ] ;
+            td:name "setTemperature" ;
+            td:title "setTemperature" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHeating/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
+        [ a ex:SetModeCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -1505,42 +1527,8 @@
                     hctl:hasOperationType td:invokeAction ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHeating/turn_on> ] ;
             td:name "turnOn" ;
-            td:title "turnOn" ],
-        [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHeating/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ],
-        [ a ex:SetTemperatureCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHeating/set_temperature> ] ;
-            td:hasInputSchema [ a jsonschema:ObjectSchema ;
-                    jsonschema:properties [ a jsonschema:IntegerSchema ;
-                            jsonschema:maximum 100 ;
-                            jsonschema:minimum 30 ;
-                            jsonschema:propertyName "temperature" ] ;
-                    jsonschema:required "temperature" ] ;
-            td:name "setTemperature" ;
-            td:title "setTemperature" ] ;
+            td:title "turnOn" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "temperature of livingRoomHeating" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHeating/properties/temperature> ] ;
-            td:hasOutputSchema [ a jsonschema:IntegerSchema ;
-                    jsonschema:maximum 100 ;
-                    jsonschema:minimum 30 ] ;
-            td:isObservable true ;
-            td:name "temperature" ;
-            td:title "temperature" ],
-        [ a td:PropertyAffordance ;
             rdfs:comment "mode of livingRoomHeating" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -1563,30 +1551,26 @@
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
-            td:title "state" ] ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "temperature of livingRoomHeating" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHeating/properties/temperature> ] ;
+            td:hasOutputSchema [ a jsonschema:IntegerSchema ;
+                    jsonschema:maximum 100 ;
+                    jsonschema:minimum 30 ] ;
+            td:isObservable true ;
+            td:name "temperature" ;
+            td:title "temperature" ] ;
     td:title "Livingroomheating" .
 
 <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHumidifier#artifact> a ex:Humidifier,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/living_room#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHumidifier/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
-        [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHumidifier/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ],
-        [ a ex:SetIntensityCommand,
+    td:hasActionAffordance [ a ex:SetIntensityCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -1613,7 +1597,23 @@
                             jsonschema:propertyName "mode" ] ;
                     jsonschema:required "mode" ] ;
             td:name "setMode" ;
-            td:title "setMode" ] ;
+            td:title "setMode" ],
+        [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHumidifier/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHumidifier/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "tank of livingRoomHumidifier" ;
             td:hasForm [ http:methodName "GET" ;
@@ -1626,6 +1626,18 @@
             td:isObservable true ;
             td:name "tank" ;
             td:title "tank" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "state of livingRoomHumidifier" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHumidifier/properties/state> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "off",
+                        "on" ] ;
+            td:isObservable true ;
+            td:name "state" ;
+            td:title "state" ],
         [ a td:PropertyAffordance ;
             rdfs:comment "mode of livingRoomHumidifier" ;
             td:hasForm [ http:methodName "GET" ;
@@ -1649,19 +1661,7 @@
                     jsonschema:minimum 0 ] ;
             td:isObservable true ;
             td:name "intensity" ;
-            td:title "intensity" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "state of livingRoomHumidifier" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomHumidifier/properties/state> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "off",
-                        "on" ] ;
-            td:isObservable true ;
-            td:name "state" ;
-            td:title "state" ] ;
+            td:title "intensity" ] ;
     td:title "Livingroomhumidifier" .
 
 <http://localhost:8080/workspaces/home98/living_room/artifacts/livingRoomLight#artifact> a ex:Light,
@@ -1702,7 +1702,39 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/master_bedroom#workspace> ;
-    td:hasActionAffordance [ a ex:SetFanSpeedCommand,
+    td:hasActionAffordance [ a ex:SetSwingCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirConditioner/set_swing> ] ;
+            td:hasInputSchema [ a jsonschema:ObjectSchema ;
+                    jsonschema:properties [ a jsonschema:StringSchema ;
+                            jsonschema:enum "auto",
+                                "down",
+                                "middle",
+                                "up" ;
+                            jsonschema:propertyName "swing" ] ;
+                    jsonschema:required "swing" ] ;
+            td:name "setSwing" ;
+            td:title "setSwing" ],
+        [ a ex:SetModeCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirConditioner/set_mode> ] ;
+            td:hasInputSchema [ a jsonschema:ObjectSchema ;
+                    jsonschema:properties [ a jsonschema:StringSchema ;
+                            jsonschema:enum "cool",
+                                "dry",
+                                "fan_only",
+                                "heat" ;
+                            jsonschema:propertyName "mode" ] ;
+                    jsonschema:required "mode" ] ;
+            td:name "setMode" ;
+            td:title "setMode" ],
+        [ a ex:SetFanSpeedCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -1740,38 +1772,6 @@
                     jsonschema:required "temperature" ] ;
             td:name "setTemperature" ;
             td:title "setTemperature" ],
-        [ a ex:SetModeCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirConditioner/set_mode> ] ;
-            td:hasInputSchema [ a jsonschema:ObjectSchema ;
-                    jsonschema:properties [ a jsonschema:StringSchema ;
-                            jsonschema:enum "cool",
-                                "dry",
-                                "fan_only",
-                                "heat" ;
-                            jsonschema:propertyName "mode" ] ;
-                    jsonschema:required "mode" ] ;
-            td:name "setMode" ;
-            td:title "setMode" ],
-        [ a ex:SetSwingCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirConditioner/set_swing> ] ;
-            td:hasInputSchema [ a jsonschema:ObjectSchema ;
-                    jsonschema:properties [ a jsonschema:StringSchema ;
-                            jsonschema:enum "auto",
-                                "down",
-                                "middle",
-                                "up" ;
-                            jsonschema:propertyName "swing" ] ;
-                    jsonschema:required "swing" ] ;
-            td:name "setSwing" ;
-            td:title "setSwing" ],
         [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -1781,19 +1781,17 @@
             td:name "turnOn" ;
             td:title "turnOn" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "mode of masterBedroomAirConditioner" ;
+            rdfs:comment "state of masterBedroomAirConditioner" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirConditioner/properties/mode> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirConditioner/properties/state> ] ;
             td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "cool",
-                        "dry",
-                        "fan_only",
-                        "heat" ] ;
+                    jsonschema:enum "off",
+                        "on" ] ;
             td:isObservable true ;
-            td:name "mode" ;
-            td:title "mode" ],
+            td:name "state" ;
+            td:title "state" ],
         [ a td:PropertyAffordance ;
             rdfs:comment "swing of masterBedroomAirConditioner" ;
             td:hasForm [ http:methodName "GET" ;
@@ -1809,29 +1807,19 @@
             td:name "swing" ;
             td:title "swing" ],
         [ a td:PropertyAffordance ;
-            rdfs:comment "state of masterBedroomAirConditioner" ;
+            rdfs:comment "mode of masterBedroomAirConditioner" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirConditioner/properties/state> ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirConditioner/properties/mode> ] ;
             td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "off",
-                        "on" ] ;
+                    jsonschema:enum "cool",
+                        "dry",
+                        "fan_only",
+                        "heat" ] ;
             td:isObservable true ;
-            td:name "state" ;
-            td:title "state" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "temperature of masterBedroomAirConditioner" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirConditioner/properties/temperature> ] ;
-            td:hasOutputSchema [ a jsonschema:IntegerSchema ;
-                    jsonschema:maximum "30" ;
-                    jsonschema:minimum "16" ] ;
-            td:isObservable true ;
-            td:name "temperature" ;
-            td:title "temperature" ],
+            td:name "mode" ;
+            td:title "mode" ],
         [ a td:PropertyAffordance ;
             rdfs:comment "fan_speed of masterBedroomAirConditioner" ;
             td:hasForm [ http:methodName "GET" ;
@@ -1845,7 +1833,19 @@
                         "medium" ] ;
             td:isObservable true ;
             td:name "fan_speed" ;
-            td:title "fan_speed" ] ;
+            td:title "fan_speed" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "temperature of masterBedroomAirConditioner" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirConditioner/properties/temperature> ] ;
+            td:hasOutputSchema [ a jsonschema:IntegerSchema ;
+                    jsonschema:maximum "30" ;
+                    jsonschema:minimum "16" ] ;
+            td:isObservable true ;
+            td:name "temperature" ;
+            td:title "temperature" ] ;
     td:title "Masterbedroomairconditioner" .
 
 <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirPurifiers#artifact> a ex:AirPurifiers,
@@ -1883,18 +1883,6 @@
             td:name "setMode" ;
             td:title "setMode" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "mode of masterBedroomAirPurifiers" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirPurifiers/properties/mode> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "auto",
-                        "sleep" ] ;
-            td:isObservable true ;
-            td:name "mode" ;
-            td:title "mode" ],
-        [ a td:PropertyAffordance ;
             rdfs:comment "state of masterBedroomAirPurifiers" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -1905,22 +1893,26 @@
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
-            td:title "state" ] ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "mode of masterBedroomAirPurifiers" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAirPurifiers/properties/mode> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "auto",
+                        "sleep" ] ;
+            td:isObservable true ;
+            td:name "mode" ;
+            td:title "mode" ] ;
     td:title "Masterbedroomairpurifiers" .
 
 <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAromatherapy#artifact> a ex:Aromatherapy,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/master_bedroom#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAromatherapy/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
-        [ a ex:SetIntensityCommand,
+    td:hasActionAffordance [ a ex:SetIntensityCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -1934,6 +1926,14 @@
                     jsonschema:required "intensity" ] ;
             td:name "setIntensity" ;
             td:title "setIntensity" ],
+        [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomAromatherapy/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ],
         [ a ex:TurnOffCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -1980,6 +1980,14 @@
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomCurtain/close> ] ;
             td:name "close" ;
             td:title "close" ],
+        [ a ex:OpenCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomCurtain/open> ] ;
+            td:name "open" ;
+            td:title "open" ],
         [ a ex:SetDegreeCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -1991,15 +1999,7 @@
                             jsonschema:propertyName "degree" ] ;
                     jsonschema:required "degree" ] ;
             td:name "setDegree" ;
-            td:title "setDegree" ],
-        [ a ex:OpenCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomCurtain/open> ] ;
-            td:name "open" ;
-            td:title "open" ] ;
+            td:title "setDegree" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment " degree of masterBedroomCurtain" ;
             td:hasForm [ http:methodName "GET" ;
@@ -2010,8 +2010,8 @@
                     jsonschema:maximum "100" ;
                     jsonschema:minimum 0 ] ;
             td:isObservable true ;
-            td:name "degree" ;
-            td:title "degree" ],
+            td:name " degree" ;
+            td:title " degree" ],
         [ a td:PropertyAffordance ;
             rdfs:comment "state of masterBedroomCurtain" ;
             td:hasForm [ http:methodName "GET" ;
@@ -2019,8 +2019,8 @@
                     hctl:hasOperationType td:readProperty ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomCurtain/properties/state> ] ;
             td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "closed",
-                        "open" ] ;
+                    jsonschema:enum "off",
+                        "on" ] ;
             td:isObservable true ;
             td:name "state" ;
             td:title "state" ] ;
@@ -2030,7 +2030,21 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/master_bedroom#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOffCommand,
+    td:hasActionAffordance [ a ex:SetModeCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomDehumidifiers/set_mode> ] ;
+            td:hasInputSchema [ a jsonschema:ObjectSchema ;
+                    jsonschema:properties [ a jsonschema:StringSchema ;
+                            jsonschema:enum "auto",
+                                "sleep" ;
+                            jsonschema:propertyName "mode" ] ;
+                    jsonschema:required "mode" ] ;
+            td:name "setMode" ;
+            td:title "setMode" ],
+        [ a ex:TurnOffCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -2038,14 +2052,6 @@
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomDehumidifiers/turn_off> ] ;
             td:name "turnOff" ;
             td:title "turnOff" ],
-        [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomDehumidifiers/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
         [ a ex:SetIntensityCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -2060,21 +2066,39 @@
                     jsonschema:required "intensity" ] ;
             td:name "setIntensity" ;
             td:title "setIntensity" ],
-        [ a ex:SetModeCommand,
+        [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomDehumidifiers/set_mode> ] ;
-            td:hasInputSchema [ a jsonschema:ObjectSchema ;
-                    jsonschema:properties [ a jsonschema:StringSchema ;
-                            jsonschema:enum "auto",
-                                "sleep" ;
-                            jsonschema:propertyName "mode" ] ;
-                    jsonschema:required "mode" ] ;
-            td:name "setMode" ;
-            td:title "setMode" ] ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomDehumidifiers/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
+            rdfs:comment "mode of masterBedroomDehumidifiers" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomDehumidifiers/properties/mode> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "auto",
+                        "sleep" ] ;
+            td:isObservable true ;
+            td:name "mode" ;
+            td:title "mode" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "state of masterBedroomDehumidifiers" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomDehumidifiers/properties/state> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "off",
+                        "on" ] ;
+            td:isObservable true ;
+            td:name "state" ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment "intensity of masterBedroomDehumidifiers" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -2097,53 +2121,29 @@
                     jsonschema:minimum "0" ] ;
             td:isObservable true ;
             td:name "tank" ;
-            td:title "tank" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "state of masterBedroomDehumidifiers" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomDehumidifiers/properties/state> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "off",
-                        "on" ] ;
-            td:isObservable true ;
-            td:name "state" ;
-            td:title "state" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "mode of masterBedroomDehumidifiers" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomDehumidifiers/properties/mode> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "auto",
-                        "sleep" ] ;
-            td:isObservable true ;
-            td:name "mode" ;
-            td:title "mode" ] ;
+            td:title "tank" ] ;
     td:title "Masterbedroomdehumidifiers" .
 
 <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomLight#artifact> a ex:Light,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/master_bedroom#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomLight/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ],
-        [ a ex:TurnOnCommand,
+    td:hasActionAffordance [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomLight/turn_on> ] ;
             td:name "turnOn" ;
-            td:title "turnOn" ] ;
+            td:title "turnOn" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/master_bedroom/artifacts/masterBedroomLight/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "state of masterBedroomLight" ;
             td:hasForm [ http:methodName "GET" ;
@@ -2162,15 +2162,7 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/store_room#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOnCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/store_room/artifacts/storeRoomHumidifier/turn_on> ] ;
-            td:name "turnOn" ;
-            td:title "turnOn" ],
-        [ a ex:TurnOffCommand,
+    td:hasActionAffordance [ a ex:TurnOffCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -2178,6 +2170,14 @@
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/store_room/artifacts/storeRoomHumidifier/turn_off> ] ;
             td:name "turnOff" ;
             td:title "turnOff" ],
+        [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/store_room/artifacts/storeRoomHumidifier/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ],
         [ a ex:SetModeCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -2193,18 +2193,6 @@
             td:name "setMode" ;
             td:title "setMode" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
-            rdfs:comment "mode of storeRoomHumidifier" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/store_room/artifacts/storeRoomHumidifier/properties/mode> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "auto",
-                        "sleep" ] ;
-            td:isObservable true ;
-            td:name "mode" ;
-            td:title "mode" ],
-        [ a td:PropertyAffordance ;
             rdfs:comment "state of storeRoomHumidifier" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -2215,14 +2203,34 @@
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
-            td:title "state" ] ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "mode of storeRoomHumidifier" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/store_room/artifacts/storeRoomHumidifier/properties/mode> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "auto",
+                        "sleep" ] ;
+            td:isObservable true ;
+            td:name "mode" ;
+            td:title "mode" ] ;
     td:title "Storeroomhumidifier" .
 
 <http://localhost:8080/workspaces/home98/store_room/artifacts/storeRoomLight#artifact> a ex:Light,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/store_room#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOnCommand,
+    td:hasActionAffordance [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/store_room/artifacts/storeRoomLight/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
+        [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -2256,15 +2264,7 @@
                             jsonschema:propertyName "brightness" ] ;
                     jsonschema:required "brightness" ] ;
             td:name "setBrightness" ;
-            td:title "setBrightness" ],
-        [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/store_room/artifacts/storeRoomLight/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ] ;
+            td:title "setBrightness" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "state of storeRoomLight" ;
             td:hasForm [ http:methodName "GET" ;
@@ -2278,6 +2278,17 @@
             td:name "state" ;
             td:title "state" ],
         [ a td:PropertyAffordance ;
+            rdfs:comment "color of storeRoomLight" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/store_room/artifacts/storeRoomLight/properties/color> ] ;
+            td:hasOutputSchema [ a jsonschema:ArraySchema ;
+                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
+            td:isObservable true ;
+            td:name "color" ;
+            td:title "color" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment "brightness of storeRoomLight" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -2288,18 +2299,7 @@
                     jsonschema:minimum "0" ] ;
             td:isObservable true ;
             td:name "brightness" ;
-            td:title "brightness" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "color of storeRoomLight" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/store_room/artifacts/storeRoomLight/properties/color> ] ;
-            td:hasOutputSchema [ a jsonschema:ArraySchema ;
-                    jsonschema:items [ a jsonschema:IntegerSchema ] ] ;
-            td:isObservable true ;
-            td:name "color" ;
-            td:title "color" ] ;
+            td:title "brightness" ] ;
     td:title "Storeroomlight" .
 
 <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomAirPurifiers#artifact> a ex:AirPurifiers,
@@ -2365,6 +2365,18 @@
             td:name "state" ;
             td:title "state" ],
         [ a td:PropertyAffordance ;
+            rdfs:comment "mode of studyRoomAirPurifiers" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomAirPurifiers/properties/mode> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "auto",
+                        "sleep" ] ;
+            td:isObservable true ;
+            td:name "mode" ;
+            td:title "mode" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment "fan_speed of studyRoomAirPurifiers" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -2377,41 +2389,29 @@
                         "medium" ] ;
             td:isObservable true ;
             td:name "fan_speed" ;
-            td:title "fan_speed" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "mode of studyRoomAirPurifiers" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomAirPurifiers/properties/mode> ] ;
-            td:hasOutputSchema [ a jsonschema:StringSchema ;
-                    jsonschema:enum "auto",
-                        "sleep" ] ;
-            td:isObservable true ;
-            td:name "mode" ;
-            td:title "mode" ] ;
+            td:title "fan_speed" ] ;
     td:title "Studyroomairpurifiers" .
 
 <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomDehumidifiers#artifact> a ex:Dehumidifiers,
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/study_room#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomDehumidifiers/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ],
-        [ a ex:TurnOnCommand,
+    td:hasActionAffordance [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
                     hctl:hasOperationType td:invokeAction ;
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomDehumidifiers/turn_on> ] ;
             td:name "turnOn" ;
-            td:title "turnOn" ] ;
+            td:title "turnOn" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomDehumidifiers/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "state of studyRoomDehumidifiers" ;
             td:hasForm [ http:methodName "GET" ;
@@ -2438,14 +2438,6 @@
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomFan/turn_on> ] ;
             td:name "turnOn" ;
             td:title "turnOn" ],
-        [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomFan/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ],
         [ a ex:SetSwingCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -2461,7 +2453,15 @@
                             jsonschema:propertyName "swing" ] ;
                     jsonschema:required "swing" ] ;
             td:name "setSwing" ;
-            td:title "setSwing" ] ;
+            td:title "setSwing" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomFan/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
             rdfs:comment "swing of studyRoomFan" ;
             td:hasForm [ http:methodName "GET" ;
@@ -2554,15 +2554,7 @@
         hmas:Artifact,
         td:Thing ;
     hmas:isContainedIn <http://localhost:8080/workspaces/home98/study_room#workspace> ;
-    td:hasActionAffordance [ a ex:TurnOffCommand,
-                td:ActionAffordance ;
-            td:hasForm [ http:methodName "POST" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:invokeAction ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomLight/turn_off> ] ;
-            td:name "turnOff" ;
-            td:title "turnOff" ],
-        [ a ex:TurnOnCommand,
+    td:hasActionAffordance [ a ex:TurnOnCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
                     hctl:forContentType "application/json" ;
@@ -2570,6 +2562,14 @@
                     hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomLight/turn_on> ] ;
             td:name "turnOn" ;
             td:title "turnOn" ],
+        [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomLight/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
         [ a ex:SetBrightnessCommand,
                 td:ActionAffordance ;
             td:hasForm [ http:methodName "POST" ;
@@ -2598,6 +2598,18 @@
             td:name "setColor" ;
             td:title "setColor" ] ;
     td:hasPropertyAffordance [ a td:PropertyAffordance ;
+            rdfs:comment "brightness of studyRoomLight" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomLight/properties/brightness> ] ;
+            td:hasOutputSchema [ a jsonschema:IntegerSchema ;
+                    jsonschema:maximum "100" ;
+                    jsonschema:minimum "0" ] ;
+            td:isObservable true ;
+            td:name "brightness" ;
+            td:title "brightness" ],
+        [ a td:PropertyAffordance ;
             rdfs:comment "color of studyRoomLight" ;
             td:hasForm [ http:methodName "GET" ;
                     hctl:forContentType "application/json" ;
@@ -2619,19 +2631,7 @@
                         "on" ] ;
             td:isObservable true ;
             td:name "state" ;
-            td:title "state" ],
-        [ a td:PropertyAffordance ;
-            rdfs:comment "brightness of studyRoomLight" ;
-            td:hasForm [ http:methodName "GET" ;
-                    hctl:forContentType "application/json" ;
-                    hctl:hasOperationType td:readProperty ;
-                    hctl:hasTarget <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomLight/properties/brightness> ] ;
-            td:hasOutputSchema [ a jsonschema:IntegerSchema ;
-                    jsonschema:maximum "100" ;
-                    jsonschema:minimum "0" ] ;
-            td:isObservable true ;
-            td:name "brightness" ;
-            td:title "brightness" ] ;
+            td:title "state" ] ;
     td:title "Studyroomlight" .
 
 <http://localhost:8080/workspaces/home98/study_room/artifacts/studyRoomTrash#artifact> a ex:Trash,
@@ -2694,12 +2694,12 @@
         <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenLight#artifact>,
         <http://localhost:8080/workspaces/home98/kitchen/artifacts/kitchenWaterHeater#artifact> .
 
-<http://localhost:8080/workspaces/home98/ding_room#workspace> a hmas:Workspace,
+<http://localhost:8080/workspaces/home98/dining_room#workspace> a hmas:Workspace,
         td:Thing ;
-    hmas:contains <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomBlinds#artifact>,
-        <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomDehumidifiers#artifact>,
-        <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomLight#artifact>,
-        <http://localhost:8080/workspaces/home98/ding_room/artifacts/dingRoomTrash#artifact> .
+    hmas:contains <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomBlinds#artifact>,
+        <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomDehumidifiers#artifact>,
+        <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomLight#artifact>,
+        <http://localhost:8080/workspaces/home98/dining_room/artifacts/diningRoomTrash#artifact> .
 
 <http://localhost:8080/workspaces/home98/garage#workspace> a hmas:Workspace,
         td:Thing ;

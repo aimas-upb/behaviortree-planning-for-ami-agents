@@ -306,10 +306,10 @@ class GroundTruthConverter:
             expected_value = 'off'
         elif action == 'open':
             property_name = 'state'
-            expected_value = 'on'
+            expected_value = 'open'
         elif action == 'close':
             property_name = 'state'
-            expected_value = 'off'
+            expected_value = 'closed'
         elif action.startswith('set_'):
             # Extract property name from action (e.g., set_temperature -> temperature)
             property_name = action[4:]  # Remove 'set_' prefix
