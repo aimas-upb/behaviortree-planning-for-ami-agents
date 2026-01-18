@@ -117,7 +117,7 @@ class DataService:
 
         statistic = self._compute_default_statistics(entries)
         if test_type in TestType.SINGLE_FEASIBLE_ACTION:
-            with open(f"data/{test_type.value}_statistics.json", 'w') as f:
+            with open(f"experiments_data/{test_type.value}_statistics.json", 'w') as f:
                 json.dump(statistic.model_dump(exclude_none=True), f, indent=2)
         elif test_type in TestType.MULTI_FEASIBLE_ACTION:
             # Compute the entries to correct inputs mapping
@@ -126,7 +126,7 @@ class DataService:
                 correct_count = len(entry.output)
                 correct_inputs_mapping[correct_count] = correct_inputs_mapping.get(correct_count, 0) + 1
                 statistic.correct_inputs_to_entries_mapping = correct_inputs_mapping
-                with open(f"data/{test_type.value}_statistics.json", 'w') as f:
+                with open(f"experiments_data/{test_type.value}_statistics.json", 'w') as f:
                     json.dump(statistic.model_dump(exclude_none=True), f, indent=2)
         elif test_type in TestType.MULTI_UNFEASIBLE_ACTION:
             # Compute the entries to error inputs mapping
@@ -136,7 +136,7 @@ class DataService:
                 error_inputs_mapping[error_count] = error_inputs_mapping.get(error_count, 0) + 1
 
             statistic.error_inputs_to_entries_mapping = error_inputs_mapping
-            with open(f"data/{test_type.value}_statistics.json", 'w') as f:
+            with open(f"experiments_data/{test_type.value}_statistics.json", 'w') as f:
                 json.dump(statistic.model_dump(exclude_none=True), f, indent=2)
 
     def pre_process_data(self) -> None:
