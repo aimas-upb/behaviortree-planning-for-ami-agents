@@ -6,6 +6,8 @@ Single-turn reasoning before generation.
 
 import logging
 
+from ...config import get_model_kwargs
+
 logger = logging.getLogger(__name__)
 
 
@@ -73,11 +75,10 @@ class ChainOfThoughtReasoning:
             {"role": "user", "content": COT_USER_PROMPT.format(context=context, goal=goal)},
         ]
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=0.0,
-        )
+        api_kwargs = get_model_kwargs(model)
+        api_kwargs["messages"] = messages
+
+        response = client.chat.completions.create(**api_kwargs)
 
         reasoning = response.choices[0].message.content
         logger.info("Chain-of-thought reasoning complete")

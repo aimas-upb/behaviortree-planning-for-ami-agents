@@ -6,6 +6,8 @@ Generate, critique, and refine approach.
 
 import logging
 
+from ...config import get_model_kwargs
+
 logger = logging.getLogger(__name__)
 
 
@@ -112,49 +114,46 @@ class ReflectionReasoning:
 
         # Phase 1: Initial analysis
         logger.debug("Phase 1: Initial analysis")
-        initial_response = client.chat.completions.create(
-            model=model,
-            messages=[{
-                "role": "user",
-                "content": INITIAL_ANALYSIS_PROMPT.format(context=context, goal=goal),
-            }],
-            temperature=0.0,
-        )
+        api_kwargs_1 = get_model_kwargs(model)
+        api_kwargs_1["messages"] = [{
+            "role": "user",
+            "content": INITIAL_ANALYSIS_PROMPT.format(context=context, goal=goal),
+        }]
+
+        initial_response = client.chat.completions.create(**api_kwargs_1)
         initial_analysis = initial_response.choices[0].message.content
         reasoning_trace.append(f"## Initial Analysis\n\n{initial_analysis}")
 
         # Phase 2: Critique
         logger.debug("Phase 2: Critique")
-        critique_response = client.chat.completions.create(
-            model=model,
-            messages=[{
-                "role": "user",
-                "content": CRITIQUE_PROMPT.format(
-                    goal=goal,
-                    context=context,
-                    initial_analysis=initial_analysis,
-                ),
-            }],
-            temperature=0.0,
-        )
+        api_kwargs_2 = get_model_kwargs(model)
+        api_kwargs_2["messages"] = [{
+            "role": "user",
+            "content": CRITIQUE_PROMPT.format(
+                goal=goal,
+                context=context,
+                initial_analysis=initial_analysis,
+            ),
+        }]
+
+        critique_response = client.chat.completions.create(**api_kwargs_2)
         critique = critique_response.choices[0].message.content
         reasoning_trace.append(f"## Critique\n\n{critique}")
 
         # Phase 3: Refinement
         logger.debug("Phase 3: Refinement")
-        refinement_response = client.chat.completions.create(
-            model=model,
-            messages=[{
-                "role": "user",
-                "content": REFINEMENT_PROMPT.format(
-                    goal=goal,
-                    context=context,
-                    initial_analysis=initial_analysis,
-                    critique=critique,
-                ),
-            }],
-            temperature=0.0,
-        )
+        api_kwargs_3 = get_model_kwargs(model)
+        api_kwargs_3["messages"] = [{
+            "role": "user",
+            "content": REFINEMENT_PROMPT.format(
+                goal=goal,
+                context=context,
+                initial_analysis=initial_analysis,
+                critique=critique,
+            ),
+        }]
+
+        refinement_response = client.chat.completions.create(**api_kwargs_3)
         refined_analysis = refinement_response.choices[0].message.content
         reasoning_trace.append(f"## Refined Analysis\n\n{refined_analysis}")
 

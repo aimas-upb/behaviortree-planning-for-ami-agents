@@ -537,16 +537,16 @@ def generate_action_comparison_section(result: dict) -> str:
 
 def generate_execution_section(result: dict) -> str:
     """Generate the execution results section."""
-    trace = result.get("trace", {})
-    execution = trace.get("execution", {}) if trace else {}
+    trace = result.get("trace", {}) or {}
+    execution = trace.get("execution", {}) or {}
 
     plan_gen = result.get("plan_generated", False)
     exec_success = result.get("execution_success", False)
     duration = result.get("duration", 0)
 
-    ticks = execution.get("ticks", 0)
-    tree_name = execution.get("tree_name", "N/A")
-    final_status = execution.get("final_status", "N/A")
+    ticks = execution.get("ticks", 0) if execution else 0
+    tree_name = execution.get("tree_name", "N/A") if execution else "N/A"
+    final_status = execution.get("final_status", "N/A") if execution else "N/A"
 
     # Property verification
     prop_results = result.get("property_results", [])

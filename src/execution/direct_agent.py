@@ -15,6 +15,7 @@ import httpx
 
 from .base import ExecutionResult
 from ..discovery.base import CapabilityModel, EnvironmentState
+from ..config import get_model_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -252,13 +253,13 @@ class DirectAgentExecutor:
         for iteration in range(self.max_iterations):
             result.iterations = iteration + 1
 
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                tools=DIRECT_AGENT_TOOLS,
-                tool_choice="auto",
-                # temperature=0.0,
-            )
+            api_kwargs = get_model_kwargs(self.model)
+            api_kwargs.update({
+                "messages": messages,
+                "tools": DIRECT_AGENT_TOOLS,
+                "tool_choice": "auto",
+            })
+            response = self.client.chat.completions.create(**api_kwargs)
 
             message = response.choices[0].message
             messages.append(message)

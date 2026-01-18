@@ -47,6 +47,7 @@ from behavior_trees.affordance_nodes import (
 
 from tracing import Tracer, TraceEventType, get_tracer, set_tracer
 from prompts import get_strategy, list_strategies, get_strategy_descriptions, PromptStrategy
+from src.config import get_model_kwargs
 
 load_dotenv()
 
@@ -368,12 +369,13 @@ def build_capability_model_agentic(
     })
 
     for iteration in range(max_iterations):
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=DISCOVERY_TOOLS,
-            tool_choice="auto",
-        )
+        api_kwargs = get_model_kwargs(model)
+        api_kwargs.update({
+            "messages": messages,
+            "tools": DISCOVERY_TOOLS,
+            "tool_choice": "auto",
+        })
+        response = client.chat.completions.create(**api_kwargs)
 
         message = response.choices[0].message
         messages.append(message)
@@ -598,11 +600,10 @@ Devices:
 
 Return ONLY a JSON array of relevant URIs, nothing else."""
 
-    response = client.chat.completions.create(
-        model=llm_model,
-        messages=[{"role": "user", "content": filter_prompt}],
-        temperature=0,
-    )
+    api_kwargs = get_model_kwargs(llm_model)
+    api_kwargs["messages"] = [{"role": "user", "content": filter_prompt}]
+
+    response = client.chat.completions.create(**api_kwargs)
 
     try:
         content = response.choices[0].message.content.strip()
@@ -857,12 +858,13 @@ def run_bt_agent(
         "tool_description": strategy.tool_description,
     })
 
-    response = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        tools=tools,
-        tool_choice={"type": "function", "function": {"name": "generate_behavior_tree"}},
-    )
+    api_kwargs = get_model_kwargs(model)
+    api_kwargs.update({
+        "messages": messages,
+        "tools": tools,
+        "tool_choice": {"type": "function", "function": {"name": "generate_behavior_tree"}},
+    })
+    response = client.chat.completions.create(**api_kwargs)
 
     message = response.choices[0].message
 
