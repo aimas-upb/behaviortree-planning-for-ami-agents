@@ -388,6 +388,8 @@ class SmartHomeSimulator:
         self.graphs: Dict[str, Graph] = {}  # home_id -> RDF graph
         self.home_workspaces: Dict[str, set] = {}  # home_id -> set of workspace URIs
         self.workspace_contains: Dict[str, set] = {}  # workspace_uri -> set of contained URIs (artifacts or sub-workspaces)
+        self.workspace_titles: Dict[str, str] = {}  # workspace_uri -> td:title
+        self.workspace_types: Dict[str, str] = {}  # workspace_uri -> ex: type URI
         self.artifact_graphs: Dict[str, Graph] = {}  # artifact_uri -> subgraph with TD description
 
     def load_homes(self, home_ids: list[int] = None):
@@ -445,6 +447,17 @@ class SmartHomeSimulator:
 
             # Track workspace
             self.home_workspaces[home_id].add(workspace_uri_str)
+
+            # Track workspace title and ex: type
+            for title in g.objects(workspace_uri, TD.title):
+                self.workspace_titles[workspace_uri_str] = str(title)
+                break
+
+            for type_uri in g.objects(workspace_uri, RDF.type):
+                type_str = str(type_uri)
+                if type_str.startswith("http://example.org/"):
+                    self.workspace_types[workspace_uri_str] = type_str
+                    break
 
             # Track what this workspace contains
             if workspace_uri_str not in self.workspace_contains:
@@ -867,10 +880,15 @@ class SmartHomeSimulator:
         g.bind("hmas", HMAS)
         g.bind("td", TD)
         g.bind("rdf", RDF)
+        g.bind("ex", EX)
 
         # Workspace description
+        if workspace_uri_str in self.workspace_types:
+            g.add((workspace_uri, RDF.type, URIRef(self.workspace_types[workspace_uri_str])))
         g.add((workspace_uri, RDF.type, HMAS.Workspace))
         g.add((workspace_uri, RDF.type, TD.Thing))
+        if workspace_uri_str in self.workspace_titles:
+            g.add((workspace_uri, TD.title, Literal(self.workspace_titles[workspace_uri_str])))
 
         # Add contained items (could be artifacts or sub-workspaces)
         for contained_uri_str in self.workspace_contains[workspace_uri_str]:
@@ -948,6 +966,17 @@ async def get_home_workspace(home_id: str):
         raise HTTPException(status_code=503, detail="Simulator not initialized")
 
     rdf_content = simulator.get_workspace_rdf(home_id)
+    return Response(content=rdf_content, media_type="text/turtle")
+
+
+@app.get("/workspaces/{home_id}/artifacts/{artifact_name}")
+async def get_home_level_artifact(home_id: str, artifact_name: str):
+    """GET endpoint for home-level artifact RDF description (TD) - e.g. vacuum robots"""
+    if simulator is None:
+        raise HTTPException(status_code=503, detail="Simulator not initialized")
+
+    artifact_path = f"{home_id}/artifacts/{artifact_name}"
+    rdf_content = simulator.get_artifact_rdf(artifact_path)
     return Response(content=rdf_content, media_type="text/turtle")
 
 

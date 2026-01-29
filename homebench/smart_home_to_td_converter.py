@@ -169,7 +169,8 @@ class SmartHomeToTDConverter:
         g.add((prop_node, self.TD.isObservable, Literal(True)))
 
         # Property read form (use sanitized name in URL)
-        property_url = f"{self.base_url}/workspaces/home{home_id}/{workspace_id}/artifacts/{artifact_name}/properties/{property_name_sanitized}"
+        workspace_base = f"{self.base_url}/workspaces/home{home_id}/{workspace_id}" if workspace_id else f"{self.base_url}/workspaces/home{home_id}"
+        property_url = f"{workspace_base}/artifacts/{artifact_name}/properties/{property_name_sanitized}"
         form_node = BNode()
         g.add((prop_node, self.TD.hasForm, form_node))
         g.add((form_node, self.HTTP.methodName, Literal("GET")))
@@ -237,7 +238,8 @@ class SmartHomeToTDConverter:
         g.add((action_node, self.TD.title, Literal(action_name)))
 
         # Action form (use sanitized operation name in URL)
-        action_url = f"{self.base_url}/workspaces/home{home_id}/{workspace_id}/artifacts/{artifact_name}/{operation_sanitized}"
+        workspace_base = f"{self.base_url}/workspaces/home{home_id}/{workspace_id}" if workspace_id else f"{self.base_url}/workspaces/home{home_id}"
+        action_url = f"{workspace_base}/artifacts/{artifact_name}/{operation_sanitized}"
         form_node = BNode()
         g.add((action_node, self.TD.hasForm, form_node))
         g.add((form_node, self.HTTP.methodName, Literal("POST")))
@@ -250,17 +252,29 @@ class SmartHomeToTDConverter:
             self.add_input_schema(g, action_node, parameters, property_constraints or {})
 
     def add_artifact(self, g: Graph, workspace_id: str, home_id: str, artifact_name: str,
-                    device_name: str, methods: List[Dict], device_state: Dict) -> URIRef:
-        """Add a TD artifact to the graph"""
-        artifact_uri = URIRef(f"{self.base_url}/workspaces/home{home_id}/{workspace_id}/artifacts/{artifact_name}#artifact")
-        room_workspace_uri = URIRef(f"{self.base_url}/workspaces/home{home_id}/{workspace_id}#workspace")
+                    device_name: str, methods: List[Dict], device_state: Dict,
+                    home_level: bool = False) -> URIRef:
+        """Add a TD artifact to the graph
+
+        Args:
+            home_level: If True, the artifact belongs directly to the home workspace
+                        (not to a room workspace). Used for roomless devices like vacuum robots.
+        """
+        if home_level:
+            artifact_uri = URIRef(f"{self.base_url}/workspaces/home{home_id}/artifacts/{artifact_name}#artifact")
+            container_workspace_uri = URIRef(f"{self.base_url}/workspaces/home{home_id}#workspace")
+            effective_workspace_id = None
+        else:
+            artifact_uri = URIRef(f"{self.base_url}/workspaces/home{home_id}/{workspace_id}/artifacts/{artifact_name}#artifact")
+            container_workspace_uri = URIRef(f"{self.base_url}/workspaces/home{home_id}/{workspace_id}#workspace")
+            effective_workspace_id = workspace_id
         device_class = self.get_device_type_class(device_name)
 
         # Add artifact triples
         g.add((artifact_uri, RDF.type, self.EX[device_class]))
         g.add((artifact_uri, RDF.type, self.HMAS.Artifact))
         g.add((artifact_uri, RDF.type, self.TD.Thing))
-        g.add((artifact_uri, self.HMAS.isContainedIn, room_workspace_uri))
+        g.add((artifact_uri, self.HMAS.isContainedIn, container_workspace_uri))
         g.add((artifact_uri, self.TD.title, Literal(artifact_name.capitalize())))
 
         # Build property constraints map for action input schema validation
@@ -300,7 +314,7 @@ class SmartHomeToTDConverter:
         for method in methods:
             self.add_action_affordance(
                 g, artifact_uri, method['operation'], method['parameters'],
-                workspace_id, home_id, artifact_name, property_constraints
+                effective_workspace_id, home_id, artifact_name, property_constraints
             )
 
         # Add property affordances from device state
@@ -308,7 +322,7 @@ class SmartHomeToTDConverter:
             for prop_name, prop_data in device_state['attributes'].items():
                 self.add_property_affordance(
                     g, artifact_uri, prop_name, prop_data,
-                    workspace_id, home_id, artifact_name
+                    effective_workspace_id, home_id, artifact_name
                 )
 
         # Add state property if exists
@@ -319,34 +333,43 @@ class SmartHomeToTDConverter:
             }
             self.add_property_affordance(
                 g, artifact_uri, 'state', state_data,
-                workspace_id, home_id, artifact_name
+                effective_workspace_id, home_id, artifact_name
             )
 
         return artifact_uri
 
     def add_room_workspace(self, g: Graph, workspace_id: str, home_id: str,
-                          artifact_uris: List[URIRef]) -> URIRef:
+                          artifact_uris: List[URIRef], room_name: str = None) -> URIRef:
         """Add a room workspace to the graph"""
         workspace_uri = URIRef(f"{self.base_url}/workspaces/home{home_id}/{workspace_id}#workspace")
 
+        room_class = self.get_device_type_class(room_name if room_name else workspace_id)
+        g.add((workspace_uri, RDF.type, self.EX[room_class]))
         g.add((workspace_uri, RDF.type, self.HMAS.Workspace))
         g.add((workspace_uri, RDF.type, self.TD.Thing))
+        g.add((workspace_uri, self.TD.title, Literal(room_name if room_name else workspace_id)))
 
         for artifact_uri in artifact_uris:
             g.add((workspace_uri, self.HMAS.contains, artifact_uri))
 
         return workspace_uri
 
-    def add_home_workspace(self, g: Graph, home_id: str, room_workspace_uris: List[URIRef]):
+    def add_home_workspace(self, g: Graph, home_id: str, room_workspace_uris: List[URIRef],
+                          home_artifact_uris: List[URIRef] = None):
         """Add a home workspace to the graph"""
         home_workspace_uri = URIRef(f"{self.base_url}/workspaces/home{home_id}#workspace")
 
+        g.add((home_workspace_uri, RDF.type, self.EX.Home))
         g.add((home_workspace_uri, RDF.type, self.HMAS.Workspace))
         g.add((home_workspace_uri, RDF.type, self.TD.Thing))
         g.add((home_workspace_uri, self.TD.title, Literal(f"Home {home_id}")))
 
         for room_workspace_uri in room_workspace_uris:
             g.add((home_workspace_uri, self.HMAS.contains, room_workspace_uri))
+
+        if home_artifact_uris:
+            for artifact_uri in home_artifact_uris:
+                g.add((home_workspace_uri, self.HMAS.contains, artifact_uri))
 
     def extract_json_state(self, artifact_uri: str, device_state: Dict) -> Dict:
         """Extract JSON state representation using PropertyAffordance names"""
@@ -396,6 +419,8 @@ class SmartHomeToTDConverter:
 
         # Group methods by room and device
         methods_by_room_device = {}
+        # Collect roomless device names (room_name == "None" in methods)
+        roomless_devices = {}
         for method in methods:
             room = method['room_name']
             device = method['device_name']
@@ -403,14 +428,46 @@ class SmartHomeToTDConverter:
             if key not in methods_by_room_device:
                 methods_by_room_device[key] = []
             methods_by_room_device[key].append(method)
+            if room == 'None':
+                roomless_devices[device] = self.get_device_type_class(device)
 
-        # Track room workspaces
+        # Track room workspaces and home-level artifacts
         room_workspace_uris = []
+        home_artifact_uris = []
         json_state = {}
 
-        # Process each room
+        # Process each entry in home_status
         for room_name, room_data in home_status.items():
-            # Sanitize room name for use in URIs
+            # Check if this entry is a roomless device (e.g. VacuumRobot)
+            # by matching the status key against known roomless device class names
+            matching_device = None
+            for device_name, device_class in roomless_devices.items():
+                if device_class == room_name:
+                    matching_device = device_name
+                    break
+
+            if matching_device is not None:
+                # This is a roomless device — room_data IS the device state directly
+                device_state = room_data
+                artifact_name = self.sanitize_name(matching_device)
+
+                # Get methods for this device (keyed under room_name="None")
+                device_methods = methods_by_room_device.get(('None', matching_device), [])
+
+                # Add artifact directly under the home workspace
+                artifact_uri = self.add_artifact(
+                    g, None, home_id, artifact_name,
+                    matching_device, device_methods, device_state,
+                    home_level=True
+                )
+                home_artifact_uris.append(artifact_uri)
+
+                # Extract JSON state
+                artifact_state = self.extract_json_state(str(artifact_uri), device_state)
+                json_state.update(artifact_state)
+                continue
+
+            # Normal room processing
             workspace_id = self.sanitize_name(room_name)
             artifact_uris = []
 
@@ -438,12 +495,12 @@ class SmartHomeToTDConverter:
             # Add room workspace
             if artifact_uris:
                 room_workspace_uri = self.add_room_workspace(
-                    g, workspace_id, home_id, artifact_uris
+                    g, workspace_id, home_id, artifact_uris, room_name
                 )
                 room_workspace_uris.append(room_workspace_uri)
 
         # Add home workspace
-        self.add_home_workspace(g, home_id, room_workspace_uris)
+        self.add_home_workspace(g, home_id, room_workspace_uris, home_artifact_uris)
 
         return g, json_state
 
