@@ -137,11 +137,7 @@ def aggregate_by_group(
     }
 
 
-def build_report(
-    stats: Dict[ActionGroup, ActionCounts],
-    unknown_tests: List[str],
-    ignored_tests: Dict[str, str],
-) -> Dict[str, Any]:
+def build_report(stats: Dict[ActionGroup, ActionCounts], unknown_tests: List[str]) -> Dict[str, Any]:
     """Prepare a JSON-serializable report of group metrics and unmapped tests."""
     report: Dict[str, Any] = {}
     for group, counts in stats.items():
@@ -157,8 +153,7 @@ def build_report(
 
     if unknown_tests:
         report["unmapped_test_ids"] = unknown_tests
-    if ignored_tests:
-        report["ignored_test_ids"] = ignored_tests
+
     return report
 
 
@@ -207,10 +202,13 @@ def main() -> None:
     agg_result = aggregate_by_group(results, group_map, target_groups=target_groups)
     report = build_report(
         stats=agg_result["stats"],
-        unknown_tests=agg_result["unknown_tests"],
-        ignored_tests=agg_result["ignored_tests"],
+        unknown_tests=agg_result["unknown_tests"]
     )
-    print(json.dumps(report, indent=2))
+    
+    with open(
+        os.path.join(args.experiment_dir, "action_f1_by_group_report.json"), "w"
+    ) as f:
+        json.dump(report, f, indent=2)
 
 
 if __name__ == "__main__":
