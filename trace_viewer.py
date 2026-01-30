@@ -293,7 +293,17 @@ def create_discovery_panel(data: dict, expanded: bool = False) -> Panel:
                         ptype += f" [magenta](values: {schema['enum']})"
                     prop_branch.add(f"[blue]{prop['name']}[/blue]: {ptype}")
 
-    content = Group(summary, Rule(style="dim"), tree)
+    # Infeasible commands
+    infeasible = affordances.get("infeasible_commands", [])
+    if infeasible:
+        infeasible_tree = Tree("[bold]Possibly Infeasible Commands")
+        for entry in infeasible:
+            cmd = entry.get("command", "unknown")
+            reason = entry.get("reason", "unknown")
+            infeasible_tree.add(f"[red]{cmd}[/red]: [dim]{reason}[/dim]")
+        content = Group(summary, Rule(style="dim"), tree, Rule(style="dim"), infeasible_tree)
+    else:
+        content = Group(summary, Rule(style="dim"), tree)
     return Panel(content, title="[bold]Discovery Phase", border_style="green")
 
 
@@ -640,6 +650,13 @@ def _reconstruct_planning_context(data: dict) -> str:
                         type_info = f" ({ptype})"
                     lines.append(f"  - `{prop['name']}`: `{prop.get('uri', '')}`{type_info}")
 
+    # Add infeasible commands section if available
+    infeasible = affordances.get("infeasible_commands", [])
+    if infeasible:
+        lines.append("\n\n# Possibly Infeasible Commands\n")
+        for entry in infeasible:
+            lines.append(f"- **{entry.get('command', 'unknown')}**: {entry.get('reason', 'unknown')}")
+
     # Add state section if available
     property_values = state.get("property_values", {})
     if property_values:
@@ -759,7 +776,18 @@ def _generate_discovery_html(data: dict) -> str:
         tree_html += "</div>"
     tree_html += "</div>"
 
-    return _generate_html_card("Discovery Phase", summary + tree_html, "#22c55e")
+    # Infeasible commands
+    infeasible = affordances.get("infeasible_commands", [])
+    infeasible_html = ""
+    if infeasible:
+        infeasible_html = "<hr><div class='tree'><strong>Possibly Infeasible Commands:</strong>"
+        for entry in infeasible:
+            cmd = _html_escape(entry.get("command", "unknown"))
+            reason = _html_escape(entry.get("reason", "unknown"))
+            infeasible_html += f"<div class='tree-node indent'><span class='error'>{cmd}</span>: <span class='dim'>{reason}</span></div>"
+        infeasible_html += "</div>"
+
+    return _generate_html_card("Discovery Phase", summary + tree_html + infeasible_html, "#22c55e")
 
 
 def _generate_exploration_trace_html(data: dict) -> str:
