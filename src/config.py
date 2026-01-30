@@ -12,7 +12,7 @@ import yaml
 
 class AffordanceConfig(BaseModel):
     """Configuration for affordance discovery."""
-    strategy: Literal["exhaustive", "agentic", "relevant"] = "exhaustive"
+    strategy: Literal["exhaustive", "agentic", "relevant", "agentic_query"] = "exhaustive"
     max_workspaces: int = Field(default=10, description="Max workspaces to explore")
 
 
@@ -61,6 +61,7 @@ class ModelConfig(BaseModel):
     """Configuration for the LLM."""
     name: str = "gpt-4o"
     temperature: float = 0.0
+    reasoning_effort: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = Field(default=None, description="API key (or use env var)")
 
@@ -120,16 +121,24 @@ def supports_temperature(model: str) -> bool:
     return model not in REASONING_MODELS
 
 
-def get_model_kwargs(model: str, temperature: float = 0.0) -> dict:
+def get_model_kwargs(
+    model: str,
+    temperature: float = 0.0,
+    model_config: Optional["ModelConfig"] = None,
+) -> dict:
     """
     Get appropriate kwargs for OpenAI API calls based on model type.
 
     Non-reasoning models (gpt-4o, gpt-4.1-mini): use temperature=0
-    Reasoning models (gpt-5-mini, gpt-5-nano): use reasoning_effort="medium"
+    Reasoning models (gpt-5-mini, gpt-5-nano): use reasoning_effort from
+    ModelConfig if set, otherwise DEFAULT_REASONING_EFFORT.
     """
     kwargs = {"model": model}
     if model in REASONING_MODELS:
-        kwargs["reasoning_effort"] = DEFAULT_REASONING_EFFORT
+        effort = DEFAULT_REASONING_EFFORT
+        if model_config is not None and model_config.reasoning_effort is not None:
+            effort = model_config.reasoning_effort
+        kwargs["reasoning_effort"] = effort
     else:
         kwargs["temperature"] = temperature
     return kwargs

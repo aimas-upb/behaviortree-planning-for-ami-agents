@@ -551,7 +551,7 @@ class SmartHomeSimulator:
 
         for action_aff in g.objects(artifact_uri, TD.hasActionAffordance):
             for name in g.objects(action_aff, TD.name):
-                action_name = str(name)
+                action_name = str(name).strip()
                 available_actions.add(action_name)
 
         return available_actions
@@ -568,6 +568,9 @@ class SmartHomeSimulator:
 
             if not prop_name:
                 continue
+
+            # Strip whitespace from property name (some TTL files have leading spaces)
+            prop_name = prop_name.strip()
 
             # Determine output schema type (default to ObjectSchema for backward compatibility)
             output_schema_type = "object"  # Default wraps in {"value": ...}
@@ -605,6 +608,9 @@ class SmartHomeSimulator:
 
             if not action_name:
                 continue
+
+            # Strip whitespace from action name (some TTL files have leading spaces)
+            action_name = action_name.strip()
 
             # Get parameters and validation rules from input schema
             params = []
@@ -920,6 +926,59 @@ class SmartHomeSimulator:
 
         return artifact_graph.serialize(format='turtle')
 
+    def query_sparql(self, home_id: str, query: str) -> Dict[str, Any]:
+        """Execute a SPARQL 1.1 query against a home's RDF graph
+
+        Args:
+            home_id: The home ID (e.g. "1")
+            query: SPARQL query string
+
+        Returns:
+            dict with "results" containing variable bindings
+        """
+        if home_id not in self.graphs:
+            raise HTTPException(status_code=404, detail=f"Home not found: {home_id}")
+
+        g = self.graphs[home_id]
+
+        try:
+            print(repr(query[:100]))
+            results = g.query(query)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"SPARQL query error: {str(e)}")
+
+        # Convert results to JSON-serializable format
+        if results.type == 'SELECT':
+            variables = [str(v) for v in results.vars]
+            bindings = []
+            for row in results:
+                binding = {}
+                for var in results.vars:
+                    value = row[var]
+                    if value is not None:
+                        binding[str(var)] = {
+                            "type": "uri" if isinstance(value, URIRef) else
+                                    "literal" if isinstance(value, Literal) else "bnode",
+                            "value": str(value)
+                        }
+                        if isinstance(value, Literal) and value.datatype:
+                            binding[str(var)]["datatype"] = str(value.datatype)
+                bindings.append(binding)
+
+            return {
+                "head": {"vars": variables},
+                "results": {"bindings": bindings}
+            }
+        elif results.type == 'ASK':
+            return {"boolean": bool(results.askAnswer)}
+        elif results.type == 'CONSTRUCT' or results.type == 'DESCRIBE':
+            result_graph = Graph()
+            for triple in results:
+                result_graph.add(triple)
+            return {"graph": result_graph.serialize(format='turtle')}
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported query type: {results.type}")
+
 
 # Global simulator instance and config
 simulator: Optional[SmartHomeSimulator] = None
@@ -1054,6 +1113,28 @@ async def root():
 async def health():
     """Health check endpoint"""
     return {"status": "healthy"}
+
+
+@app.post("/sparql")
+async def sparql_query(request: Request):
+    """SPARQL 1.1 query endpoint for home RDF graphs"""
+    if simulator is None:
+        raise HTTPException(status_code=503, detail="Simulator not initialized")
+
+    try:
+        payload = await request.json()
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    if "home_id" not in payload:
+        raise HTTPException(status_code=400, detail="Missing 'home_id' parameter in payload")
+    if "query" not in payload:
+        raise HTTPException(status_code=400, detail="Missing 'query' parameter in payload")
+
+    home_id = str(payload["home_id"])
+    query = payload["query"]
+
+    return simulator.query_sparql(home_id, query)
 
 
 @app.post("/reset")

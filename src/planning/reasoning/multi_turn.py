@@ -7,7 +7,7 @@ Multi-turn conversation for deeper exploration before generation.
 import json
 import logging
 
-from ...config import get_model_kwargs
+from ...config import ModelConfig, get_model_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +164,7 @@ class MultiTurnReasoning:
         goal: str,
         context: str,
         client,
-        model: str,
+        model_config: ModelConfig,
     ) -> tuple[str, list[str]]:
         """
         Perform multi-turn reasoning.
@@ -173,7 +173,7 @@ class MultiTurnReasoning:
             goal: The user's goal
             context: Discovery context
             client: OpenAI client
-            model: Model name
+            model_config: Model configuration
 
         Returns:
             Tuple of (enhanced context with reasoning, reasoning trace)
@@ -189,7 +189,7 @@ class MultiTurnReasoning:
         analysis_results = []
 
         for turn in range(self.max_turns):
-            api_kwargs = get_model_kwargs(model)
+            api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
             api_kwargs.update({
                 "messages": messages,
                 "tools": MULTI_TURN_TOOLS,

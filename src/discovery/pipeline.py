@@ -10,7 +10,7 @@ from openai import OpenAI
 from .base import DiscoveryResult, CapabilityModel, EnvironmentState
 from .affordances import create_affordance_strategy
 from .state import create_state_strategy
-from ..config import DiscoveryConfig
+from ..config import DiscoveryConfig, ModelConfig
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class DiscoveryPipeline:
 def create_discovery_pipeline(
     config: DiscoveryConfig,
     client: Optional[OpenAI] = None,
-    model: str = "gpt-4o",
+    model_config: Optional[ModelConfig] = None,
 ) -> DiscoveryPipeline:
     """
     Factory function to create a discovery pipeline from config.
@@ -90,7 +90,7 @@ def create_discovery_pipeline(
     Args:
         config: Discovery configuration
         client: OpenAI client (required for agentic/relevant strategies)
-        model: Model name for LLM-based strategies
+        model_config: Model configuration for LLM-based strategies
 
     Returns:
         Configured DiscoveryPipeline
@@ -99,7 +99,7 @@ def create_discovery_pipeline(
     affordance_strategy = create_affordance_strategy(
         strategy=config.affordances.strategy,
         client=client,
-        model=model,
+        model_config=model_config,
         max_workspaces=config.affordances.max_workspaces,
     )
 
@@ -107,7 +107,7 @@ def create_discovery_pipeline(
     state_strategy = create_state_strategy(
         strategy=config.state.strategy,
         client=client,
-        model=model,
+        model_config=model_config,
     )
 
     return DiscoveryPipeline(

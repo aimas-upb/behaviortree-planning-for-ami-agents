@@ -10,7 +10,7 @@ from openai import OpenAI
 from .base import Plan, PlanningResult
 from .reasoning import create_reasoning_strategy
 from .output import create_output_generator
-from ..config import PlanningConfig
+from ..config import PlanningConfig, ModelConfig
 from ..discovery import DiscoveryResult
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class Planner:
         goal: str,
         discovery: DiscoveryResult,
         client: OpenAI,
-        model: str,
+        model_config: ModelConfig,
     ) -> PlanningResult:
         """
         Generate a plan for the given goal.
@@ -49,7 +49,7 @@ class Planner:
             goal: The user's goal
             discovery: Discovery result with affordances and state
             client: OpenAI client
-            model: Model name
+            model_config: Model configuration
 
         Returns:
             PlanningResult with the generated plan
@@ -66,7 +66,7 @@ class Planner:
                 goal=goal,
                 context=context,
                 client=client,
-                model=model,
+                model_config=model_config,
             )
 
             # Count LLM calls from reasoning
@@ -79,7 +79,7 @@ class Planner:
                 goal=goal,
                 context=enhanced_context,
                 client=client,
-                model=model,
+                model_config=model_config,
                 prompt_strategy=self.prompt_strategy,
             )
             llm_calls += 1

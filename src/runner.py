@@ -56,7 +56,7 @@ def run_experiment(
         Dictionary with all experiment results
     """
     start_time = datetime.now()
-    model = config.model.name
+    model_config = config.model
 
     results = {
         "config": config.model_dump(),
@@ -79,7 +79,7 @@ def run_experiment(
         discovery_pipeline = create_discovery_pipeline(
             config=config.discovery,
             client=client,
-            model=model,
+            model_config=model_config,
         )
         discovery_result = discovery_pipeline.discover(entry_point, goal)
         results["discovery"] = discovery_result.to_dict()
@@ -99,7 +99,7 @@ def run_experiment(
             goal=goal,
             discovery=discovery_result,
             client=client,
-            model=model,
+            model_config=model_config,
         )
         results["planning"] = planning_result.to_dict()
 
@@ -205,14 +205,14 @@ Examples:
     parser.add_argument("--entry", type=str, help="Entry point URI (overrides --home)")
 
     # Model settings
-    parser.add_argument("--model", type=str, default="gpt-4o", help="Model name")
+    parser.add_argument("--model", type=str, default=None, help="Model name (default: from config or gpt-4o)")
     parser.add_argument("--base-url", type=str, help="API base URL")
     parser.add_argument("--api-key", type=str, help="API key")
 
     # Discovery overrides
     parser.add_argument(
         "--discovery-affordances",
-        choices=["exhaustive", "agentic", "relevant"],
+        choices=["exhaustive", "agentic", "relevant", "agentic_query"],
         help="Affordance discovery strategy"
     )
     parser.add_argument(

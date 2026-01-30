@@ -720,14 +720,14 @@ def run_homebench_test(
             discovery_pipeline = create_discovery_pipeline(
                 config=exp_config.discovery,
                 client=client,
-                model=model,
+                model_config=exp_config.model,
             )
             discovery_result = discovery_pipeline.discover(entry_point, goal)
 
             # Create direct agent executor
             executor = DirectAgentExecutor(
                 client=client,
-                model=model,
+                model_config=exp_config.model,
                 max_iterations=20,
             )
 

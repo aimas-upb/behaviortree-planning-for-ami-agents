@@ -6,7 +6,7 @@ Generate, critique, and refine approach.
 
 import logging
 
-from ...config import get_model_kwargs
+from ...config import ModelConfig, get_model_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ class ReflectionReasoning:
         goal: str,
         context: str,
         client,
-        model: str,
+        model_config: ModelConfig,
     ) -> tuple[str, list[str]]:
         """
         Perform reflection reasoning.
@@ -104,7 +104,7 @@ class ReflectionReasoning:
             goal: The user's goal
             context: Discovery context
             client: OpenAI client
-            model: Model name
+            model_config: Model configuration
 
         Returns:
             Tuple of (enhanced context with reasoning, reasoning trace)
@@ -114,7 +114,7 @@ class ReflectionReasoning:
 
         # Phase 1: Initial analysis
         logger.debug("Phase 1: Initial analysis")
-        api_kwargs_1 = get_model_kwargs(model)
+        api_kwargs_1 = get_model_kwargs(model_config.name, model_config=model_config)
         api_kwargs_1["messages"] = [{
             "role": "user",
             "content": INITIAL_ANALYSIS_PROMPT.format(context=context, goal=goal),
@@ -126,7 +126,7 @@ class ReflectionReasoning:
 
         # Phase 2: Critique
         logger.debug("Phase 2: Critique")
-        api_kwargs_2 = get_model_kwargs(model)
+        api_kwargs_2 = get_model_kwargs(model_config.name, model_config=model_config)
         api_kwargs_2["messages"] = [{
             "role": "user",
             "content": CRITIQUE_PROMPT.format(
@@ -142,7 +142,7 @@ class ReflectionReasoning:
 
         # Phase 3: Refinement
         logger.debug("Phase 3: Refinement")
-        api_kwargs_3 = get_model_kwargs(model)
+        api_kwargs_3 = get_model_kwargs(model_config.name, model_config=model_config)
         api_kwargs_3["messages"] = [{
             "role": "user",
             "content": REFINEMENT_PROMPT.format(

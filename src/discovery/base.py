@@ -13,6 +13,7 @@ class Affordance:
     name: str
     uri: str
     schema: dict = field(default_factory=dict)
+    command: Optional[str] = None  # The user command this affordance was discovered for
 
 
 @dataclass
@@ -30,7 +31,10 @@ class Artifact:
             "name": self.name,
             "uri": self.uri,
             "workspace": self.workspace,
-            "actions": [{"name": a.name, "uri": a.uri, "schema": a.schema} for a in self.actions],
+            "actions": [
+                {k: v for k, v in [("name", a.name), ("uri", a.uri), ("schema", a.schema), ("command", a.command)] if v is not None}
+                for a in self.actions
+            ],
             "properties": [{"name": p.name, "uri": p.uri, "schema": p.schema} for p in self.properties],
         }
 
@@ -113,6 +117,51 @@ class CapabilityModel:
     entry_point: str
     workspaces: dict[str, list[str]] = field(default_factory=dict)  # workspace_uri -> artifact_uris
     artifacts: dict[str, Artifact] = field(default_factory=dict)  # artifact_uri -> Artifact
+    infeasible_commands: list[dict] = field(default_factory=list)  # commands with zero SPARQL bindings
+
+    def mark_infeasible(self, command: str, query: str, reason: str = "zero bindings") -> None:
+        """Mark a command as possibly infeasible (SPARQL query returned no results)."""
+        self.infeasible_commands.append({
+            "command": command,
+            "query": query,
+            "reason": reason,
+        })
+
+    def check_infeasible_against_ground_truth(
+        self, ground_truth_actions: list[dict]
+    ) -> list[dict]:
+        """Compare infeasible commands against ground truth to distinguish
+        genuinely impossible requests from faulty SPARQL queries.
+
+        Args:
+            ground_truth_actions: List of expected action dicts, each with at least
+                an "action" or "name" key describing the expected action.
+
+        Returns:
+            List of verdict dicts with keys: command, expected_feasible, verdict.
+            verdict is "correct_infeasible" or "query_error".
+        """
+        gt_descriptions = set()
+        for gt in ground_truth_actions:
+            for key in ("action", "name", "command"):
+                if key in gt:
+                    gt_descriptions.add(gt[key].lower())
+
+        verdicts = []
+        for entry in self.infeasible_commands:
+            cmd_lower = entry["command"].lower()
+            # Check if any ground truth action matches this command
+            expected_feasible = any(
+                gt_term in cmd_lower or cmd_lower in gt_term
+                for gt_term in gt_descriptions
+            )
+            verdicts.append({
+                "command": entry["command"],
+                "query": entry["query"],
+                "expected_feasible": expected_feasible,
+                "verdict": "query_error" if expected_feasible else "correct_infeasible",
+            })
+        return verdicts
 
     def to_summary(self) -> str:
         """Generate a concise summary for the LLM prompt."""
@@ -134,7 +183,8 @@ class CapabilityModel:
                     lines.append("**Actions:**")
                     for action in art.actions:
                         schema_info = _format_action_schema(action.schema)
-                        lines.append(f"  - `{action.name}`: `{action.uri}`{schema_info}")
+                        cmd_tag = f" [command: {action.command}]" if action.command else ""
+                        lines.append(f"  - `{action.name}`: `{action.uri}`{schema_info}{cmd_tag}")
 
                 if art.properties:
                     lines.append("**Properties:**")
@@ -142,17 +192,25 @@ class CapabilityModel:
                         type_info = _format_property_type(prop.schema)
                         lines.append(f"  - `{prop.name}`: `{prop.uri}`{type_info}")
 
+        if self.infeasible_commands:
+            lines.append("\n# Possibly Infeasible Commands\n")
+            for entry in self.infeasible_commands:
+                lines.append(f"- **{entry['command']}**: {entry['reason']}")
+
         return "\n".join(lines)
 
     def to_dict(self) -> dict:
         """Convert to dict for tracing (summary stats)."""
-        return {
+        result = {
             "entry_point": self.entry_point,
             "workspace_count": len(self.workspaces),
             "artifact_count": len(self.artifacts),
             "action_count": sum(len(a.actions) for a in self.artifacts.values()),
             "property_count": sum(len(a.properties) for a in self.artifacts.values()),
         }
+        if self.infeasible_commands:
+            result["infeasible_commands"] = self.infeasible_commands
+        return result
 
     def to_full_dict(self) -> dict:
         """Convert to full dict with all discovered capabilities."""
@@ -166,11 +224,14 @@ class CapabilityModel:
                     artifacts_data.append(art.to_dict())
             workspaces_data[ws_name] = artifacts_data
 
-        return {
+        result = {
             "entry_point": self.entry_point,
             "workspaces": workspaces_data,
             "stats": self.to_dict(),
         }
+        if self.infeasible_commands:
+            result["infeasible_commands"] = self.infeasible_commands
+        return result
 
     def get_all_property_uris(self) -> list[str]:
         """Get all property URIs from all artifacts."""

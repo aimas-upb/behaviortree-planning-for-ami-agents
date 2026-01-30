@@ -6,7 +6,7 @@ Single-turn reasoning before generation.
 
 import logging
 
-from ...config import get_model_kwargs
+from ...config import ModelConfig, get_model_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class ChainOfThoughtReasoning:
         goal: str,
         context: str,
         client,
-        model: str,
+        model_config: ModelConfig,
     ) -> tuple[str, list[str]]:
         """
         Perform chain-of-thought reasoning.
@@ -63,7 +63,7 @@ class ChainOfThoughtReasoning:
             goal: The user's goal
             context: Discovery context
             client: OpenAI client
-            model: Model name
+            model_config: Model configuration
 
         Returns:
             Tuple of (enhanced context with reasoning, reasoning trace)
@@ -75,7 +75,7 @@ class ChainOfThoughtReasoning:
             {"role": "user", "content": COT_USER_PROMPT.format(context=context, goal=goal)},
         ]
 
-        api_kwargs = get_model_kwargs(model)
+        api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
         api_kwargs["messages"] = messages
 
         response = client.chat.completions.create(**api_kwargs)

@@ -21,7 +21,7 @@ class NoReasoning:
         goal: str,
         context: str,
         client,
-        model: str,
+        model_config=None,
     ) -> tuple[str, list[str]]:
         """
         Pass through without reasoning.
@@ -30,7 +30,7 @@ class NoReasoning:
             goal: The user's goal
             context: Discovery context
             client: OpenAI client (unused)
-            model: Model name (unused)
+            model_config: Model configuration (unused)
 
         Returns:
             Tuple of (unchanged context, empty trace)

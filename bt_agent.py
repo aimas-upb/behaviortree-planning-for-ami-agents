@@ -47,7 +47,7 @@ from behavior_trees.affordance_nodes import (
 
 from tracing import Tracer, TraceEventType, get_tracer, set_tracer
 from prompts import get_strategy, list_strategies, get_strategy_descriptions, PromptStrategy
-from src.config import get_model_kwargs
+from src.config import ModelConfig, get_model_kwargs
 
 load_dotenv()
 
@@ -332,7 +332,7 @@ def build_capability_model_agentic(
     entry_point: str,
     goal: str,
     client: OpenAI,
-    model: str,
+    model_config: ModelConfig,
     max_iterations: int = 15,
     tracer: Optional[Tracer] = None,
 ) -> CapabilityModel:
@@ -369,7 +369,7 @@ def build_capability_model_agentic(
     })
 
     for iteration in range(max_iterations):
-        api_kwargs = get_model_kwargs(model)
+        api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
         api_kwargs.update({
             "messages": messages,
             "tools": DISCOVERY_TOOLS,
@@ -566,7 +566,7 @@ def filter_capabilities_for_goal(
     model: CapabilityModel,
     goal: str,
     client: OpenAI,
-    llm_model: str,
+    model_config: ModelConfig,
     tracer: Optional[Tracer] = None,
 ) -> CapabilityModel:
     """
@@ -600,7 +600,7 @@ Devices:
 
 Return ONLY a JSON array of relevant URIs, nothing else."""
 
-    api_kwargs = get_model_kwargs(llm_model)
+    api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
     api_kwargs["messages"] = [{"role": "user", "content": filter_prompt}]
 
     response = client.chat.completions.create(**api_kwargs)
@@ -807,7 +807,7 @@ def build_tools(strategy: PromptStrategy) -> list[dict]:
 def run_bt_agent(
     goal: str,
     client: OpenAI,
-    model: str,
+    model_config: ModelConfig,
     capability_model: CapabilityModel,
     strategy: Optional[PromptStrategy] = None,
     tracer: Optional[Tracer] = None,
@@ -846,7 +846,7 @@ def run_bt_agent(
     # Log LLM request with full prompt for reproducibility
     tracer.log(TraceEventType.LLM_REQUEST, {
         "goal": goal,
-        "model": model,
+        "model": model_config.name,
         "strategy": strategy.name,
         "system_prompt_length": len(system_prompt),
     })
@@ -858,7 +858,7 @@ def run_bt_agent(
         "tool_description": strategy.tool_description,
     })
 
-    api_kwargs = get_model_kwargs(model)
+    api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
     api_kwargs.update({
         "messages": messages,
         "tools": tools,
@@ -926,7 +926,7 @@ def run_bt_agent(
 
 def interactive_mode(
     client: OpenAI,
-    model: str,
+    model_config: ModelConfig,
     capability_model: CapabilityModel,
     strategy: PromptStrategy,
     discovery_mode: str,
@@ -936,7 +936,7 @@ def interactive_mode(
     print("\n" + "=" * 60)
     print("Behavior Tree Planning Agent")
     print("=" * 60)
-    print(f"Model: {model}")
+    print(f"Model: {model_config.name}")
     print(f"Strategy: {strategy.name} - {strategy.description}")
     print(f"Discovery: {discovery_mode}")
     print(f"Tracing: {'enabled' if tracer.enabled else 'disabled'}")
@@ -975,14 +975,14 @@ def interactive_mode(
         print("\nAgent:")
         tracer.start_trace(
             goal=user_input,
-            model=model,
+            model=model_config.name,
             entry_point=capability_model.entry_point,
             ablation_config={"strategy": strategy.name, "discovery": discovery_mode},
         )
 
         try:
             result = run_bt_agent(
-                user_input, client, model, capability_model,
+                user_input, client, model_config, capability_model,
                 strategy=strategy, tracer=tracer
             )
             tracer.end_trace(success="SUCCESS" in result, result=result)
@@ -1074,6 +1074,13 @@ Examples:
         base_url=args.base_url,
     )
 
+    # Build ModelConfig from CLI args
+    model_config = ModelConfig(
+        name=args.model,
+        base_url=args.base_url,
+        api_key=args.api_key,
+    )
+
     # Setup tracer
     tracer = Tracer(enabled=args.trace, verbose=args.trace_verbose)
     set_tracer(tracer)
@@ -1088,7 +1095,7 @@ Examples:
     if args.goal:
         tracer.start_trace(
             goal=args.goal,
-            model=args.model,
+            model=model_config.name,
             entry_point=entry_point,
             ablation_config={"strategy": strategy.name, "discovery": args.discovery, "home": args.home},
         )
@@ -1104,7 +1111,7 @@ Examples:
             entry_point=entry_point,
             goal=args.goal,
             client=client,
-            model=args.model,
+            model_config=model_config,
             tracer=tracer,
         )
     else:
@@ -1123,14 +1130,14 @@ Examples:
             model=capability_model,
             goal=args.goal,
             client=client,
-            llm_model=args.model,
+            model_config=model_config,
             tracer=tracer,
         )
 
     if args.goal:
         # Single goal mode (trace already started before discovery)
         result = run_bt_agent(
-            args.goal, client, args.model, capability_model,
+            args.goal, client, model_config, capability_model,
             strategy=strategy, tracer=tracer
         )
         print(result)
@@ -1142,7 +1149,7 @@ Examples:
             print(f"\nTrace saved to: {trace_path}")
     else:
         # Interactive mode
-        interactive_mode(client, args.model, capability_model, strategy, args.discovery, tracer)
+        interactive_mode(client, model_config, capability_model, strategy, args.discovery, tracer)
 
         if args.trace:
             trace_path = tracer.save(args.trace_dir)

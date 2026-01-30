@@ -10,7 +10,7 @@ import logging
 from openai import OpenAI
 
 from ..base import Plan
-from ...config import get_model_kwargs
+from ...config import ModelConfig, get_model_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,7 @@ class JsonIRGenerator:
         goal: str,
         context: str,
         client: OpenAI,
-        model: str,
+        model_config: ModelConfig,
         prompt_strategy: str,
     ) -> Plan:
         """
@@ -140,7 +140,7 @@ class JsonIRGenerator:
             goal: The user's goal
             context: Context (possibly enhanced by reasoning)
             client: OpenAI client
-            model: Model name
+            model_config: Model configuration
             prompt_strategy: Which prompt template to use
 
         Returns:
@@ -170,7 +170,7 @@ class JsonIRGenerator:
         validation_errors: list[str] = []
 
         for attempt in range(max_attempts):
-            api_kwargs = get_model_kwargs(model)
+            api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
             api_kwargs.update({
                 "messages": messages,
                 "tools": [tool],

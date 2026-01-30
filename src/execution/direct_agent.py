@@ -15,7 +15,7 @@ import httpx
 
 from .base import ExecutionResult
 from ..discovery.base import CapabilityModel, EnvironmentState
-from ..config import get_model_kwargs
+from ..config import ModelConfig, get_model_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -206,12 +206,13 @@ class DirectAgentExecutor:
     def __init__(
         self,
         client: OpenAI,
-        model: str = "gpt-4o",
+        model_config: ModelConfig,
         max_iterations: int = 20,
         http_timeout: float = 30.0,
     ):
         self.client = client
-        self.model = model
+        self.model_config = model_config
+        self.model = model_config.name
         self.max_iterations = max_iterations
         self.http_client = httpx.Client(timeout=http_timeout)
 
@@ -253,7 +254,7 @@ class DirectAgentExecutor:
         for iteration in range(self.max_iterations):
             result.iterations = iteration + 1
 
-            api_kwargs = get_model_kwargs(self.model)
+            api_kwargs = get_model_kwargs(self.model, model_config=self.model_config)
             api_kwargs.update({
                 "messages": messages,
                 "tools": DIRECT_AGENT_TOOLS,

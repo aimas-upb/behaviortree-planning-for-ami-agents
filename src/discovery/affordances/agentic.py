@@ -11,7 +11,7 @@ import logging
 from openai import OpenAI
 
 from ..base import CapabilityModel, Artifact, Affordance
-from ...config import get_model_kwargs
+from ...config import ModelConfig, get_model_kwargs
 from hmas_client import (
     list_workspaces,
     list_artifacts,
@@ -111,11 +111,12 @@ class AgenticAffordanceDiscovery:
     def __init__(
         self,
         client: OpenAI,
-        model: str = "gpt-4o",
+        model_config: ModelConfig,
         max_iterations: int = 15,
     ):
         self.client = client
-        self.model = model
+        self.model_config = model_config
+        self.model = model_config.name
         self.max_iterations = max_iterations
         self.exploration_trace: list[dict] = []  # Track tool calls for visualization
 
@@ -150,7 +151,7 @@ class AgenticAffordanceDiscovery:
         ]
 
         for iteration in range(self.max_iterations):
-            api_kwargs = get_model_kwargs(self.model)
+            api_kwargs = get_model_kwargs(self.model, model_config=self.model_config)
             api_kwargs.update({
                 "messages": messages,
                 "tools": DISCOVERY_TOOLS,

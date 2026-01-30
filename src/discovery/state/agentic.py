@@ -12,7 +12,7 @@ from datetime import datetime
 from openai import OpenAI
 
 from ..base import CapabilityModel, EnvironmentState
-from ...config import get_model_kwargs
+from ...config import ModelConfig, get_model_kwargs
 from hmas_client import get_property_by_uri, GetPropertyError, list_properties
 
 logger = logging.getLogger(__name__)
@@ -109,11 +109,12 @@ class AgenticStateGathering:
     def __init__(
         self,
         client: OpenAI,
-        model: str = "gpt-4o",
+        model_config: ModelConfig,
         max_iterations: int = 10,
     ):
         self.client = client
-        self.model = model
+        self.model_config = model_config
+        self.model = model_config.name
         self.max_iterations = max_iterations
         self.state_trace: list[dict] = []  # Track reads for visualization
 
@@ -169,7 +170,7 @@ class AgenticStateGathering:
         state = EnvironmentState(timestamp=datetime.now().isoformat())
 
         for iteration in range(self.max_iterations):
-            api_kwargs = get_model_kwargs(self.model)
+            api_kwargs = get_model_kwargs(self.model, model_config=self.model_config)
             api_kwargs.update({
                 "messages": messages,
                 "tools": STATE_DISCOVERY_TOOLS,
