@@ -398,10 +398,10 @@ class DirectAgentExecutor:
     def _format_capabilities(self, affordances: CapabilityModel) -> str:
         """Format capabilities for the prompt with detailed parameter schemas."""
         lines = []
-        for workspace, artifacts in affordances.workspaces.items():
-            ws_name = workspace.split("/")[-1].replace("#workspace", "")
+        for workspace_uri, workspace in affordances.workspaces.items():
+            ws_name = workspace_uri.split("/")[-1].replace("#workspace", "")
             lines.append(f"\n### {ws_name}")
-            for artifact_uri in artifacts:
+            for artifact_uri in workspace.artifact_uris:
                 artifact = affordances.artifacts.get(artifact_uri)
                 if artifact:
                     lines.append(f"\n**{artifact.name}**")

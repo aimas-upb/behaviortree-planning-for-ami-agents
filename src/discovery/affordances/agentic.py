@@ -18,6 +18,8 @@ from hmas_client import (
     list_properties,
     list_actions,
     get_artifact_name,
+    get_artifact_semantic_type,
+    get_workspace_semantic_type,
 )
 
 logger = logging.getLogger(__name__)
@@ -244,7 +246,9 @@ class AgenticAffordanceDiscovery:
             artifacts = []
             try:
                 arts = list_artifacts(workspace_uri)
-                model.workspaces[workspace_uri] = arts
+                ws_type = get_workspace_semantic_type(workspace_uri)
+                ws = model.get_or_create_workspace(workspace_uri, semantic_type=ws_type)
+                ws.artifact_uris = arts
                 for a in arts:
                     try:
                         name = get_artifact_name(a)
@@ -274,6 +278,7 @@ class AgenticAffordanceDiscovery:
 
         try:
             name = get_artifact_name(artifact_uri)
+            art_type = get_artifact_semantic_type(artifact_uri)
             actions = []
             properties = []
 
@@ -281,14 +286,16 @@ class AgenticAffordanceDiscovery:
                 actions.append(Affordance(
                     name=a["name"],
                     uri=a["uri"],
-                    schema=a.get("input_schema", {})
+                    schema=a.get("input_schema", {}),
+                    semantic_type=a.get("semantic_type"),
                 ))
 
             for p in list_properties(artifact_uri):
                 properties.append(Affordance(
                     name=p["name"],
                     uri=p["uri"],
-                    schema=p.get("output_schema", {})
+                    schema=p.get("output_schema", {}),
+                    semantic_type=p.get("semantic_type"),
                 ))
 
             # Find workspace for this artifact
@@ -299,7 +306,8 @@ class AgenticAffordanceDiscovery:
                 uri=artifact_uri,
                 workspace=ws_uri,
                 actions=actions,
-                properties=properties
+                properties=properties,
+                semantic_type=art_type,
             )
 
             return {

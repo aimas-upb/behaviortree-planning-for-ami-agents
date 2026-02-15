@@ -14,6 +14,7 @@ class Affordance:
     uri: str
     schema: dict = field(default_factory=dict)
     command: Optional[str] = None  # The user command this affordance was discovered for
+    semantic_type: Optional[str] = None  # Ontology class local name, e.g. "SetBrightnessCommand"
 
 
 @dataclass
@@ -24,19 +25,41 @@ class Artifact:
     workspace: str
     actions: list[Affordance] = field(default_factory=list)
     properties: list[Affordance] = field(default_factory=list)
+    semantic_type: Optional[str] = None  # Ontology class local name, e.g. "Light", "Humidifier"
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
-        return {
+        result = {
             "name": self.name,
             "uri": self.uri,
             "workspace": self.workspace,
             "actions": [
-                {k: v for k, v in [("name", a.name), ("uri", a.uri), ("schema", a.schema), ("command", a.command)] if v is not None}
+                {k: v for k, v in [("name", a.name), ("uri", a.uri), ("schema", a.schema), ("command", a.command), ("semantic_type", a.semantic_type)] if v is not None}
                 for a in self.actions
             ],
             "properties": [{"name": p.name, "uri": p.uri, "schema": p.schema} for p in self.properties],
         }
+        if self.semantic_type:
+            result["semantic_type"] = self.semantic_type
+        return result
+
+
+@dataclass
+class Workspace:
+    """Represents a discovered workspace (room)."""
+    uri: str
+    artifact_uris: list[str] = field(default_factory=list)
+    semantic_type: Optional[str] = None  # Ontology class local name, e.g. "StudyRoom", "Kitchen"
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary."""
+        result = {
+            "uri": self.uri,
+            "artifact_uris": self.artifact_uris,
+        }
+        if self.semantic_type:
+            result["semantic_type"] = self.semantic_type
+        return result
 
 
 def _format_param_constraints(param_schema: dict) -> str:
@@ -115,9 +138,18 @@ def _format_property_type(schema: dict) -> str:
 class CapabilityModel:
     """Complete model of discovered environment capabilities."""
     entry_point: str
-    workspaces: dict[str, list[str]] = field(default_factory=dict)  # workspace_uri -> artifact_uris
+    workspaces: dict[str, Workspace] = field(default_factory=dict)  # workspace_uri -> Workspace
     artifacts: dict[str, Artifact] = field(default_factory=dict)  # artifact_uri -> Artifact
     infeasible_commands: list[dict] = field(default_factory=list)  # commands with zero SPARQL bindings
+
+    def get_or_create_workspace(self, ws_uri: str, semantic_type: Optional[str] = None) -> Workspace:
+        """Get existing workspace or create a new one."""
+        if ws_uri not in self.workspaces:
+            self.workspaces[ws_uri] = Workspace(uri=ws_uri, semantic_type=semantic_type)
+        ws = self.workspaces[ws_uri]
+        if semantic_type and not ws.semantic_type:
+            ws.semantic_type = semantic_type
+        return ws
 
     def mark_infeasible(self, command: str, query: str, reason: str = "zero bindings") -> None:
         """Mark a command as possibly infeasible (SPARQL query returned no results)."""
@@ -167,11 +199,11 @@ class CapabilityModel:
         """Generate a concise summary for the LLM prompt."""
         lines = ["# Available Devices and Capabilities\n"]
 
-        for ws_uri, artifact_uris in self.workspaces.items():
+        for ws_uri, workspace in self.workspaces.items():
             ws_name = ws_uri.split("/")[-1].replace("#workspace", "")
             lines.append(f"\n## {ws_name}")
 
-            for art_uri in artifact_uris:
+            for art_uri in workspace.artifact_uris:
                 art = self.artifacts.get(art_uri)
                 if not art:
                     continue
@@ -215,14 +247,16 @@ class CapabilityModel:
     def to_full_dict(self) -> dict:
         """Convert to full dict with all discovered capabilities."""
         workspaces_data = {}
-        for ws_uri, artifact_uris in self.workspaces.items():
+        for ws_uri, workspace in self.workspaces.items():
             ws_name = ws_uri.split("/")[-1].replace("#workspace", "")
-            artifacts_data = []
-            for art_uri in artifact_uris:
+            ws_data = {"artifacts": []}
+            if workspace.semantic_type:
+                ws_data["semantic_type"] = workspace.semantic_type
+            for art_uri in workspace.artifact_uris:
                 art = self.artifacts.get(art_uri)
                 if art:
-                    artifacts_data.append(art.to_dict())
-            workspaces_data[ws_name] = artifacts_data
+                    ws_data["artifacts"].append(art.to_dict())
+            workspaces_data[ws_name] = ws_data
 
         result = {
             "entry_point": self.entry_point,

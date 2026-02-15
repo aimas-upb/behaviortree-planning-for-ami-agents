@@ -19,7 +19,12 @@ from openai import OpenAI
 
 from ..base import CapabilityModel, Artifact, Affordance
 from ...config import ModelConfig, get_model_kwargs
-from hmas_client import list_actions, list_properties
+from hmas_client import (
+    list_actions,
+    list_properties,
+    get_artifact_semantic_type,
+    get_workspace_semantic_type,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -266,10 +271,9 @@ class AgenticQueryAffordanceDiscovery:
                 ws_uri = parts[0] + "#workspace" if len(parts) == 2 else model.entry_point
 
             # Register workspace -> artifact mapping
-            if ws_uri not in model.workspaces:
-                model.workspaces[ws_uri] = []
-            if art_uri not in model.workspaces[ws_uri]:
-                model.workspaces[ws_uri].append(art_uri)
+            ws = model.get_or_create_workspace(ws_uri)
+            if art_uri not in ws.artifact_uris:
+                ws.artifact_uris.append(art_uri)
 
             # Create or update artifact
             if art_uri not in model.artifacts:
@@ -292,8 +296,23 @@ class AgenticQueryAffordanceDiscovery:
                 ))
 
     def _enrich_artifacts(self, model: CapabilityModel) -> None:
-        """Enrich discovered artifacts with full action schemas and all property affordances."""
+        """Enrich discovered artifacts with full action schemas, property affordances, and semantic types."""
+        # Enrich workspace semantic types
+        for ws_uri, workspace in model.workspaces.items():
+            if not workspace.semantic_type:
+                try:
+                    workspace.semantic_type = get_workspace_semantic_type(ws_uri)
+                except Exception as e:
+                    logger.warning(f"Failed to fetch workspace type for {ws_uri}: {e}")
+
         for art_uri, artifact in model.artifacts.items():
+            # Fetch artifact semantic type
+            if not artifact.semantic_type:
+                try:
+                    artifact.semantic_type = get_artifact_semantic_type(art_uri)
+                except Exception as e:
+                    logger.warning(f"Failed to fetch artifact type for {art_uri}: {e}")
+
             # Fetch all property affordances
             try:
                 props = list_properties(art_uri)
@@ -302,21 +321,25 @@ class AgenticQueryAffordanceDiscovery:
                         name=p["name"],
                         uri=p["uri"],
                         schema=p.get("output_schema", {}),
+                        semantic_type=p.get("semantic_type"),
                     )
                     for p in props
                 ]
             except Exception as e:
                 logger.warning(f"Failed to fetch properties for {art_uri}: {e}")
 
-            # Enrich action schemas for the actions returned by the query
+            # Enrich action schemas and semantic types
             try:
                 all_actions = list_actions(art_uri)
                 action_schema_map = {a["uri"]: a.get("input_schema", {}) for a in all_actions}
                 action_name_map = {a["uri"]: a["name"] for a in all_actions}
+                action_type_map = {a["uri"]: a.get("semantic_type") for a in all_actions}
                 for action in artifact.actions:
                     if action.uri in action_schema_map:
                         action.schema = action_schema_map[action.uri]
                     if action.uri in action_name_map:
                         action.name = action_name_map[action.uri]
+                    if action.uri in action_type_map:
+                        action.semantic_type = action_type_map[action.uri]
             except Exception as e:
                 logger.warning(f"Failed to fetch action schemas for {art_uri}: {e}")

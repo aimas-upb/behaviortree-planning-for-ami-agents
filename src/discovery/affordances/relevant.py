@@ -10,7 +10,7 @@ import logging
 
 from openai import OpenAI
 
-from ..base import CapabilityModel, Artifact
+from ..base import CapabilityModel, Artifact, Workspace
 from .exhaustive import ExhaustiveAffordanceDiscovery
 from ...config import ModelConfig, get_model_kwargs
 
@@ -116,10 +116,14 @@ Return ONLY a JSON array of relevant URIs, nothing else."""
         # Build filtered model
         filtered = CapabilityModel(entry_point=model.entry_point)
 
-        for ws_uri, art_uris in model.workspaces.items():
-            filtered_arts = [u for u in art_uris if u in relevant_uris]
+        for ws_uri, workspace in model.workspaces.items():
+            filtered_arts = [u for u in workspace.artifact_uris if u in relevant_uris]
             if filtered_arts:
-                filtered.workspaces[ws_uri] = filtered_arts
+                filtered.workspaces[ws_uri] = Workspace(
+                    uri=ws_uri,
+                    artifact_uris=filtered_arts,
+                    semantic_type=workspace.semantic_type,
+                )
 
         for art_uri, art in model.artifacts.items():
             if art_uri in relevant_uris:

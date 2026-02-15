@@ -17,6 +17,7 @@ HMAS = Namespace("https://purl.org/hmas/")
 HCTL = Namespace("https://www.w3.org/2019/wot/hypermedia#")
 HTTP = Namespace("http://www.w3.org/2011/http#")
 JSONSCHEMA = Namespace("https://www.w3.org/2019/wot/json-schema#")
+EX = Namespace("http://example.org/")
 
 # Default timeout for HTTP requests
 DEFAULT_TIMEOUT = 30
@@ -155,6 +156,41 @@ def _parse_schema(graph: Graph, schema_node: Optional[URIRef]) -> Dict[str, Any]
     return schema
 
 
+def _get_semantic_type(graph: Graph, subject: URIRef) -> Optional[str]:
+    """Extract the ontology class type (ex: namespace) from RDF type triples.
+
+    Looks for ``rdf:type`` triples whose object is in the ``http://example.org/``
+    namespace and returns the local name (e.g. ``"Light"``, ``"SetBrightnessCommand"``).
+    Returns ``None`` if no ``ex:`` type is found.
+    """
+    ex_prefix = str(EX)
+    for type_obj in graph.objects(subject, RDF.type):
+        type_str = str(type_obj)
+        if type_str.startswith(ex_prefix):
+            return type_str[len(ex_prefix):]
+    return None
+
+
+def get_workspace_semantic_type(workspace_uri: str) -> Optional[str]:
+    """Fetch a workspace's RDF and return its ontology class type.
+
+    e.g. ``"StudyRoom"``, ``"Kitchen"``, or ``None``.
+    """
+    graph = _fetch_rdf(workspace_uri)
+    ws_ref = URIRef(workspace_uri)
+    return _get_semantic_type(graph, ws_ref)
+
+
+def get_artifact_semantic_type(artifact_uri: str) -> Optional[str]:
+    """Fetch an artifact's RDF and return its ontology class type.
+
+    e.g. ``"Light"``, ``"Humidifier"``, or ``None``.
+    """
+    graph = _fetch_rdf(artifact_uri)
+    art_ref = URIRef(artifact_uri)
+    return _get_semantic_type(graph, art_ref)
+
+
 def list_workspaces(workspace_uri: str) -> List[str]:
     """
     List sub-workspaces contained in a workspace.
@@ -259,11 +295,18 @@ def list_properties(artifact_uri: str) -> List[Dict[str, Any]]:
             output_schema_node = graph.value(prop_affordance, TD.hasOutputSchema)
             output_schema = _parse_schema(graph, output_schema_node)
 
-            properties.append({
+            # Extract ontology class type (rare for properties, usually None)
+            semantic_type = _get_semantic_type(graph, prop_affordance)
+
+            prop_dict = {
                 'name': str(prop_name) if prop_name else "",
                 'uri': str(prop_uri) if prop_uri else "",
-                'output_schema': output_schema
-            })
+                'output_schema': output_schema,
+            }
+            if semantic_type:
+                prop_dict['semantic_type'] = semantic_type
+
+            properties.append(prop_dict)
 
     return properties
 
@@ -298,11 +341,18 @@ def list_actions(artifact_uri: str) -> List[Dict[str, Any]]:
             input_schema_node = graph.value(action_affordance, TD.hasInputSchema)
             input_schema = _parse_schema(graph, input_schema_node)
 
-            actions.append({
+            # Extract ontology class type (e.g. "SetBrightnessCommand")
+            semantic_type = _get_semantic_type(graph, action_affordance)
+
+            action_dict = {
                 'name': str(action_name) if action_name else "",
                 'uri': str(action_uri) if action_uri else "",
-                'input_schema': input_schema
-            })
+                'input_schema': input_schema,
+            }
+            if semantic_type:
+                action_dict['semantic_type'] = semantic_type
+
+            actions.append(action_dict)
 
     return actions
 

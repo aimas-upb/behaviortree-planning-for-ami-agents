@@ -107,6 +107,8 @@ The template nodes handle this automatically:
 1. Define a variable named 'tree' containing the root behavior
 2. Use EXACT URIs from the capability model
 3. Choose appropriate composite types based on dependencies
+4. When a condition checks the same property an action changes, use a Selector to ensure idempotence.
+5. When multiple actions can run in any order, use a Parallel with SuccessOnOne to ensure flexibility.
 
 ## CRITICAL: Handling Impossible Requests
 

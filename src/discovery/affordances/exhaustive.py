@@ -14,6 +14,8 @@ from hmas_client import (
     list_properties,
     list_actions,
     get_artifact_name,
+    get_artifact_semantic_type,
+    get_workspace_semantic_type,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,7 +62,9 @@ class ExhaustiveAffordanceDiscovery:
 
             try:
                 artifact_uris = list_artifacts(ws_uri)
-                model.workspaces[ws_uri] = artifact_uris
+                ws_type = get_workspace_semantic_type(ws_uri)
+                ws = model.get_or_create_workspace(ws_uri, semantic_type=ws_type)
+                ws.artifact_uris = artifact_uris
 
                 for art_uri in artifact_uris:
                     try:
@@ -85,13 +89,15 @@ class ExhaustiveAffordanceDiscovery:
     def _discover_artifact(self, artifact_uri: str, workspace_uri: str) -> Artifact:
         """Discover a single artifact's affordances."""
         name = get_artifact_name(artifact_uri)
+        art_type = get_artifact_semantic_type(artifact_uri)
 
         actions = []
         for a in list_actions(artifact_uri):
             actions.append(Affordance(
                 name=a["name"],
                 uri=a["uri"],
-                schema=a.get("input_schema", {})
+                schema=a.get("input_schema", {}),
+                semantic_type=a.get("semantic_type"),
             ))
 
         properties = []
@@ -99,7 +105,8 @@ class ExhaustiveAffordanceDiscovery:
             properties.append(Affordance(
                 name=p["name"],
                 uri=p["uri"],
-                schema=p.get("output_schema", {})
+                schema=p.get("output_schema", {}),
+                semantic_type=p.get("semantic_type"),
             ))
 
         return Artifact(
@@ -107,5 +114,6 @@ class ExhaustiveAffordanceDiscovery:
             uri=artifact_uri,
             workspace=workspace_uri,
             actions=actions,
-            properties=properties
+            properties=properties,
+            semantic_type=art_type,
         )

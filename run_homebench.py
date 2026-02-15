@@ -1023,8 +1023,9 @@ def main():
                     import webbrowser
                     webbrowser.open(f"file://{report_file.absolute()}")
 
-    # Return appropriate exit code
-    sys.exit(0 if metrics.success_rate > 0.5 else 1)
+    # Exit successfully when the run completes; benchmark score should not
+    # determine process success/failure.
+    sys.exit(0)
 
 
 if __name__ == "__main__":

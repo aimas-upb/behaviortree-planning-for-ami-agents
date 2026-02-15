@@ -58,6 +58,47 @@ def truncate_uri(uri: str, max_len: int = 60) -> str:
     return uri[:max_len] + "..."
 
 
+def _extract_item_name(item: Any, fallback: str = "unknown") -> str:
+    """Extract display name from dict/string item payloads."""
+    if isinstance(item, dict):
+        name = item.get("name")
+        if name:
+            return str(name)
+        uri = item.get("uri")
+        if isinstance(uri, str) and uri:
+            return uri.split("/")[-1].replace("#artifact", "")
+        return fallback
+    if isinstance(item, str):
+        return item.split("/")[-1].replace("#artifact", "")
+    return fallback
+
+
+def _extract_item_uri(item: Any) -> str:
+    """Extract URI from dict/string item payloads."""
+    if isinstance(item, dict):
+        uri = item.get("uri")
+        return str(uri) if uri else ""
+    if isinstance(item, str):
+        return item
+    return ""
+
+
+def _extract_workspace_artifacts(workspace_payload: Any) -> list[Any]:
+        """Extract artifacts list from workspace payload.
+
+        Supports both legacy shape:
+            - workspace_name -> [artifact, ...]
+        and newer shape:
+            - workspace_name -> {"artifacts": [...], "semantic_type": ...}
+        """
+        if isinstance(workspace_payload, list):
+                return workspace_payload
+        if isinstance(workspace_payload, dict):
+                artifacts = workspace_payload.get("artifacts", [])
+                return artifacts if isinstance(artifacts, list) else []
+        return []
+
+
 def create_overview_panel(data: dict) -> Panel:
     """Create overview panel with experiment metadata."""
     config = data.get("config", {})
@@ -128,10 +169,10 @@ def create_exploration_trace_panel(data: dict) -> Optional[Panel]:
 
             if result:
                 if result.get("sub_workspaces"):
-                    subs = [s.get("name", "?") for s in result["sub_workspaces"]]
+                    subs = [_extract_item_name(s, "?") for s in result["sub_workspaces"]]
                     step_branch.add(f"[dim]Sub-workspaces:[/dim] {subs}")
                 if result.get("artifacts"):
-                    arts = [a.get("name", "?") for a in result["artifacts"]]
+                    arts = [_extract_item_name(a, "?") for a in result["artifacts"]]
                     step_branch.add(f"[dim]Artifacts:[/dim] {arts}")
 
         elif fn_name == "inspect_artifact":
@@ -141,10 +182,10 @@ def create_exploration_trace_panel(data: dict) -> Optional[Panel]:
 
             if result:
                 if result.get("actions"):
-                    actions = [a.get("name", "?") for a in result["actions"]]
+                    actions = [_extract_item_name(a, "?") for a in result["actions"]]
                     step_branch.add(f"[dim]Actions:[/dim] [green]{actions}[/green]")
                 if result.get("properties"):
-                    props = [p.get("name", "?") for p in result["properties"]]
+                    props = [_extract_item_name(p, "?") for p in result["properties"]]
                     step_branch.add(f"[dim]Properties:[/dim] [blue]{props}[/blue]")
 
         elif fn_name == "done_exploring":
@@ -254,18 +295,21 @@ def create_discovery_panel(data: dict, expanded: bool = False) -> Panel:
     tree = Tree("[bold]Discovered Devices")
     workspaces = affordances.get("workspaces", {})
 
-    for ws_name, artifacts in workspaces.items():
+    for ws_name, workspace_payload in workspaces.items():
+        artifacts = _extract_workspace_artifacts(workspace_payload)
         ws_branch = tree.add(f"[cyan]{ws_name}/")
         for artifact in artifacts:
-            art_name = artifact.get("name", "unknown")
+            art_name = _extract_item_name(artifact)
+            artifact_data = artifact if isinstance(artifact, dict) else {}
             art_branch = ws_branch.add(f"[yellow]{art_name}")
 
             # Actions with constraints
-            actions = artifact.get("actions", [])
+            actions = artifact_data.get("actions", [])
             if actions:
                 act_branch = art_branch.add("[dim]Actions:")
                 for action in actions:
-                    schema = action.get("schema", {})
+                    action_data = action if isinstance(action, dict) else {}
+                    schema = action_data.get("schema", {})
                     props = schema.get("properties", {})
                     if props:
                         params = []
@@ -278,20 +322,21 @@ def create_discovery_panel(data: dict, expanded: bool = False) -> Panel:
                                 constraint = f" [magenta](values: {pschema['enum']})"
                             params.append(f"{pname}: {ptype}{constraint}")
                         param_str = ", ".join(params)
-                        act_branch.add(f"[green]{action['name']}[/green]({param_str})")
+                        act_branch.add(f"[green]{_extract_item_name(action)}[/green]({param_str})")
                     else:
-                        act_branch.add(f"[green]{action['name']}[/green]()")
+                        act_branch.add(f"[green]{_extract_item_name(action)}[/green]()")
 
             # Properties
-            properties = artifact.get("properties", [])
+            properties = artifact_data.get("properties", [])
             if properties:
                 prop_branch = art_branch.add("[dim]Properties:")
                 for prop in properties:
-                    schema = prop.get("schema", {})
+                    prop_data = prop if isinstance(prop, dict) else {}
+                    schema = prop_data.get("schema", {})
                     ptype = schema.get("type", "")
                     if "enum" in schema:
                         ptype += f" [magenta](values: {schema['enum']})"
-                    prop_branch.add(f"[blue]{prop['name']}[/blue]: {ptype}")
+                    prop_branch.add(f"[blue]{_extract_item_name(prop)}[/blue]: {ptype}")
 
     # Infeasible commands
     infeasible = affordances.get("infeasible_commands", [])
@@ -608,20 +653,23 @@ def _reconstruct_planning_context(data: dict) -> str:
 
     # Build from workspaces
     workspaces = affordances.get("workspaces", {})
-    for ws_name, artifacts in workspaces.items():
+    for ws_name, workspace_payload in workspaces.items():
+        artifacts = _extract_workspace_artifacts(workspace_payload)
         lines.append(f"\n## {ws_name}")
 
         for artifact in artifacts:
-            art_name = artifact.get("name", "unknown")
-            art_uri = artifact.get("uri", "")
+            art_name = _extract_item_name(artifact)
+            art_uri = _extract_item_uri(artifact)
+            artifact_data = artifact if isinstance(artifact, dict) else {}
             lines.append(f"\n### {art_name}")
             lines.append(f"URI: `{art_uri}`")
 
-            actions = artifact.get("actions", [])
+            actions = artifact_data.get("actions", [])
             if actions:
                 lines.append("**Actions:**")
                 for action in actions:
-                    schema = action.get("schema", {})
+                    action_data = action if isinstance(action, dict) else {}
+                    schema = action_data.get("schema", {})
                     schema_info = ""
                     props = schema.get("properties", {})
                     if props:
@@ -635,20 +683,21 @@ def _reconstruct_planning_context(data: dict) -> str:
                                 constraint = f" (values: {pschema['enum']})"
                             params.append(f"{pname}: {ptype}{constraint}")
                         schema_info = " - Parameters: " + ", ".join(params)
-                    lines.append(f"  - `{action['name']}`: `{action.get('uri', '')}`{schema_info}")
+                    lines.append(f"  - `{_extract_item_name(action)}`: `{_extract_item_uri(action)}`{schema_info}")
 
-            properties = artifact.get("properties", [])
+            properties = artifact_data.get("properties", [])
             if properties:
                 lines.append("**Properties:**")
                 for prop in properties:
-                    schema = prop.get("schema", {})
+                    prop_data = prop if isinstance(prop, dict) else {}
+                    schema = prop_data.get("schema", {})
                     type_info = ""
                     ptype = schema.get("type", "")
                     if "enum" in schema:
                         type_info = f" ({ptype}, values: {schema['enum']})"
                     elif ptype:
                         type_info = f" ({ptype})"
-                    lines.append(f"  - `{prop['name']}`: `{prop.get('uri', '')}`{type_info}")
+                    lines.append(f"  - `{_extract_item_name(prop)}`: `{_extract_item_uri(prop)}`{type_info}")
 
     # Add infeasible commands section if available
     infeasible = affordances.get("infeasible_commands", [])
@@ -739,17 +788,20 @@ def _generate_discovery_html(data: dict) -> str:
     # Build device tree
     workspaces = affordances.get("workspaces", {})
     tree_html = "<div class='tree'>"
-    for ws_name, artifacts in workspaces.items():
+    for ws_name, workspace_payload in workspaces.items():
+        artifacts = _extract_workspace_artifacts(workspace_payload)
         tree_html += f"<div class='tree-node'><span class='workspace'>{_html_escape(ws_name)}/</span>"
         for artifact in artifacts:
-            art_name = artifact.get("name", "unknown")
+            art_name = _extract_item_name(artifact)
+            artifact_data = artifact if isinstance(artifact, dict) else {}
             tree_html += f"<div class='tree-node indent'><span class='artifact'>{_html_escape(art_name)}</span>"
 
-            actions = artifact.get("actions", [])
+            actions = artifact_data.get("actions", [])
             if actions:
                 tree_html += "<div class='tree-node indent2'><span class='dim'>Actions:</span>"
                 for action in actions:
-                    schema = action.get("schema", {})
+                    action_data = action if isinstance(action, dict) else {}
+                    schema = action_data.get("schema", {})
                     props = schema.get("properties", {})
                     params = []
                     for pname, pschema in props.items():
@@ -760,16 +812,17 @@ def _generate_discovery_html(data: dict) -> str:
                             constraint = f" <span class='constraint'>(values: {pschema['enum']})</span>"
                         params.append(f"{pname}: {pschema.get('type', 'any')}{constraint}")
                     param_str = ", ".join(params) if params else ""
-                    tree_html += f"<div class='tree-node indent3'><span class='action'>{_html_escape(action['name'])}</span>({param_str})</div>"
+                    tree_html += f"<div class='tree-node indent3'><span class='action'>{_html_escape(_extract_item_name(action))}</span>({param_str})</div>"
                 tree_html += "</div>"
 
-            properties = artifact.get("properties", [])
+            properties = artifact_data.get("properties", [])
             if properties:
                 tree_html += "<div class='tree-node indent2'><span class='dim'>Properties:</span>"
                 for prop in properties:
-                    schema = prop.get("schema", {})
+                    prop_data = prop if isinstance(prop, dict) else {}
+                    schema = prop_data.get("schema", {})
                     ptype = schema.get("type", "")
-                    tree_html += f"<div class='tree-node indent3'><span class='property'>{_html_escape(prop['name'])}</span>: {ptype}</div>"
+                    tree_html += f"<div class='tree-node indent3'><span class='property'>{_html_escape(_extract_item_name(prop))}</span>: {ptype}</div>"
                 tree_html += "</div>"
 
             tree_html += "</div>"
@@ -810,10 +863,10 @@ def _generate_exploration_trace_html(data: dict) -> str:
             ws_name = ws_uri.split("/")[-1].replace("#workspace", "") if ws_uri else "unknown"
             steps_html += f"<div class='trace-step'><span class='step-num'>Step {iteration}:</span> explore_workspace(<span class='highlight'>{_html_escape(ws_name)}</span>)"
             if result.get("sub_workspaces"):
-                subs = [s.get("name", "?") for s in result["sub_workspaces"]]
+                subs = [_extract_item_name(s, "?") for s in result["sub_workspaces"]]
                 steps_html += f"<div class='trace-result'>Sub-workspaces: {subs}</div>"
             if result.get("artifacts"):
-                arts = [a.get("name", "?") for a in result["artifacts"]]
+                arts = [_extract_item_name(a, "?") for a in result["artifacts"]]
                 steps_html += f"<div class='trace-result'>Artifacts: {arts}</div>"
             steps_html += "</div>"
 
@@ -822,10 +875,10 @@ def _generate_exploration_trace_html(data: dict) -> str:
             art_name = art_uri.split("/")[-1].replace("#artifact", "") if art_uri else "unknown"
             steps_html += f"<div class='trace-step'><span class='step-num'>Step {iteration}:</span> inspect_artifact(<span class='highlight'>{_html_escape(art_name)}</span>)"
             if result.get("actions"):
-                actions = [a.get("name", "?") for a in result["actions"]]
+                actions = [_extract_item_name(a, "?") for a in result["actions"]]
                 steps_html += f"<div class='trace-result'>Actions: <span class='action'>{actions}</span></div>"
             if result.get("properties"):
-                props = [p.get("name", "?") for p in result["properties"]]
+                props = [_extract_item_name(p, "?") for p in result["properties"]]
                 steps_html += f"<div class='trace-result'>Properties: <span class='property'>{props}</span></div>"
             steps_html += "</div>"
 

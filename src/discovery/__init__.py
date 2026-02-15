@@ -12,6 +12,7 @@ from .base import (
     DiscoveryResult,
     EnvironmentState,
     CapabilityModel,
+    Workspace,
     Artifact,
     Affordance,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "DiscoveryResult",
     "EnvironmentState",
     "CapabilityModel",
+    "Workspace",
     "Artifact",
     "Affordance",
     "create_discovery_pipeline",

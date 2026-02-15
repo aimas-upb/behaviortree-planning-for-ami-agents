@@ -73,6 +73,14 @@ class TracingConfig(BaseModel):
     verbose: bool = False
 
 
+class ExperienceConfig(BaseModel):
+    """Configuration for experience-based planning."""
+    enabled: bool = False
+    persistence_path: str = "experience_store.json"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    similarity_threshold: float = 0.85
+
+
 class ExperimentMeta(BaseModel):
     """Experiment metadata."""
     name: str
@@ -87,6 +95,7 @@ class ExperimentConfig(BaseModel):
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
     tracing: TracingConfig = Field(default_factory=TracingConfig)
+    experience: ExperienceConfig = Field(default_factory=ExperienceConfig)
 
     def to_yaml(self) -> str:
         """Serialize config to YAML string."""
