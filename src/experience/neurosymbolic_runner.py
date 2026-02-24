@@ -35,7 +35,7 @@ import requests
 from ..config import ExperimentConfig
 from ..execution import ExecutionResult, CodeExecutor, create_executor
 from ..planning import create_planner
-from .bt_serialization import py_tree_to_json_ir, combine_trees_parallel
+from .bt_serialization import py_tree_to_json_ir
 from .engine import ExperienceEngine, ExperienceEntry
 from .intent import IntentExtractor, StructuredIntent
 
@@ -516,30 +516,46 @@ class NeuroSymbolicRunner:
                 result.duration_seconds = time.time() - start_time
                 return result
 
-            # Combine subtrees once for trace snapshot (raw/unwrapped tree).
-            combined_tree = (
-                combine_trees_parallel(trace_subtrees)
-                if len(trace_subtrees) > 1
-                else trace_subtrees[0]
-            )
-            result.combined_plan_ir = py_tree_to_json_ir(combined_tree)
+            # Build combined JSON-IR snapshot without re-parenting runtime nodes.
+            if len(trace_subtrees) > 1:
+                children_ir = []
+                if result.set_actions_tree_ir is not None:
+                    children_ir.append(result.set_actions_tree_ir)
+                if result.modify_actions_tree_ir is not None:
+                    children_ir.append(result.modify_actions_tree_ir)
+                result.combined_plan_ir = {
+                    "type": "parallel",
+                    "name": "CombinedPlan",
+                    "policy": "success_on_one",
+                    "children": children_ir,
+                }
+            else:
+                # Single subtree: keep existing serialization
+                result.combined_plan_ir = (
+                    result.set_actions_tree_ir
+                    if result.set_actions_tree_ir is not None
+                    else result.modify_actions_tree_ir
+                )
 
-            # Build deterministic execution variant for SuccessOnOne parallels.
-            exec_set_tree = (
-                self._to_deterministic_success_on_one_parallel(set_tree)
-                if set_tree is not None
-                else None
-            )
-            exec_modify_tree = modify_tree
-            exec_subtrees = [t for t in [exec_set_tree, exec_modify_tree] if t is not None]
-
+            # Build execution tree from the in-memory subtrees.
+            # Then recursively retune every Parallel(SuccessOnOne) to deterministic
+            # wait-all semantics, without re-parenting nodes.
+            exec_subtrees = [t for t in [set_tree, modify_tree] if t is not None]
             if len(exec_subtrees) > 1:
-                exec_tree = _AnySuccessElseAllFailureParallel(
+                exec_tree = py_trees.composites.Parallel(
                     name="CombinedPlan",
+                    policy=py_trees.common.ParallelPolicy.SuccessOnOne(),
                     children=exec_subtrees,
                 )
             else:
                 exec_tree = exec_subtrees[0]
+
+            changed = self._apply_deterministic_policy_recursively(exec_tree)
+            if changed:
+                logger.info(
+                    "Applied deterministic policy to %d Parallel(SuccessOnOne) node(s)",
+                    changed,
+                )
 
             # Execute directly from the in-memory py_trees object.
             # This avoids JSON-IR recompilation issues for custom compute nodes
@@ -609,23 +625,35 @@ class NeuroSymbolicRunner:
 
         return exec_result
 
-    @staticmethod
-    def _to_deterministic_success_on_one_parallel(
+    @classmethod
+    def _apply_deterministic_policy_recursively(
+        cls,
         tree: py_trees.behaviour.Behaviour,
-    ) -> py_trees.behaviour.Behaviour:
+    ) -> int:
         """
-        Convert a Parallel(SuccessOnOne) root to deterministic semantics.
+        Recursively retune every Parallel(SuccessOnOne) node in-place.
 
-        Non-parallel roots are returned unchanged.
+        This updates semantics without creating new parents, preventing the
+        "already has parent" errors from node reattachment.
+
+        Returns:
+            Number of parallel nodes retuned.
         """
-        if not isinstance(tree, py_trees.composites.Parallel):
-            return tree
-        if not isinstance(tree.policy, py_trees.common.ParallelPolicy.SuccessOnOne):
-            return tree
-        return _AnySuccessElseAllFailureParallel(
-            name=tree.name,
-            children=list(tree.children),
-        )
+        changed = 0
+
+        if (
+            isinstance(tree, py_trees.composites.Parallel)
+            and isinstance(tree.policy, py_trees.common.ParallelPolicy.SuccessOnOne)
+            and not isinstance(tree, _AnySuccessElseAllFailureParallel)
+        ):
+            tree.__class__ = _AnySuccessElseAllFailureParallel
+            changed += 1
+
+        if isinstance(tree, py_trees.composites.Composite):
+            for child in tree.children:
+                changed += cls._apply_deterministic_policy_recursively(child)
+
+        return changed
 
     def store_infeasible(
         self,
