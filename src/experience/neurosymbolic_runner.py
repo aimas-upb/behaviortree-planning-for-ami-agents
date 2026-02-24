@@ -63,20 +63,49 @@ class _AnySuccessElseAllFailureParallel(py_trees.composites.Parallel):
             children=children,
         )
 
-    def update(self) -> py_trees.common.Status:
+    def tick(self):
+        self.logger.debug("%s.tick()" % self.__class__.__name__)
+        self.validate_policy_configuration()
+
+        if self.status != py_trees.common.Status.RUNNING:
+            self.logger.debug("%s.tick(): re-initialising" % self.__class__.__name__)
+            for child in self.children:
+                if child.status != py_trees.common.Status.INVALID:
+                    child.stop(py_trees.common.Status.INVALID)
+            self.current_child = None
+            self.initialise()
+
         if not self.children:
-            return py_trees.common.Status.SUCCESS
+            self.current_child = None
+            self.stop(py_trees.common.Status.SUCCESS)
+            yield self
+            return
+
+        for child in self.children:
+            if self.policy.synchronise and child.status == py_trees.common.Status.SUCCESS:
+                continue
+            for node in child.tick():
+                yield node
 
         statuses = [child.status for child in self.children]
 
-        # Wait until all children have reached terminal states.
         if any(s in (py_trees.common.Status.RUNNING, py_trees.common.Status.INVALID) for s in statuses):
-            return py_trees.common.Status.RUNNING
+            new_status = py_trees.common.Status.RUNNING
+            self.current_child = self.children[-1]
+        elif any(s == py_trees.common.Status.SUCCESS for s in statuses):
+            new_status = py_trees.common.Status.SUCCESS
+            self.current_child = next(
+                (child for child in reversed(self.children) if child.status == py_trees.common.Status.SUCCESS),
+                self.children[-1],
+            )
+        else:
+            new_status = py_trees.common.Status.FAILURE
+            self.current_child = self.children[-1]
 
-        # All terminal: decide outcome.
-        if any(s == py_trees.common.Status.SUCCESS for s in statuses):
-            return py_trees.common.Status.SUCCESS
-        return py_trees.common.Status.FAILURE
+        if new_status != py_trees.common.Status.RUNNING:
+            self.stop(new_status)
+        self.status = new_status
+        yield self
 
 
 # ---------------------------------------------------------------------------
