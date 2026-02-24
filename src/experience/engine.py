@@ -31,6 +31,7 @@ class ExperienceEntry:
     verb: str
     bt_leaf_json_ir: dict  # JSON-IR of the BT leaf node (empty if infeasible)
     is_infeasible: bool = False
+    home_id: str = ""  # home the experience was recorded in (used to scope infeasible matches)
     embedding: Optional[list[float]] = None
     created_at: str = ""
     source_test_id: str = ""
@@ -49,6 +50,7 @@ class ExperienceEntry:
             "verb": self.verb,
             "bt_leaf_json_ir": self.bt_leaf_json_ir,
             "is_infeasible": self.is_infeasible,
+            "home_id": self.home_id,
             "embedding": self.embedding,
             "created_at": self.created_at,
             "source_test_id": self.source_test_id,
@@ -65,6 +67,7 @@ class ExperienceEntry:
             verb=data.get("verb", "set"),
             bt_leaf_json_ir=data.get("bt_leaf_json_ir", {}),
             is_infeasible=data.get("is_infeasible", False),
+            home_id=data.get("home_id", ""),
             embedding=data.get("embedding"),
             created_at=data.get("created_at", ""),
             source_test_id=data.get("source_test_id", ""),
@@ -151,6 +154,7 @@ class ExperienceEngine:
         self,
         intent: StructuredIntent,
         source_test_id: str,
+        home_id: str = "",
     ) -> None:
         """Store an infeasible intent (no BT leaf node)."""
         entry = ExperienceEntry(
@@ -162,6 +166,7 @@ class ExperienceEngine:
             verb=intent.verb,
             bt_leaf_json_ir={},
             is_infeasible=True,
+            home_id=home_id,
             created_at=datetime.now().isoformat(),
             source_test_id=source_test_id,
         )

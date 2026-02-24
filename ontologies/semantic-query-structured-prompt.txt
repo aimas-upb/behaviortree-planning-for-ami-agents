@@ -1,0 +1,863 @@
+## Context
+You are given access to the following ontology definitions. Each ontology definition is in turtle syntax and delimited by <ontology></ontology> tags.
+- td: describes the ThingDescription ontology which defines Web-of-Things devices as having property, action and even affordances
+- hmas: describes the Hypermedia MAS ontology which defines conceptual items such as HypermediaPlatforms that contain Workspaces and Artifacts (that can also be TD Things) with which agents can interact
+- hctl and json-schema: describe vocabularies for hypermedia control and JSON schema descriptions
+- homeont: defines a small vocabulary for smarthomes, detailing the notions of home, rooms and a list of smart devices and the command types that can be possibly invoked on the devices
+
+## Ontologies
+<ontology name="hctl">
+@prefix : <https://www.w3.org/2019/wot/hypermedia#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix schema: <http://schema.org/> .
+
+<https://www.w3.org/2019/wot/hypermedia#> rdf:type owl:Ontology ;
+    rdfs:comment "Ontology designed to provide an RDF representation of Hypermedia Controls, in particular links and forms." ;
+    rdfs:label "Hypermedia Controls Ontology" ;
+    vann:preferredNamespacePrefix "hctl" ;
+    vann:preferredNamespaceUri "https://www.w3.org/2019/wot/hypermedia#" ;
+    dcterms:creator <https://vcharpenay.link/#me> .
+
+:forContentType rdf:type owl:DatatypeProperty ;
+    rdfs:label "forContentType" ;
+    rdfs:comment "Assign a content type based on a media type [[IANA-MEDIA-TYPES]] (e.g., 'text/plain') and potential parameters (e.g., 'charset=utf-8') for the media type."@en ;
+    schema:domainIncludes :Form ;
+    schema:rangeIncludes schema:Text .
+
+:hasTarget rdf:type owl:DatatypeProperty ;
+    rdfs:comment "target IRI of a link or submission target of a form." ;
+    rdfs:label "hasTarget" ;
+    schema:domainIncludes :Link, :Form .
+
+:hasOperationType rdf:type owl:ObjectProperty ;
+    rdfs:comment "Indicates the semantic intention of performing the operation(s) described by the form." ;
+    rdfs:label "hasOperationType" ;
+    schema:domainIncludes :Form .
+
+:Form rdf:type rdfs:Class, owl:Class ;
+    rdfs:label "Form" ;
+    rdfs:comment "A form can be viewed as a statement of \"To perform an <b><em>operation type</em></b> operation on <b><em>form context</b></em>, make a <b><em>request method</b></em> request to <b><em>submission target</b></em>\" where the optional <b><em>form fields</b></em> may further describe the required request. In Thing Descriptions, the <b><em>form context</b></em> is the surrounding Object, such as Properties, Actions, and Events or the Thing itself for meta-interactions."@en .
+</ontology>
+
+<ontology name="hmas">
+@prefix cc: <http://creativecommons.org/ns#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix hmas: <https://purl.org/hmas/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+hmas:Affordance rdf:type skos:Concept ;
+skos:definition "A behavior possibility that is a relationship between an ability of an agent and a situation that includes agents and features of the environment."@en ;
+skos:prefLabel "affordance"@en ;
+skos:related hmas:Signifier .
+
+hmas:Artifact rdf:type owl:Class ;
+rdfs:comment "A resource that can be dynamically constructed, shared, and used by agents to support their activities. In a Hypermedia MAS, an artifact exposes and can be accessed through a hypermedia interface (in addition to other possible interfaces, such as a physical interface)."@en ;
+rdfs:label "artéfact"@fr ,
+"artifact"@en .
+
+hmas:contains dct:source <https://github.com/HyperAgents/ns.hyperagents.org/issues/18#issuecomment-1040448029> ;
+rdf:type owl:ObjectProperty ;
+rdfs:comment "A relation that refers to a direct logical containment relation and is related to the definition of a workspace as a logical container."@en ;
+rdfs:label "contient directement"@fr ,
+"directly contains"@en ;
+rdfs:subPropertyOf hmas:transitivelyContains ;
+owl:inverseOf hmas:isContainedIn .
+
+hmas:core dct:description "An ontology to describe Hypermedia Multi-Agent Systems."@en ,
+"Une ontologie pour la description de systèmes multi-agents hypermédias."@fr ;
+dct:title "Hypermedia MAS Core Ontology"@en ;
+rdf:type owl:Ontology .
+
+hmas:hasProfile rdf:type owl:AsymmetricProperty ,
+owl:ObjectProperty ;
+rdfs:comment "A relation that links a resource to its profile."@en ;
+rdfs:label "has for profile"@en ;
+rdfs:range hmas:ResourceProfile ;
+owl:inverseOf hmas:isProfileOf .
+
+hmas:hosts rdf:type owl:AsymmetricProperty ,
+owl:ObjectProperty ;
+rdfs:comment "A relation that refers to an information resource or a process that is hosted on a platform. A hosting relation might have further implications, e.g. the usage of the hosted resource (or the usage of platform resources by the hosted resource) could be subject to terms of service or data licensing policies specific to the hosting platform."@en ;
+rdfs:domain hmas:HypermediaMASPlatform ;
+rdfs:label "hosts"@en ;
+owl:inverseOf hmas:isHostedOn .
+
+hmas:HypermediaMASPlatform rdf:type owl:Class ;
+rdfs:comment "A Hypermedia MAS (HMAS) platform is a system providing a collection of features to support Hypermedia MAS. Common features include support for communication and interaction, runtime environments for agents, artifacts, or organizations, etc."@en ;
+rdfs:label "HMAS platform"@en ;
+
+hmas:isContainedIn rdf:type owl:ObjectProperty ;
+rdfs:comment "A relation that describes a workspace that contains a resource."@en ;
+rdfs:label "is directly contained in"@en ;
+rdfs:subPropertyOf hmas:isTransitivelyContainedIn ;
+owl:inverseOf hmas:contains .
+
+hmas:isProfileOf rdf:type owl:ObjectProperty ;
+rdfs:comment "A relation that links a resource profile to the resource it is a profile of."@en ;
+rdfs:domain hmas:ResourceProfile ;
+rdfs:label "is profile of"@en ;
+owl:inverseOf hmas:hasProfile .
+
+hmas:ResourceProfile rdf:type owl:Class ;
+rdfs:comment "Structured data describing a resource through general metadata, domain- and application-specific metadata, and signifiers."@en ;
+rdfs:label "resource profile"@en ;
+
+hmas:Workspace rdf:type owl:Class ;
+rdfs:comment "A logical container for any resource in general and in particular for agents, artifacts or other workspaces. Workspaces can be created or deleted by agents on a needed basis. All agent interactions happen in the context of a workspace whether or not the worspace was explicitly reified. A workspace can be, for instance, implemented on top of an LDP (Linked Data Platform) indirect container."@en ;
+rdfs:label "workspace"@en .
+</ontology>
+
+<ontology name="json-schema">
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix jsonschema: <https://www.w3.org/2019/wot/json-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://www.w3.org/2019/wot/json-schema#> dc:publisher <https://www.w3.org/WoT/WG/> ;
+dc:title "JSON Schema in RDF"@en ;
+rdf:type owl:Ontology ;
+rdfs:comment "Module for data schema specifications, part of the W3C Web of Things (WoT) Thing Description model"@en ;
+owl:versionInfo "0.6.0" .
+
+jsonschema:allOf schema:domainIncludes jsonschema:DataSchema ;
+schema:rangeIncludes jsonschema:DataSchema ;
+rdf:type owl:ObjectProperty ;
+rdfs:comment "Used to ensure that the data is valid against all of the specified schemas in the array."@en ;
+rdfs:label "allOf" .
+
+jsonschema:anyOf schema:domainIncludes jsonschema:DataSchema ;
+schema:rangeIncludes jsonschema:DataSchema ;
+rdf:type owl:ObjectProperty ;
+rdfs:comment "Used to ensure that the data is valid against any of the specified schemas in the array."@en ;
+rdfs:label "anyOf" .
+
+jsonschema:ArraySchema rdf:type owl:Class ;
+rdfs:comment "Metadata describing data of type array. This subclass is indicated by the value <code>array</code> assigned to <code>type</code> in <code>DataSchema</code> instances."@en ;
+rdfs:subClassOf jsonschema:DataSchema .
+
+jsonschema:BooleanSchema rdf:type owl:Class ;
+rdfs:comment "Metadata describing data of type <code>boolean</code>. This subclass is indicated by the value <code>boolean</code> assigned to <code>type</code> in <code>DataSchema</code> instances."@en ;
+rdfs:subClassOf jsonschema:DataSchema .
+
+jsonschema:const schema:domainIncludes jsonschema:DataSchema ;
+rdf:type owl:DatatypeProperty ;
+rdfs:comment "Provides a constant value."@en ;
+rdfs:label "const" .
+
+jsonschema:DataSchema rdf:type owl:Class ;
+rdfs:comment "Metadata that describes the data format used. It can be used for validation." .
+
+jsonschema:enum schema:domainIncludes jsonschema:DataSchema ;
+rdf:type owl:DatatypeProperty ;
+rdfs:comment "Restricted set of values provided as an array."@en ;
+rdfs:label "enum" .
+
+jsonschema:format schema:domainIncludes jsonschema:StringSchema ;
+rdf:type owl:DatatypeProperty ;
+rdfs:comment "Allows validation based on a format pattern such as 'date-time', 'email', 'uri', etc."@en ;
+rdfs:label "format" ;
+rdfs:range xsd:string .
+
+jsonschema:IntegerSchema rdf:type owl:Class ;
+rdfs:comment "Metadata describing data of type <code>integer</code>. This subclass is indicated by the value <code>integer</code> assigned to <code>type</code> in <code>DataSchema</code> instances."@en ;
+rdfs:subClassOf jsonschema:DataSchema .
+
+jsonschema:items schema:domainIncludes jsonschema:ArraySchema ;
+schema:rangeIncludes jsonschema:DataSchema ;
+rdf:type owl:ObjectProperty ;
+rdfs:comment "Used to define the characteristics of an array."@en ;
+rdfs:label "items" .
+
+jsonschema:maximum schema:domainIncludes jsonschema:IntegerSchema ,
+jsonschema:NumberSchema ;
+rdf:type owl:DatatypeProperty ;
+rdfs:comment "Specifies a maximum numeric value, representing an inclusive upper limit. Only applicable for associated number or integer types."@en ;
+rdfs:label "maximum" ;
+rdfs:range xsd:decimal ;
+rdfs:seeAlso schema:maxValue .
+
+jsonschema:maxItems schema:domainIncludes jsonschema:ArraySchema ;
+rdf:type owl:DatatypeProperty ;
+rdfs:comment "Defines the maximum number of items that have to be in the array."@en ;
+rdfs:label "maxItems" ;
+rdfs:range xsd:nonNegativeInteger .
+
+jsonschema:minimum schema:domainIncludes jsonschema:IntegerSchema ,
+jsonschema:NumberSchema ;
+rdf:type owl:DatatypeProperty ;
+rdfs:comment "Specifies a minimum numeric value, representing an inclusive lower limit. Only applicable for associated number or integer types."@en ;
+rdfs:label "minimum" ;
+rdfs:range xsd:decimal ;
+rdfs:seeAlso schema:minValue .
+
+jsonschema:minItems schema:domainIncludes jsonschema:ArraySchema ;
+rdf:type owl:DatatypeProperty ;
+rdfs:comment "Defines the minimum number of items that have to be in the array."@en ;
+rdfs:label "minItems" ;
+rdfs:range xsd:nonNegativeInteger .
+
+jsonschema:NullSchema rdf:type owl:Class ;
+rdfs:comment "Metadata describing data of type <code>null</code>. This subclass is indicated by the value <code>null</code> assigned to <code>type</code> in <code>DataSchema</code> instances. This Subclass describes only one acceptable value, namely <code>null</code>. It is important to note that <code>null</code> does not mean the absence of a value. It is analogous to <code>null</code> in JavaScript, <code>None</code> in Python, <code>null</code> in Java and <code>nil</code> in Ruby programming languages. It can be used as part of a <code>oneOf</code> declaration, where it is used to indicate, that the data can also be <code>null</code>."@en ;
+rdfs:subClassOf jsonschema:DataSchema .
+
+jsonschema:NumberSchema rdf:type owl:Class ;
+rdfs:comment "Metadata describing data of type <code>number</code>. This subclass is indicated by the value <code>number</code> assigned to <code>type</code> in <code>DataSchema</code> instances."@en ;
+rdfs:subClassOf jsonschema:DataSchema .
+
+jsonschema:ObjectSchema rdf:type owl:Class ;
+rdfs:comment "Metadata describing data of type <code>object</code>. This subclass is indicated by the value <code>object</code> assigned to <code>type</code> in <code>DataSchema</code> instances."@en ;
+rdfs:subClassOf jsonschema:DataSchema .
+
+jsonschema:oneOf schema:domainIncludes jsonschema:DataSchema ;
+schema:rangeIncludes jsonschema:DataSchema ;
+rdf:type owl:ObjectProperty ;
+rdfs:comment "Used to ensure that the data is valid against exactly one of the specified schemas in the array."@en ;
+rdfs:label "oneOf" .
+
+jsonschema:properties schema:domainIncludes jsonschema:ObjectSchema ;
+schema:rangeIncludes jsonschema:DataSchema ;
+rdf:type owl:ObjectProperty ;
+rdfs:comment "Data schema nested definitions"@en ;
+rdfs:label "properties" .
+
+jsonschema:propertyName schema:domainIncludes jsonschema:DataSchema ;
+rdf:type owl:DatatypeProperty ;
+rdfs:comment "Used to store the indexing name in the parent object when this schema appears as a property of an object schema."@en ;
+rdfs:label "propertyName" ;
+rdfs:range xsd:string .
+
+jsonschema:readOnly schema:domainIncludes jsonschema:DataSchema ;
+rdf:type owl:DatatypeProperty ;
+rdfs:comment "Boolean value that is a hint to indicate whether a property interaction / value is read only (=true) or not (=false)"@en ;
+rdfs:label "readOnly" ;
+rdfs:range xsd:boolean .
+
+jsonschema:required schema:domainIncludes jsonschema:ObjectSchema ;
+rdf:type owl:DatatypeProperty ;
+rdfs:comment "Defines which members of the object type are mandatory, i.e. which members are mandatory in the payload that is to be sent (e.g. input of <code>invokeaction</code>, <code>writeproperty</code>) and what members will be definitely delivered in the payload that is being received (e.g. output of <code>invokeaction</code>, <code>readproperty</code>)"@en ;
+rdfs:label "required" ;
+rdfs:range xsd:string .
+
+jsonschema:StringSchema rdf:type owl:Class ;
+rdfs:comment "Metadata describing data of type <code>string</code>. This subclass is indicated by the value <code>string</code> assigned to <code>type</code> in <code>DataSchema</code> instances."@en ;
+rdfs:subClassOf jsonschema:DataSchema .
+</ontology>
+
+<ontology name="td">
+@prefix : <https://www.w3.org/2019/wot/td#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix schema: <http://schema.org/> .
+@prefix hctl: <https://www.w3.org/2019/wot/hypermedia#> .
+@prefix wotsec: <https://www.w3.org/2019/wot/security#> .
+@prefix jsonschema: <https://www.w3.org/2019/wot/json-schema#> .
+
+<https://www.w3.org/2019/wot/td> rdf:type owl:Ontology ;
+    vann:preferredNamespacePrefix "td" ;
+    vann:preferredNamespaceUri "https://www.w3.org/2019/wot/td#" ;
+    owl:versionInfo "0.9.0" ;
+    dcterms:title "Thing Description Ontology"@en ;
+    rdfs:comment "This ontology aims to model the Web of Things domain according to the W3C Interest Group (http://w3c.github.io/wot/)"@en ;
+    dcterms:license <http://purl.org/NET/rdflicense/cc-by4.0> ;
+    dcterms:contributor <http://purl.org/net/mpoveda> , <http://maxime-lefrancois.info/me#> ;
+    dcterms:author <https://vcharpenay.link/#me> ;
+    dcterms:publisher [ a schema:Organization ; schema:name "W3C Web of Things Working Group" ; schema:url <https://www.w3.org/WoT/WG/> ] .
+
+
+:hasPropertyAffordance rdf:type owl:ObjectProperty ;
+    rdfs:label "hasPropertyAffordance" ;
+    rdfs:subPropertyOf :hasInteractionAffordance ;
+    rdfs:comment "All Property-based interaction affordance of the Thing."@en ;
+    schema:rangeIncludes :PropertyAffordance ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:hasActionAffordance rdf:type owl:ObjectProperty ;
+    rdfs:label "hasActionAffordance" ;
+    rdfs:subPropertyOf :hasInteractionAffordance ;
+    rdfs:comment "All Action-based interaction affordance of the Thing."@en ;
+    schema:rangeIncludes :ActionAffordance ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:hasForm rdf:type owl:ObjectProperty ;
+    rdfs:label "hasForm" ;
+    rdfs:comment "Set of form hypermedia controls that describe how an operation can be performed. Forms are serializations of Protocol Bindings. The array cannot be empty"@en ;
+    schema:domainIncludes :InteractionAffordance, :Thing ;
+    schema:rangeIncludes hctl:Form ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:hasInputSchema rdf:type owl:ObjectProperty ;   
+    rdfs:label "hasInputSchema" ;
+    rdfs:comment "Used to define the input data schema of the action."@en ;
+    schema:domainIncludes :ActionAffordance ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:hasOutputSchema rdf:type owl:ObjectProperty ;
+    rdfs:label "hasOutputSchema" ;
+    rdfs:comment "Used to define the output data schema of the action."@en ;
+    schema:domainIncludes :ActionAffordance ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:baseURI rdf:type owl:DatatypeProperty ;
+    rdfs:label "baseURI" ;
+    rdfs:comment "Define the base URI that is used for all relative URI references throughout a TD document. In TD instances, all relative URIs are resolved relative to the base URI using the algorithm defined in [RFC3986]. base does not affect the URIs used in @context and the IRIs used within Linked Data [LINKED-DATA] graphs that are relevant when semantic processing is applied to TD instances."@en ;
+    schema:domainIncludes :Thing ;
+    schema:rangeIncludes schema:URL ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:isObservable rdf:type owl:DatatypeProperty ;        
+    rdfs:label "isObservable" ;        
+    rdfs:comment "A hint that indicates whether Servients hosting the Thing and Intermediaries should provide a Protocol Binding that supports the <code>observeproperty</code> and <code>unobserveproperty</code> operations for this Property."@en ;
+    schema:domainIncludes :PropertyAffordance ;
+    schema:rangeIncludes schema:Boolean ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:name rdf:type owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:comment "Indexing property to store entity names when serializing them in a JSON-LD @index container."@en ;
+    schema:domainIncludes :InteractionAffordance ;
+    schema:rangeIncludes schema:Text ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:title rdf:type owl:DatatypeProperty ;
+    rdfs:label "title" ;
+    rdfs:comment "title of the TD element (Thing, interaction affordance or data schema)" ;
+    schema:domainIncludes :Thing, :InteractionAffordance, jsonschema:DataSchema ;
+    schema:rangeIncludes schema:Text ;
+    rdfs:subPropertyOf dcterms:title ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:description rdf:type owl:DatatypeProperty ;
+    rdfs:label "description" ;
+    rdfs:comment "description of the TD element (Thing, interaction affordance, security scheme or data schema)" ;
+    schema:domainIncludes :Thing, :InteractionAffordance, wotsec:SecurityScheme, jsonschema:DataSchema ;
+    schema:rangeIncludes schema:Text ;
+    rdfs:subPropertyOf dcterms:description ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:ActionAffordance rdf:type rdfs:Class, owl:Class ;
+    rdfs:label "ActionAffordance" ;
+    rdfs:subClassOf :InteractionAffordance ;
+    rdfs:comment "An Interaction Affordance that allows to invoke a function of the Thing, which manipulates state (e.g., toggling a lamp on or off) or triggers a process on the Thing (e.g., dim a lamp over time)."@en ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:InteractionAffordance rdf:type rdfs:Class, owl:Class ;
+    rdfs:label "InteractionAffordance" ;
+    rdfs:comment "Metadata of a Thing that shows the possible choices to Consumers, thereby suggesting how Consumers may interact with the Thing. There are many types of potential affordances, but W3C WoT defines three types of Interaction Affordances: Properties, Actions, and Events."@en ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:PropertyAffordance rdf:type rdfs:Class, owl:Class ;
+    rdfs:label "PropertyAffordance" ;
+    rdfs:subClassOf :InteractionAffordance ;
+    rdfs:comment "An Interaction Affordance that exposes state of the Thing. This state can then be retrieved (read) and/or updated (write). Things can also choose to make Properties observable by pushing the new state after a change."@en ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:Thing rdf:type rdfs:Class, owl:Class ;
+    rdfs:label "Thing"@en ;
+    rdfs:comment "An abstraction of a physical or a virtual entity whose metadata and interfaces are described by a WoT Thing Description, whereas a virtual entity is the composition of one or more Things."@en ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:OperationType rdf:type rdfs:Class, owl:Class ;
+    rdfs:label "OperationType" ;
+    rdfs:comment "Enumeration of well-known operation types necessary to implement the WoT interaction model"@en ;
+    rdfs:subClassOf schema:Enumeration ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:readProperty rdf:type :OperationType ;
+    rdfs:label "readProperty" ;
+    rdfs:comment "Operation type of forms used to read a property value"@en ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:writeProperty rdf:type :OperationType ;
+    rdfs:label "writeProperty" ;
+    rdfs:comment "Operation type of forms used to write a property value"@en ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+:invokeAction rdf:type :OperationType ;
+    rdfs:label "invokeAction" ;
+    rdfs:comment "Operation type of forms used to read a property value"@en ;
+    rdfs:isDefinedBy <https://www.w3.org/2019/wot/td> .
+
+</ontology>
+
+<ontology name="homeont">
+@prefix ex: <http://example.org/> .
+@prefix hmas: <https://purl.org/hmas/> .
+@prefix td: <https://www.w3.org/2019/wot/td#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# Ontology of workspace types, device types, and action affordances
+# for smart home environments.
+# Auto-generated from HomeBench home description data.
+
+# ============================================================
+# Properties
+# ============================================================
+
+ex:hasPossibleCommand a rdf:Property ;
+    rdfs:domain hmas:Artifact ;
+    rdfs:range td:ActionAffordance ;
+    rdfs:comment "Indicates a command that may be available on instances of a device type. Not all instances necessarily support every possible command listed." .
+
+# ============================================================
+# Workspace Types (Home and Rooms)
+# ============================================================
+
+ex:Home a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "A smart home environment composed of multiple rooms and spaces." .
+
+ex:Balcony a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "An outdoor or semi-outdoor elevated platform attached to the home." .
+
+ex:Bathroom a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "A room equipped with bathing and sanitary facilities." .
+
+ex:Corridor a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "A hallway or passage connecting different rooms in the home." .
+
+ex:DiningRoom a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "A room designated for eating meals." .
+
+ex:Foyer a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "An entrance hall or lobby area of the home." .
+
+ex:Garage a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "An enclosed space for parking vehicles and storage." .
+
+ex:GuestBedroom a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "A bedroom designated for guests." .
+
+ex:Kitchen a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "A room used for cooking and food preparation." .
+
+ex:LivingRoom a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "A main living area used for relaxation and socializing." .
+
+ex:MasterBedroom a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "The primary bedroom in the home." .
+
+ex:StoreRoom a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "A room used for storing household items." .
+
+ex:StudyRoom a rdfs:Class ;
+    rdfs:subClassOf hmas:Workspace ;
+    rdfs:comment "A room designated for reading, working, or studying." .
+
+# ============================================================
+# Device Types
+# ============================================================
+
+ex:AirConditioner a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart air conditioning unit used to regulate indoor climate." .
+
+ex:AirPurifiers a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart air purifier that filters and cleans indoor air." .
+
+ex:Aromatherapy a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart aromatherapy diffuser that releases scented vapors into the room." .
+
+ex:Blinds a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "Smart window blinds used to control light and privacy." .
+
+ex:Curtain a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart window curtain used to control light and privacy." .
+
+ex:Dehumidifiers a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart dehumidifier that reduces indoor humidity levels." .
+
+ex:Fan a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart electric fan used to circulate air." .
+
+ex:GarageDoor a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart motorized garage door." .
+
+ex:Heating a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart heating unit used to warm the room." .
+
+ex:Humidifier a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart humidifier that increases indoor humidity levels." .
+
+ex:Light a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart light fixture with controllable illumination properties." .
+
+ex:MediaPlayer a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart media player for audio playback." .
+
+ex:Trash a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart trash compactor." .
+
+ex:VacuumRobot a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart robotic vacuum cleaner that can autonomously clean designated areas." .
+
+ex:WaterHeater a rdfs:Class ;
+    rdfs:subClassOf hmas:Artifact ;
+    rdfs:comment "A smart water heater used to heat water to a target temperature." .
+
+# ============================================================
+# Action Affordance Types (Commands)
+# ============================================================
+
+ex:CloseCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to close the device (e.g. close blinds, curtains, or a garage door)." .
+
+ex:OpenCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to open the device (e.g. open blinds, curtains, or a garage door)." .
+
+ex:PackCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to pack or compress the contents (e.g. compact trash)." .
+
+ex:PauseCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to pause the current playback on a media player." .
+
+ex:PlayCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to start or resume playback on a media player." .
+
+ex:SetArtistCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the artist filter for media playback. Requires a string 'artist' parameter." .
+
+ex:SetBrightnessCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the brightness level. Requires an integer 'brightness' parameter (0-100)." .
+
+ex:SetCleaningAreaCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the cleaning area for a vacuum robot. Requires a string 'area' parameter." .
+
+ex:SetColorCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the color. Requires a 'color' parameter as an array of integers (e.g. RGB values)." .
+
+ex:SetDegreeCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the opening degree. Requires an integer 'degree' parameter." .
+
+ex:SetFanSpeedCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the fan speed. Requires an integer 'fan_speed' parameter." .
+
+ex:SetIntensityCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the intensity level. Requires an integer 'intensity' parameter (0-100)." .
+
+ex:SetIntervalCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the operating interval. Requires an integer 'interval' parameter (10-60 minutes)." .
+
+ex:SetModeCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the operating mode. Requires a string 'mode' parameter." .
+
+ex:SetSongCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the song to play on a media player. Requires a string 'song' parameter." .
+
+ex:SetSpeedCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the speed. Requires an integer 'speed' parameter." .
+
+ex:SetStyleCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the music style/genre on a media player. Requires a string 'style' parameter." .
+
+ex:SetSwingCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the swing direction. Requires a string 'swing' parameter." .
+
+ex:SetTemperatureCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the target temperature. Requires an integer 'temperature' parameter." .
+
+ex:SetVolumeCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to set the playback volume. Requires an integer 'volume' parameter (0-100)." .
+
+ex:StopCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to stop the current playback on a media player." .
+
+ex:TurnOffCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to turn the device off." .
+
+ex:TurnOnCommand a rdfs:Class ;
+    rdfs:subClassOf td:ActionAffordance ;
+    rdfs:comment "Command to turn the device on." .
+
+# ============================================================
+# Device Type to Possible Action Affordance Associations
+# ============================================================
+
+ex:AirConditioner ex:hasPossibleCommand ex:SetFanSpeedCommand, ex:SetModeCommand, ex:SetSwingCommand, ex:SetTemperatureCommand, ex:TurnOffCommand, ex:TurnOnCommand .
+
+ex:AirPurifiers ex:hasPossibleCommand ex:SetFanSpeedCommand, ex:SetModeCommand, ex:TurnOffCommand, ex:TurnOnCommand .
+
+ex:Aromatherapy ex:hasPossibleCommand ex:SetIntensityCommand, ex:SetIntervalCommand, ex:TurnOffCommand, ex:TurnOnCommand .
+
+ex:Blinds ex:hasPossibleCommand ex:CloseCommand, ex:OpenCommand .
+
+ex:Curtain ex:hasPossibleCommand ex:CloseCommand, ex:OpenCommand, ex:SetDegreeCommand .
+
+ex:Dehumidifiers ex:hasPossibleCommand ex:SetIntensityCommand, ex:SetModeCommand, ex:TurnOffCommand, ex:TurnOnCommand .
+
+ex:Fan ex:hasPossibleCommand ex:SetSpeedCommand, ex:SetSwingCommand, ex:TurnOffCommand, ex:TurnOnCommand .
+
+ex:GarageDoor ex:hasPossibleCommand ex:CloseCommand, ex:OpenCommand .
+
+ex:Heating ex:hasPossibleCommand ex:SetFanSpeedCommand, ex:SetModeCommand, ex:SetTemperatureCommand, ex:TurnOffCommand, ex:TurnOnCommand .
+
+ex:Humidifier ex:hasPossibleCommand ex:SetIntensityCommand, ex:SetModeCommand, ex:TurnOffCommand, ex:TurnOnCommand .
+
+ex:Light ex:hasPossibleCommand ex:SetBrightnessCommand, ex:SetColorCommand, ex:TurnOffCommand, ex:TurnOnCommand .
+
+ex:MediaPlayer ex:hasPossibleCommand ex:PauseCommand, ex:PlayCommand, ex:SetArtistCommand, ex:SetSongCommand, ex:SetStyleCommand, ex:SetVolumeCommand, ex:StopCommand .
+
+ex:Trash ex:hasPossibleCommand ex:PackCommand .
+
+ex:VacuumRobot ex:hasPossibleCommand ex:SetCleaningAreaCommand, ex:SetModeCommand .
+
+ex:WaterHeater ex:hasPossibleCommand ex:SetTemperatureCommand, ex:TurnOffCommand, ex:TurnOnCommand .
+</ontology>
+
+## Example use of ontology vocabulary
+Here is an extract of how these vocabularies are used to describe an instance of a smart home and its concrete devices with their available property- and action affordances.
+
+```
+@prefix ex: <http://example.org/> .
+@prefix hctl: <https://www.w3.org/2019/wot/hypermedia#> .
+@prefix hmas: <https://purl.org/hmas/> .
+@prefix http: <http://www.w3.org/2011/http#> .
+@prefix jsonschema: <https://www.w3.org/2019/wot/json-schema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix td: <https://www.w3.org/2019/wot/td#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://localhost:8080/workspaces/home1#workspace> a ex:Home, hmas:Workspace,
+        td:Thing ;
+    hmas:contains <http://localhost:8080/workspaces/home1/artifacts/vacuum_robot#artifact>,
+        <http://localhost:8080/workspaces/home1/balcony#workspace>,
+        <http://localhost:8080/workspaces/home1/bathroom#workspace>,
+        <http://localhost:8080/workspaces/home1/corridor#workspace>,
+        <http://localhost:8080/workspaces/home1/dining_room#workspace>,
+        <http://localhost:8080/workspaces/home1/foyer#workspace>,
+        <http://localhost:8080/workspaces/home1/garage#workspace>,
+        <http://localhost:8080/workspaces/home1/guest_bedroom#workspace>,
+        <http://localhost:8080/workspaces/home1/kitchen#workspace>,
+        <http://localhost:8080/workspaces/home1/living_room#workspace>,
+        <http://localhost:8080/workspaces/home1/master_bedroom#workspace>,
+        <http://localhost:8080/workspaces/home1/store_room#workspace>,
+        <http://localhost:8080/workspaces/home1/study_room#workspace> ;
+    td:title "Home 1" .
+
+<http://localhost:8080/workspaces/home1/artifacts/vacuum_robot#artifact> a ex:VacuumRobot,
+        hmas:Artifact,
+        td:Thing ;
+    hmas:isContainedIn <http://localhost:8080/workspaces/home1#workspace> ;
+    td:hasActionAffordance [ a ex:SetModeCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home1/artifacts/vacuum_robot/set_mode> ] ;
+            td:hasInputSchema [ a jsonschema:ObjectSchema ;
+                    jsonschema:properties [ a jsonschema:StringSchema ;
+                            jsonschema:enum "auto",
+                                "sleep",
+                                "strong" ;
+                            jsonschema:propertyName "mode" ] ;
+                    jsonschema:required "mode" ] ;
+            td:name "setMode" ;
+            td:title "setMode" ],
+        [ a ex:SetCleaningAreaCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home1/artifacts/vacuum_robot/set_cleaning_area> ] ;
+            td:hasInputSchema [ a jsonschema:ObjectSchema ;
+                    jsonschema:properties [ a jsonschema:StringSchema ;
+                            jsonschema:propertyName "area" ] ;
+                    jsonschema:required "area" ] ;
+            td:name "setCleaningArea" ;
+            td:title "setCleaningArea" ] ;
+    td:hasPropertyAffordance [ a td:PropertyAffordance ;
+            rdfs:comment "state of vacuum_robot" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home1/artifacts/vacuum_robot/properties/state> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "off",
+                        "on" ] ;
+            td:isObservable true ;
+            td:name "state" ;
+            td:title "state" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "mode of vacuum_robot" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home1/artifacts/vacuum_robot/properties/mode> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "auto",
+                        "sleep",
+                        "strong" ] ;
+            td:isObservable true ;
+            td:name "mode" ;
+            td:title "mode" ],
+        [ a td:PropertyAffordance ;
+            rdfs:comment "battery of vacuum_robot" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home1/artifacts/vacuum_robot/properties/battery> ] ;
+            td:hasOutputSchema [ a jsonschema:IntegerSchema ;
+                    jsonschema:maximum 100 ;
+                    jsonschema:minimum 0 ] ;
+            td:isObservable true ;
+            td:name "battery" ;
+            td:title "battery" ] ;
+    td:title "Vacuum_robot" .
+
+<http://localhost:8080/workspaces/home1/balcony/artifacts/balconyLight#artifact> a ex:Light,
+        hmas:Artifact,
+        td:Thing ;
+    hmas:isContainedIn <http://localhost:8080/workspaces/home1/balcony#workspace> ;
+    td:hasActionAffordance [ a ex:TurnOffCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home1/balcony/artifacts/balconyLight/turn_off> ] ;
+            td:name "turnOff" ;
+            td:title "turnOff" ],
+        [ a ex:TurnOnCommand,
+                td:ActionAffordance ;
+            td:hasForm [ http:methodName "POST" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:invokeAction ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home1/balcony/artifacts/balconyLight/turn_on> ] ;
+            td:name "turnOn" ;
+            td:title "turnOn" ] ;
+    td:hasPropertyAffordance [ a td:PropertyAffordance ;
+            rdfs:comment "state of balconyLight" ;
+            td:hasForm [ http:methodName "GET" ;
+                    hctl:forContentType "application/json" ;
+                    hctl:hasOperationType td:readProperty ;
+                    hctl:hasTarget <http://localhost:8080/workspaces/home1/balcony/artifacts/balconyLight/properties/state> ] ;
+            td:hasOutputSchema [ a jsonschema:StringSchema ;
+                    jsonschema:enum "off",
+                        "on" ] ;
+            td:isObservable true ;
+            td:name "state" ;
+            td:title "state" ] ;
+    td:title "Balconylight" .
+
+<http://localhost:8080/workspaces/home1/living_room#workspace> a ex:LivingRoom,
+        hmas:Workspace,
+td:Thing ;
+hmas:contains <http://localhost:8080/workspaces/home1/living_room/artifacts/livingRoomAirConditioner#artifact>,
+<http://localhost:8080/workspaces/home1/living_room/artifacts/livingRoomAirPurifiers#artifact>,
+<http://localhost:8080/workspaces/home1/living_room/artifacts/livingRoomAromatherapy#artifact>,
+<http://localhost:8080/workspaces/home1/living_room/artifacts/livingRoomHumidifier#artifact>,
+<http://localhost:8080/workspaces/home1/living_room/artifacts/livingRoomLight#artifact> ;
+td:title "living_room" .
+```
+
+## Task
+Write a SPARQL query that can be executed against such an RDF graph, whose purpose is to retrieve the devices and their specific affordances that are required to satisfy the user request. 
+Make sure that affordances are bound to their correct devices.
+
+You receive one or more user requests that have the following structured format:
+```
+**Intent <intent number>**
+text_intent: <text corresponding to the user request>
+action.affordance_type: <the type of the action affordance to be invoked, e.g., ex:SetModeCommand>
+action.verb: <the verb corresponding to the action affordance, e.g., "set" if the action sets an attribute to a specific value or is parameterless (turn on/off, open/close, play, pause); "modify" if the action describes a relative change (increase by, decrease by, raise, lower, reduce, boost)>
+target.artifact_type: <the type of the artifact whose affordance is to be invoked, e.g., ex:AirConditioner>
+target.workspace_type: <the type of the workspace containing the artifact, e.g., ex:LivingRoom>
+```
+
+Use the structured information to write a SPARQL query for each user request in turn.
+Match the action affordance type, target artifact type, and target workspace type to the corresponding classes in the `homeont` ontology.
+For the action affordance, if it requires a parameter, determine its name by inspecting the rdfs:comment of the affordance in the homeont ontology.
+Use these matches to write the SPARQL query as specifically as possible, ensuring that the correct relationships between workspaces, artifacts, and affordances are represented in the query and 
+that the correct namespace prefixes are used when identifying workspace types, artifact types, and affordance types.
+
+Each SPARQL query must retrieve specifically:
+  - "workspace": the URI of the workspace containing the artifact,
+  - "artifact": the URI of the artifact whose representation contains required affordances, 
+  - "affordance_name": the name of the action affordance to be invoked,
+  - "target_uri": the target URI to be invoked described in the appropriate affordance, 
+  - "parameter_name": the name of a parameter that needs to be part of the payload for the affordance invocation.
+
+Keep in mind that some affordances may not require any input parameters, in which case "parameter_name" need not be bound.
+
+Each SPARQL query must have the relevant namespace prefixes included and formatted properly as IRIREFs.
+
+## Output Format
+The output follows the JSON structure below:
+{
+    "queries": [
+        {
+            "command": "<text corresponding to an individual command>",
+            "query": "<SPARQL_QUERY for the command>"
+        }
+    ]
+}
+
+The number of entries in the "queries" array corresponds to the number of individual commands identified in the user request.
+Each SPARQL query contains only its required syntax, no other comments are included.

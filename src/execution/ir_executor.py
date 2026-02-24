@@ -10,6 +10,7 @@ from py_trees.common import Status
 from behavior_trees.affordance_nodes import (
     ActionAffordanceNode,
     PropertyConditionNode,
+    PropertyAffordanceNode,
     ComparisonPropertyConditionNode,
     ComparisonOperator,
 )
@@ -134,6 +135,16 @@ class IRExecutor:
                 name=name,
                 action_url=spec["action_url"],
                 parameters=spec.get("parameters", {}),
+                parameter_keys=spec.get("parameter_keys", {}),
+                result_key=spec.get("result_key"),
+            )
+
+        elif node_type == "property_read":
+            return PropertyAffordanceNode(
+                name=name,
+                property_url=spec["property_url"],
+                result_key=spec.get("result_key"),
+                property_name=spec.get("property_name"),
             )
 
         elif node_type == "condition":

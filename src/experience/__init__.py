@@ -8,6 +8,7 @@ Provides experience accumulation and reuse across sequential test runs:
   4. BT Serialization — convert between py_trees and JSON-IR
   5. Engine — persistent storage for experiences
   6. Runner — orchestrate the full experience pipeline
+  7. NeuroSymbolicRunner — neuro-symbolic planning without full discovery
 """
 
 from .intent import StructuredIntent, IntentExtractor
@@ -20,6 +21,11 @@ from .bt_serialization import (
     extract_action_urls,
     extract_property_urls,
     combine_trees_parallel,
+)
+from .neurosymbolic_runner import (
+    NeuroSymbolicRunner,
+    NeuroSymbolicRunResult,
+    SparqlResolutionResult,
 )
 
 __all__ = [
@@ -40,4 +46,8 @@ __all__ = [
     "extract_action_urls",
     "extract_property_urls",
     "combine_trees_parallel",
+    # Neuro-symbolic runner
+    "NeuroSymbolicRunner",
+    "NeuroSymbolicRunResult",
+    "SparqlResolutionResult",
 ]

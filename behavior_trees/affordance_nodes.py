@@ -499,7 +499,9 @@ class PropertyAffordanceNode(py_trees.behaviour.Behaviour):
     def _store_result(self) -> None:
         """Store the property value on the blackboard."""
         if self.store_result and self._last_value:
-            self.blackboard.set(self.result_key, self._last_value)
+            # Store the raw value at result_key so downstream compute nodes can
+            # use arithmetic/comparisons directly without unwrapping PropertyValue.
+            self.blackboard.set(self.result_key, self._last_value.value)
             self.blackboard.set(BlackboardKeys.LAST_PROPERTY_URL, self._last_value.url)
             self.blackboard.set(
                 BlackboardKeys.LAST_PROPERTY_STATUS_CODE,

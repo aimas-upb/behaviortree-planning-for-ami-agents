@@ -49,23 +49,52 @@ def _generate_experience_overview_html(data: dict) -> str:
     success = data.get("success", False)
     status_class = "success" if success else "error"
 
+    # Support both nested ExperimentConfig shape and flat runner config shape.
+    # Nested: config["model"] == {"name": "gpt-4o", ...}
+    # Flat:   config["model"] == "gpt-4o"
+    model_raw = config.get("model", {})
+    if isinstance(model_raw, dict):
+        model_name = model_raw.get("name", "N/A")
+    else:
+        model_name = str(model_raw) if model_raw else "N/A"
+
+    discovery = config.get("discovery", {})
+    if isinstance(discovery, dict):
+        affordances = discovery.get("affordances", {})
+        aff_strategy = affordances.get("strategy", "N/A") if isinstance(affordances, dict) else str(affordances)
+        state = discovery.get("state", {})
+        state_strategy = state.get("strategy", "N/A") if isinstance(state, dict) else str(state)
+    else:
+        aff_strategy = "N/A"
+        state_strategy = "N/A"
+
+    planning = config.get("planning", {})
+    if isinstance(planning, dict):
+        reasoning = planning.get("reasoning", {})
+        reasoning = reasoning if isinstance(reasoning, dict) else {}
+        output = planning.get("output", {})
+        output_format = output.get("format", "N/A") if isinstance(output, dict) else str(output)
+    else:
+        reasoning = {}
+        output_format = "N/A"
+
     rows = [
         ("Status", f'<span class="{status_class}">{"SUCCESS" if success else "FAILED"}</span>'),
         ("Goal", _html_escape(data.get("goal", "N/A"))),
-        ("Config", _html_escape(data.get("config_name", config.get("experiment", {}).get("name", "N/A")))),
-        ("Model", _html_escape(config.get("model", {}).get("name", "N/A"))),
+        ("Config", _html_escape(data.get("config_name", config.get("config_name", config.get("experiment", {}).get("name", "N/A")) if isinstance(config, dict) else "N/A"))),
+        ("Model", _html_escape(model_name)),
+        ("Execution Backend", _html_escape(str(data.get("execution_backend", "N/A")))),
         ("Duration", format_duration(data.get("duration_seconds", 0))),
-        ("Affordance Strategy", _html_escape(config.get("discovery", {}).get("affordances", {}).get("strategy", "N/A"))),
-        ("State Strategy", _html_escape(config.get("discovery", {}).get("state", {}).get("strategy", "N/A"))),
+        ("Affordance Strategy", _html_escape(aff_strategy)),
+        ("State Strategy", _html_escape(state_strategy)),
     ]
 
-    reasoning = config.get("planning", {}).get("reasoning", {})
     if reasoning.get("enabled"):
         rows.append(("Reasoning", _html_escape(reasoning.get("strategy", "N/A"))))
     else:
         rows.append(("Reasoning", "disabled"))
 
-    rows.append(("Output Format", _html_escape(config.get("planning", {}).get("output", {}).get("format", "N/A"))))
+    rows.append(("Output Format", _html_escape(output_format)))
 
     # Experience-specific timing
     matched_time = data.get("matched_plan_time_seconds", 0)
@@ -78,11 +107,60 @@ def _generate_experience_overview_html(data: dict) -> str:
     return _generate_html_card("Experiment Overview", f"<table>{table_rows}</table>", "#4a9eff")
 
 
+def _build_intent_route_map(data: dict) -> dict:
+    """
+    Build a mapping from text_intent → route label for neuro-symbolic traces.
+
+    Route labels: "SET", "MODIFY", "IMPOSSIBLE"
+
+    Returns an empty dict for non-neuro-symbolic traces (no resolution_results).
+    """
+    resolution_results = data.get("resolution_results", [])
+    impossible_details = data.get("impossible_details") or []
+
+    # Only build a route map for NS traces (must have resolution_results or impossible_details)
+    if not resolution_results and not impossible_details:
+        return {}
+
+    route_map: dict[str, str] = {}
+
+    # Experience-impossible intents (skipped before SPARQL)
+    for imp in impossible_details:
+        if not isinstance(imp, dict):
+            continue
+        text = imp.get("intent", {}).get("text_intent", "")
+        if text:
+            route_map[text] = "IMPOSSIBLE"
+
+    for res in resolution_results:
+        if not isinstance(res, dict):
+            continue
+        intent_dict = res.get("intent", {})
+        text = intent_dict.get("text_intent", "")
+        success = res.get("success", False)
+        if not success:
+            route_map[text] = "IMPOSSIBLE"
+        else:
+            verb = intent_dict.get("action", {}).get("verb", "set")
+            route_map[text] = "SET" if verb == "set" else "MODIFY"
+
+    return route_map
+
+
 def _generate_intent_extraction_html(data: dict) -> str:
     """Generate intent extraction section showing parsed intents."""
     intents = data.get("intents", [])
     if not intents:
         return ""
+
+    # Build routing map (only populated for neuro-symbolic traces)
+    route_map = _build_intent_route_map(data)
+
+    _ROUTE_BADGE = {
+        "SET":       ("<span class='intent-route-badge route-set'>SET</span>", "#22c55e"),
+        "MODIFY":    ("<span class='intent-route-badge route-modify'>MODIFY</span>", "#a855f7"),
+        "IMPOSSIBLE":("<span class='intent-route-badge route-impossible'>IMPOSSIBLE</span>", "#ef4444"),
+    }
 
     html = "<div class='intent-list'>"
     for i, intent in enumerate(intents):
@@ -94,15 +172,40 @@ def _generate_intent_extraction_html(data: dict) -> str:
         target = intent.get("target", {})
         aff_type = _html_escape(action.get("affordance_type", "N/A"))
         verb = _html_escape(action.get("verb", "N/A"))
+        parameter = action.get("parameter")
+        value = action.get("value")
         art_type = _html_escape(target.get("artifact_type", "N/A"))
         ws_type = _html_escape(target.get("workspace_type", "N/A"))
         idx = intent.get("original_index", i)
 
+        # Routing badge (only for neuro-symbolic traces)
+        raw_text = intent.get("text_intent", "")
+        route = route_map.get(raw_text)
+        if route:
+            badge_html, border_color = _ROUTE_BADGE[route]
+        else:
+            badge_html, border_color = "", "#8b5cf6"
+
+        # Parameter/value row — only shown when at least one is present
+        param_html = ""
+        if parameter is not None or value is not None:
+            param_display = _html_escape(str(parameter)) if parameter is not None else "<span class='dim'>none</span>"
+            value_display = _html_escape(str(value)) if value is not None else "<span class='dim'>none</span>"
+            param_html = f"""
+            <div class='intent-param-row'>
+                <span class='intent-param-label'>parameter:</span>
+                <span class='intent-param-name'>{param_display}</span>
+                <span class='intent-param-label'>value:</span>
+                <span class='intent-param-value'>{value_display}</span>
+            </div>
+            """
+
         html += f"""
-        <div class='intent-card'>
+        <div class='intent-card' style='border-left-color: {border_color};'>
             <div class='intent-header'>
                 <span class='intent-index'>#{idx}</span>
                 <span class='intent-text'>"{text}"</span>
+                {badge_html}
             </div>
             <div class='intent-details'>
                 <span class='intent-tag action-tag'>{aff_type}</span>
@@ -110,6 +213,7 @@ def _generate_intent_extraction_html(data: dict) -> str:
                 <span class='intent-tag artifact-tag'>{art_type}</span>
                 <span class='intent-tag workspace-tag'>{ws_type}</span>
             </div>
+            {param_html}
             <div class='intent-slot'>
                 Slot key: ({aff_type}, {art_type}, {ws_type})
             </div>
@@ -123,6 +227,288 @@ def _generate_intent_extraction_html(data: dict) -> str:
         html,
         "#8b5cf6",  # purple
     )
+
+
+def _generate_ns_routing_html(data: dict) -> str:
+    """
+    Generate a neuro-symbolic routing summary card.
+
+    Only rendered when the trace contains neuro-symbolic routing data
+    (i.e. has resolution_results and at least one of set_count / modify_count /
+    impossible_count).
+
+    Shows the SPARQL query used for each intent (collapsible toggle).
+    """
+    resolution_results = data.get("resolution_results", [])
+    impossible_details = data.get("impossible_details") or []
+
+    # Render if there's anything to show (SPARQL results or experience-impossible intents)
+    if not resolution_results and not impossible_details:
+        return ""
+
+    set_count = data.get("set_count", 0)
+    modify_count = data.get("modify_count", 0)
+    impossible_count = data.get("impossible_count", 0)
+    modify_plan_time = data.get("modify_plan_time_seconds", 0.0)
+
+    # Summary bar
+    html = f"""
+    <div class='ns-routing-summary'>
+        <span class='ns-route-stat route-set-stat'>{set_count} SET</span>
+        <span class='ns-route-stat route-modify-stat'>{modify_count} MODIFY</span>
+        <span class='ns-route-stat route-impossible-stat'>{impossible_count} IMPOSSIBLE</span>
+    </div>
+    """
+
+    # Experience-impossible intents (skipped before SPARQL) — shown first
+    for imp in impossible_details:
+        if not isinstance(imp, dict):
+            continue
+        intent_dict = imp.get("intent", {})
+        text = _html_escape(intent_dict.get("text_intent", "N/A"))
+        reason = imp.get("reason", "sparql_no_result")
+        matched_exp = imp.get("matched_experience")
+
+        if reason == "experience_match" and matched_exp:
+            src_test = _html_escape(matched_exp.get("source_test_id", "?"))
+            src_home = _html_escape(matched_exp.get("home_id", "?"))
+            exp_text = _html_escape(matched_exp.get("text_intent", "?"))
+            created = _html_escape((matched_exp.get("created_at") or "")[:10])
+            match_detail = f"""
+            <div class='ns-impossible-match'>
+                <span class='dim'>matched experience:</span>
+                <span class='ns-imp-exp-text'>"{exp_text}"</span>
+                <span class='exp-badge home-badge'>home: {src_home}</span>
+                <span class='exp-badge src-badge'>from: {src_test}</span>
+                {f"<span class='exp-badge dim'>{created}</span>" if created else ""}
+            </div>
+            """
+            reason_label = "experience match"
+        else:
+            match_detail = ""
+            reason_label = "SPARQL no result"
+
+        html += f"""
+        <div class='ns-resolution-card' style='border-left-color: #ef4444;'>
+            <div class='ns-resolution-header'>
+                <span class='ns-intent-text'>{text}</span>
+                <span class='intent-route-badge route-impossible'>IMPOSSIBLE</span>
+                <span class='ns-resolution-sparql-status dim'>via {_html_escape(reason_label)}</span>
+            </div>
+            {match_detail}
+        </div>
+        """
+
+    # Per-SPARQL-resolution detail: one block per active intent
+    for res_idx, res in enumerate(resolution_results):
+        if not isinstance(res, dict):
+            continue
+        intent_dict = res.get("intent", {})
+        action = intent_dict.get("action", {})
+        target = intent_dict.get("target", {})
+        text = _html_escape(intent_dict.get("text_intent", "N/A"))
+        success = res.get("success", False)
+        verb = action.get("verb", "set")
+        target_uri = res.get("target_uri") or ""
+        parameter_name = res.get("parameter_name") or ""
+        parameter_schema = res.get("parameter_schema_type") or ""
+        error = res.get("error") or ""
+        query = res.get("query") or ""
+        bindings_count = res.get("bindings_count", 0)
+
+        # Route badge + SPARQL status
+        if not success:
+            route_badge = "<span class='intent-route-badge route-impossible'>IMPOSSIBLE</span>"
+            sparql_status = "<span class='ns-sparql-fail'>✗ no result</span>"
+            if error:
+                sparql_status += f" <span class='dim'>({_html_escape(error[:80])})</span>"
+            border_color = "#ef4444"
+        else:
+            if verb == "set":
+                route_badge = "<span class='intent-route-badge route-set'>SET</span>"
+                border_color = "#22c55e"
+            else:
+                route_badge = "<span class='intent-route-badge route-modify'>MODIFY</span>"
+                border_color = "#a855f7"
+            sparql_status = f"<span class='ns-sparql-ok'>✓ {bindings_count} binding(s)</span>"
+
+        # Target display: resolved URI when SPARQL succeeded, queried intent types when it failed
+        if target_uri:
+            short_uri = target_uri.split("/")[-1] if "/" in target_uri else target_uri
+            uri_html = f"<span class='dim' title='{_html_escape(target_uri)}'>{_html_escape(short_uri)}</span>"
+        else:
+            # Show what the SPARQL was looking for (from the intent)
+            artifact_type = _html_escape(target.get("artifact_type") or action.get("affordance_type") or "?")
+            workspace_type = _html_escape(target.get("workspace_type") or "?")
+            uri_html = (
+                f"<span class='dim ns-queried-types'>"
+                f"looking for: <span class='intent-tag artifact-tag'>{artifact_type}</span> "
+                f"in <span class='intent-tag workspace-tag'>{workspace_type}</span>"
+                f"</span>"
+            )
+
+        # Parameter display: resolved name+schema when SPARQL succeeded, queried parameter when it failed
+        if parameter_name:
+            schema_local = parameter_schema.rsplit("#", 1)[-1].rsplit("/", 1)[-1] if parameter_schema else ""
+            param_html = f"<span class='intent-param-name'>{_html_escape(parameter_name)}</span>"
+            if schema_local:
+                param_html += f" <span class='dim'>({_html_escape(schema_local)})</span>"
+        elif action.get("parameter"):
+            # Show the intent-level parameter name (not yet resolved by SPARQL)
+            queried_param = _html_escape(action["parameter"])
+            queried_val = _html_escape(str(action.get("value") or ""))
+            param_html = (
+                f"<span class='dim'>looking for: </span>"
+                f"<span class='intent-param-name'>{queried_param}</span>"
+            )
+            if queried_val:
+                param_html += f" = <span class='intent-param-value'>{queried_val}</span>"
+        else:
+            param_html = "<span class='dim'>—</span>"
+
+        # SPARQL query + bindings (collapsible)
+        toggle_id = f"sparql-query-{res_idx}"
+        bindings = res.get("bindings", [])
+        if query:
+            # Render bindings table (all rows — SPARQL results are compact)
+            bindings_html = ""
+            if bindings:
+                # Collect all variable names across all bindings
+                all_vars: list[str] = []
+                for b in bindings:
+                    for v in b:
+                        if v not in all_vars:
+                            all_vars.append(v)
+                header_cells = "".join(
+                    f"<th>{_html_escape(v)}</th>" for v in all_vars
+                )
+                rows_html = ""
+                for b in bindings:
+                    cells = ""
+                    for v in all_vars:
+                        raw_val = b.get(v, {})
+                        val = raw_val.get("value", "") if isinstance(raw_val, dict) else str(raw_val)
+                        # Shorten long URIs: keep only the last path segment
+                        display = val.split("/")[-1] if "/" in val and len(val) > 50 else val
+                        cells += f"<td title='{_html_escape(val)}'>{_html_escape(display)}</td>"
+                    rows_html += f"<tr>{cells}</tr>"
+                bindings_html = f"""
+                <div class='ns-bindings-label'>Results ({len(bindings)} row{'s' if len(bindings) != 1 else ''})</div>
+                <table class='ns-bindings-table'>
+                    <tr>{header_cells}</tr>
+                    {rows_html}
+                </table>
+                """
+            elif success:
+                bindings_html = "<span class='dim'>No bindings returned</span>"
+
+            query_block = f"""
+            <div class='ns-sparql-toggle' onclick="
+                var el=document.getElementById('{toggle_id}');
+                el.style.display = el.style.display==='none' ? 'block' : 'none';
+                this.textContent = el.style.display==='none' ? '▶ Show SPARQL query' : '▼ Hide SPARQL query';
+            ">▶ Show SPARQL query</div>
+            <div id='{toggle_id}' style='display:none;'>
+                <pre class='code sparql ns-sparql-block'>{_html_escape(query)}</pre>
+                {bindings_html}
+            </div>
+            """
+        else:
+            query_block = "<span class='dim'>No query recorded</span>"
+
+        html += f"""
+        <div class='ns-resolution-card' style='border-left-color: {border_color};'>
+            <div class='ns-resolution-header'>
+                <span class='ns-intent-text'>{text}</span>
+                {route_badge}
+                <span class='ns-resolution-sparql-status'>{sparql_status}</span>
+            </div>
+            <div class='ns-resolution-meta'>
+                <span class='dim'>{'resolved target' if success else 'target'}:</span> {uri_html}
+                &nbsp;&nbsp;
+                <span class='dim'>{'resolved parameter' if success else 'parameter'}:</span> {param_html}
+            </div>
+            {query_block}
+        </div>
+        """
+
+    # Timing info for modify planning
+    if modify_count > 0 and modify_plan_time > 0:
+        html += f"<div class='ns-timing'>Modify LLM planning: {format_duration(modify_plan_time)}</div>"
+
+    return _generate_html_card(
+        f"Neuro-Symbolic Routing ({set_count} set · {modify_count} modify · {impossible_count} impossible)",
+        html,
+        "#22c55e",  # green
+    )
+
+
+def _generate_experience_plan_html(data: dict) -> str:
+    """
+    Generate plan section HTML with neuro-symbolic fallbacks.
+
+    Standard traces use data["planning"]["plan"]. Neuro-symbolic traces,
+    especially SET-only routes, may only populate JSON-IR fields such as
+    combined_plan_ir/set_actions_tree_ir without a standard planning payload.
+    """
+    planning = data.get("planning", {})
+    plan = planning.get("plan", {}) if isinstance(planning, dict) else {}
+
+    # Standard planning path
+    if isinstance(plan, dict) and plan.get("content"):
+        return _generate_plan_html(data)
+
+    # Neuro-symbolic fallback path
+    combined_ir = data.get("combined_plan_ir")
+    set_ir = data.get("set_actions_tree_ir")
+    modify_ir = data.get("modify_actions_tree_ir")
+    modify_trace = data.get("modify_plan_trace") or {}
+    modify_planning = modify_trace.get("planning") if isinstance(modify_trace, dict) else None
+    modify_plan = modify_planning.get("plan") if isinstance(modify_planning, dict) else None
+
+    format_type = ""
+    content = None
+    explanation = ""
+    llm_calls = 0
+    source = ""
+
+    if combined_ir:
+        format_type = "json_ir"
+        content = combined_ir
+        source = "combined_plan_ir"
+    elif set_ir:
+        format_type = "json_ir"
+        content = set_ir
+        source = "set_actions_tree_ir"
+    elif modify_ir:
+        format_type = "json_ir"
+        content = modify_ir
+        source = "modify_actions_tree_ir"
+    elif isinstance(modify_plan, dict) and modify_plan.get("content") is not None:
+        format_type = modify_plan.get("format", "unknown")
+        content = modify_plan.get("content")
+        explanation = modify_plan.get("explanation", "")
+        llm_calls = modify_planning.get("llm_calls", 0) if isinstance(modify_planning, dict) else 0
+        source = "modify_plan_trace.planning.plan"
+    else:
+        return _generate_plan_html(data)
+
+    html_content = ""
+    if source:
+        html_content += f"<p class='stats'>Source: {_html_escape(source)}</p>"
+    if explanation:
+        html_content += f"<p class='explanation'>{_html_escape(explanation)}</p><hr>"
+
+    if format_type == "json_ir":
+        json_str = json.dumps(content, indent=2)
+        html_content += f"<pre class='code json'>{_html_escape(json_str)}</pre>"
+    elif format_type == "python_code":
+        html_content += f"<pre class='code python'>{_html_escape(str(content))}</pre>"
+    else:
+        html_content += f"<pre>{_html_escape(str(content))}</pre>"
+
+    html_content += f"<p class='stats'>LLM Calls: {llm_calls}</p>"
+    return _generate_html_card(f"Generated Plan ({format_type or 'unknown'})", html_content, "#a855f7")
 
 
 def _generate_experience_matching_html(data: dict) -> str:
@@ -184,7 +570,57 @@ def _generate_experience_matching_html(data: dict) -> str:
         exp_info = ""
         if exp_id:
             short_id = exp_id[:8] if len(exp_id) > 8 else exp_id
-            exp_info = f"<div class='match-exp-id'>Experience: {_html_escape(short_id)}...</div>"
+            exp_entry = mr.get("experience")
+            if exp_entry and isinstance(exp_entry, dict):
+                exp_text = _html_escape(exp_entry.get("text_intent", "N/A"))
+                exp_aff = _html_escape(exp_entry.get("affordance_type", "N/A"))
+                exp_verb = _html_escape(exp_entry.get("verb", "N/A"))
+                exp_art = _html_escape(exp_entry.get("artifact_type", "N/A"))
+                exp_ws = _html_escape(exp_entry.get("workspace_type", "N/A"))
+                exp_home = _html_escape(exp_entry.get("home_id", ""))
+                exp_src = _html_escape(exp_entry.get("source_test_id", ""))
+                exp_created = _html_escape(exp_entry.get("created_at", ""))
+                bt_leaf = exp_entry.get("bt_leaf_json_ir")
+
+                home_badge = (
+                    f"<span class='exp-badge home-badge'>home: {exp_home}</span>"
+                    if exp_home else ""
+                )
+                src_badge = (
+                    f"<span class='exp-badge src-badge'>from: {exp_src}</span>"
+                    if exp_src else ""
+                )
+                created_badge = (
+                    f"<span class='exp-badge dim'>{exp_created[:10]}</span>"
+                    if exp_created else ""
+                )
+
+                bt_leaf_html = ""
+                if bt_leaf and isinstance(bt_leaf, dict) and bt_leaf:
+                    bt_json = json.dumps(bt_leaf, indent=2)
+                    bt_leaf_html = f"""
+                    <div class='exp-bt-leaf'>
+                        <div class='exp-detail-label'>BT Leaf (JSON-IR)</div>
+                        <pre class='code json exp-leaf-code'>{_html_escape(bt_json)}</pre>
+                    </div>
+                    """
+
+                exp_info = f"""
+                <div class='match-experience-detail'>
+                    <div class='exp-detail-label'>Matched experience <span class='dim'>({short_id}...)</span></div>
+                    <div class='exp-intent-text'>"{exp_text}"</div>
+                    <div class='exp-tags'>
+                        <span class='intent-tag action-tag'>{exp_aff}</span>
+                        <span class='intent-tag verb-tag'>{exp_verb}</span>
+                        <span class='intent-tag artifact-tag'>{exp_art}</span>
+                        <span class='intent-tag workspace-tag'>{exp_ws}</span>
+                    </div>
+                    <div class='exp-meta'>{home_badge}{src_badge}{created_badge}</div>
+                    {bt_leaf_html}
+                </div>
+                """
+            else:
+                exp_info = f"<div class='match-exp-id'>Experience: {_html_escape(short_id)}...</div>"
 
         html += f"""
         <div class='match-card' style='border-left: 3px solid {border};'>
@@ -503,6 +939,153 @@ EXPERIENCE_CSS = """
 .artifact-tag { background: rgba(234,179,8,0.2); color: #eab308; }
 .workspace-tag { background: rgba(6,182,212,0.2); color: #06b6d4; }
 .intent-slot { color: #666; font-size: 12px; margin-top: 4px; }
+.intent-param-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12px; }
+.intent-param-label { color: #888; }
+.intent-param-name { background: rgba(251,146,60,0.2); color: #fb923c; border-radius: 3px; padding: 1px 5px; font-family: monospace; }
+.intent-param-value { background: rgba(52,211,153,0.2); color: #34d399; border-radius: 3px; padding: 1px 5px; font-family: monospace; }
+
+/* Routing badges on intent cards */
+.intent-route-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+.route-set       { background: rgba(34,197,94,0.25);  color: #22c55e; }
+.route-modify    { background: rgba(168,85,247,0.25); color: #a855f7; }
+.route-impossible{ background: rgba(239,68,68,0.25);  color: #ef4444; }
+
+/* Neuro-symbolic routing summary card */
+.ns-routing-summary {
+    display: flex;
+    gap: 12px;
+    margin: 10px 0 16px;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+}
+.ns-route-stat {
+    padding: 4px 14px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 13px;
+}
+.route-set-stat       { background: rgba(34,197,94,0.2);  color: #22c55e; }
+.route-modify-stat    { background: rgba(168,85,247,0.2); color: #a855f7; }
+.route-impossible-stat{ background: rgba(239,68,68,0.2);  color: #ef4444; }
+
+.ns-resolution-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 6px;
+}
+.ns-resolution-table th {
+    color: #888;
+    font-weight: bold;
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid #333;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.ns-resolution-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #222;
+    vertical-align: middle;
+}
+.ns-intent-cell { color: #e0e0e0; max-width: 340px; }
+.ns-sparql-ok   { color: #22c55e; font-weight: bold; }
+.ns-sparql-fail { color: #ef4444; font-weight: bold; }
+.ns-timing { color: #888; font-size: 12px; margin-top: 10px; }
+
+/* Per-intent resolution cards (replacing flat table rows) */
+.ns-resolution-card {
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 8px 0;
+    border-left: 3px solid #22c55e;
+}
+.ns-resolution-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+.ns-intent-text { color: #e0e0e0; flex: 1; min-width: 0; }
+.ns-resolution-sparql-status { font-size: 12px; }
+.ns-resolution-meta {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 6px;
+}
+.ns-sparql-toggle {
+    font-size: 12px;
+    color: #06b6d4;
+    cursor: pointer;
+    user-select: none;
+    margin-top: 4px;
+    display: inline-block;
+}
+.ns-sparql-toggle:hover { opacity: 0.8; }
+.ns-sparql-block {
+    margin-top: 6px;
+    font-size: 11px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.ns-queried-types { font-size: 12px; }
+.ns-queried-types .intent-tag { font-size: 11px; padding: 1px 5px; }
+.ns-impossible-match {
+    margin-top: 6px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.ns-imp-exp-text {
+    color: #fca5a5;
+    font-style: italic;
+}
+.ns-bindings-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    font-weight: bold;
+    margin: 8px 0 4px;
+}
+.ns-bindings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin-top: 2px;
+}
+.ns-bindings-table th {
+    color: #06b6d4;
+    font-weight: bold;
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid #333;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.ns-bindings-table td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #1a1a1a;
+    color: #eab308;
+    font-family: monospace;
+    word-break: break-all;
+}
 
 /* Experience matching styles */
 .match-summary {
@@ -622,6 +1205,50 @@ EXPERIENCE_CSS = """
     border-radius: 4px;
 }
 
+/* Matched experience detail (inside match card) */
+.match-experience-detail {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 4px;
+    border-left: 2px solid #06b6d4;
+}
+.exp-detail-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #06b6d4;
+    margin-bottom: 6px;
+    font-weight: bold;
+}
+.exp-intent-text {
+    color: #e0e0e0;
+    margin-bottom: 6px;
+    font-style: italic;
+}
+.exp-tags { margin-bottom: 6px; }
+.exp-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+.exp-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+.home-badge { background: rgba(6,182,212,0.15); color: #06b6d4; }
+.src-badge  { background: rgba(168,85,247,0.15); color: #a855f7; }
+.exp-bt-leaf { margin-top: 8px; }
+.exp-leaf-code {
+    font-size: 11px;
+    max-height: 160px;
+    overflow-y: auto;
+    margin-top: 4px;
+}
+
 /* Code block for SPARQL */
 .code.sparql {
     background: #0d1117;
@@ -655,6 +1282,8 @@ def export_experience_html(data: dict, output_path: str):
         _generate_errors_html(data),
         # Step 1: Intent Extraction
         _generate_intent_extraction_html(data),
+        # Step 1b: Neuro-symbolic routing summary (only for NS traces)
+        _generate_ns_routing_html(data),
         # Step 2: Experience Matching
         _generate_experience_matching_html(data),
         # Step 3: Adaptation traces (for matched intents)
@@ -674,7 +1303,7 @@ def export_experience_html(data: dict, output_path: str):
         # Reasoning
         _generate_reasoning_html(data),
         # Generated plan
-        _generate_plan_html(data),
+        _generate_experience_plan_html(data),
         # Execution
         _generate_execution_html(data),
     ]

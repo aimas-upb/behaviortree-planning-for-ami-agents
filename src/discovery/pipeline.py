@@ -83,6 +83,7 @@ def create_discovery_pipeline(
     config: DiscoveryConfig,
     client: Optional[OpenAI] = None,
     model_config: Optional[ModelConfig] = None,
+    semantic_query_prompt_path=None,
 ) -> DiscoveryPipeline:
     """
     Factory function to create a discovery pipeline from config.
@@ -101,6 +102,7 @@ def create_discovery_pipeline(
         client=client,
         model_config=model_config,
         max_workspaces=config.affordances.max_workspaces,
+        semantic_query_prompt_path=semantic_query_prompt_path,
     )
 
     # Create state strategy

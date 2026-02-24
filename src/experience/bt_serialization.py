@@ -108,14 +108,23 @@ def py_tree_to_json_ir(node: py_trees.behaviour.Behaviour) -> dict:
         }
         if node.parameters:
             ir["parameters"] = dict(node.parameters)
+        if node.parameter_keys:
+            ir["parameter_keys"] = dict(node.parameter_keys)
+        if node.result_key:
+            ir["result_key"] = node.result_key
         return ir
 
     if isinstance(node, PropertyAffordanceNode):
-        return {
+        ir = {
             "type": "property_read",
             "name": node.name,
             "property_url": node.property_url,
         }
+        if node.result_key:
+            ir["result_key"] = node.result_key
+        if node.property_name:
+            ir["property_name"] = node.property_name
+        return ir
 
     # --- Generic composite fallback ---
     if isinstance(node, py_trees.composites.Composite):

@@ -403,7 +403,7 @@ class ExperienceHomeBenchEvaluator:
         # corresponds to an error_input position
         for intent in exp_result.intents:
             if intent.original_index in error_positions:
-                self.pipeline_runner.store_infeasible(intent, test.id)
+                self.pipeline_runner.store_infeasible(intent, test.id, home_id=test.home_id)
 
     def _classify_failure(
         self,

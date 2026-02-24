@@ -1,0 +1,167 @@
+# Experience Reuse Experiment Commands
+# 3 configs (semantic_nav, semantic_query, experience_reuse) x 4 models = 12 commands
+#
+# For experience_reuse: 1 worker per container (sequential, preserves experience accumulation)
+# For semantic_nav/semantic_query: 4 workers (parallel, no experience dependency)
+#
+# Test data: experiments_data/experience_reuse/{single_feasible,single_unfeasible,multi_feasible,multi_mixed}_tests.json
+# Home config: experiments_data/experience_reuse/experience_reuse_home_IDs.json (37 homes instead of 100)
+# Reasoning models (gpt-5-mini, gpt-5-nano) use --reasoning-effort low
+
+# ============================================================================
+# semantic_nav (agentic affordance strategy, no experience)
+# ============================================================================
+
+# gpt-4o-mini
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name semantic_nav \
+    --workers 4 \
+    --model gpt-4o-mini \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_semantic_nav_gpt-4o-mini
+
+# gpt-4o
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name semantic_nav \
+    --workers 4 \
+    --model gpt-4o \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_semantic_nav_gpt-4o
+
+# gpt-5-mini (reasoning model)
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name semantic_nav \
+    --workers 4 \
+    --model gpt-5-mini \
+    --reasoning-effort low \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_semantic_nav_gpt-5-mini
+
+# gpt-5-nano (reasoning model)
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name semantic_nav \
+    --workers 4 \
+    --model gpt-5-nano \
+    --reasoning-effort low \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_semantic_nav_gpt-5-nano
+
+# ============================================================================
+# semantic_query (agentic_query affordance strategy, no experience)
+# ============================================================================
+
+# gpt-4o-mini
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name semantic_query \
+    --workers 4 \
+    --model gpt-4o-mini \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_semantic_query_gpt-4o-mini
+
+# gpt-4o
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name semantic_query \
+    --workers 4 \
+    --model gpt-4o \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_semantic_query_gpt-4o
+
+# gpt-5-mini (reasoning model)
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name semantic_query \
+    --workers 4 \
+    --model gpt-5-mini \
+    --reasoning-effort low \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_semantic_query_gpt-5-mini
+
+# gpt-5-nano (reasoning model)
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name semantic_query \
+    --workers 4 \
+    --model gpt-5-nano \
+    --reasoning-effort low \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_semantic_query_gpt-5-nano
+
+# ============================================================================
+# experience_reuse (agentic_query + experience matching, 1 worker sequential)
+# ============================================================================
+
+# gpt-4o-mini
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name experience_reuse \
+    --model gpt-4o-mini \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_reuse_gpt-4o-mini
+
+# gpt-4o
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name experience_reuse \
+    --model gpt-4o \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_reuse_gpt-4o
+
+# gpt-5-mini (reasoning model)
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name experience_reuse \
+    --model gpt-5-mini \
+    --reasoning-effort low \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_reuse_gpt-5-mini
+
+# gpt-5-nano (reasoning model)
+python run_parallel_experience_homebench.py \
+    --data experiments_data/experience_reuse/single_feasible_tests.json \
+          experiments_data/experience_reuse/single_unfeasible_tests.json \
+          experiments_data/experience_reuse/multi_feasible_tests.json \
+          experiments_data/experience_reuse/multi_mixed_tests.json \
+    --config-name experience_reuse \
+    --model gpt-5-nano \
+    --reasoning-effort low \
+    --home-config experiments_data/experience_reuse/experience_reuse_home_IDs.json \
+    --output experiments/results/experience_reuse_gpt-5-nano

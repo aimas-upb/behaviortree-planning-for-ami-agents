@@ -26,6 +26,7 @@ def create_affordance_strategy(
     client=None,
     model_config=None,
     max_workspaces: int = 10,
+    semantic_query_prompt_path=None,
 ):
     """Factory function to create affordance discovery strategy."""
     if strategy == "exhaustive":
@@ -45,6 +46,10 @@ def create_affordance_strategy(
     elif strategy == "agentic_query":
         if client is None:
             raise ValueError("Agentic query strategy requires an OpenAI client")
-        return AgenticQueryAffordanceDiscovery(client=client, model_config=model_config)
+        return AgenticQueryAffordanceDiscovery(
+            client=client,
+            model_config=model_config,
+            semantic_query_prompt_path=semantic_query_prompt_path,
+        )
     else:
         raise ValueError(f"Unknown affordance strategy: {strategy}")

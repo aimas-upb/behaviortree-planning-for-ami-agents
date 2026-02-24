@@ -15,6 +15,7 @@ from py_trees.common import Status
 
 from behavior_trees.affordance_nodes import (
     ActionAffordanceNode,
+    PropertyAffordanceNode,
     PropertyConditionNode,
     ComparisonPropertyConditionNode,
     ComparisonOperator,
@@ -237,28 +238,36 @@ class CodeExecutor:
             "reversed": reversed,
             "any": any,
             "all": all,
+            # Required runtime primitives for class definitions/import statements
+            "__build_class__": __builtins__["__build_class__"] if isinstance(__builtins__, dict) else getattr(__builtins__, "__build_class__"),
+            "__import__": __import__,
         }
 
         # Prepare globals based on mode
         if unconstrained:
             # Unconstrained mode: full py_trees access + HTTP client
-            # Add __build_class__ to allow class definitions
             unconstrained_builtins = dict(safe_builtins)
-            unconstrained_builtins["__build_class__"] = __builtins__["__build_class__"] if isinstance(__builtins__, dict) else getattr(__builtins__, "__build_class__")
-            unconstrained_builtins["__name__"] = "__main__"
             safe_globals = {
                 "__builtins__": unconstrained_builtins,
+                "__name__": "__main__",
                 "py_trees": py_trees,
                 "Status": Status,
                 "http_client": self.http_client,
+                "ActionAffordanceNode": ActionAffordanceNode,
+                "PropertyAffordanceNode": PropertyAffordanceNode,
+                "PropertyConditionNode": PropertyConditionNode,
+                "ComparisonPropertyConditionNode": ComparisonPropertyConditionNode,
+                "ComparisonOperator": ComparisonOperator,
             }
             logger.info("Unconstrained mode: providing http_client and full py_trees access")
         else:
             # Constrained mode: template nodes only
             safe_globals = {
                 "__builtins__": safe_builtins,
+                "__name__": "__main__",
                 "py_trees": py_trees,
                 "ActionAffordanceNode": ActionAffordanceNode,
+                "PropertyAffordanceNode": PropertyAffordanceNode,
                 "PropertyConditionNode": PropertyConditionNode,
                 "ComparisonPropertyConditionNode": ComparisonPropertyConditionNode,
                 "ComparisonOperator": ComparisonOperator,

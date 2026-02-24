@@ -33,6 +33,11 @@ SEMANTIC_QUERY_PROMPT_PATH = (
     Path(__file__).resolve().parents[3] / "ontologies" / "semantic-query-prompt.txt"
 )
 
+# Path to the structured semantic query prompt (used with structured_goal)
+SEMANTIC_QUERY_STRUCTURED_PROMPT_PATH = (
+    Path(__file__).resolve().parents[3] / "ontologies" / "semantic-query-structured-prompt.txt"
+)
+
 
 def _extract_home_id(entry_point: str) -> str:
     """Extract home ID number from entry point URI.
@@ -87,14 +92,16 @@ class AgenticQueryAffordanceDiscovery:
         self,
         client: OpenAI,
         model_config: ModelConfig,
+        semantic_query_prompt_path: Optional[Path] = None,
     ):
         self.client = client
         self.model_config = model_config
         self.model = model_config.name
         self.exploration_trace: list[dict] = []
 
-        # Load the semantic query prompt
-        self.semantic_query_prompt = SEMANTIC_QUERY_PROMPT_PATH.read_text()
+        # Load the semantic query prompt (use custom path if provided)
+        prompt_path = semantic_query_prompt_path or SEMANTIC_QUERY_PROMPT_PATH
+        self.semantic_query_prompt = Path(prompt_path).read_text()
 
     def discover(
         self,

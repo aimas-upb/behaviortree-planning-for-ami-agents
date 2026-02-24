@@ -33,10 +33,26 @@ class MatchResult:
     is_infeasible: bool = False
 
     def to_dict(self) -> dict:
+        exp_data: Optional[dict] = None
+        if self.experience is not None:
+            exp_data = {
+                "id": self.experience.id,
+                "text_intent": self.experience.text_intent,
+                "affordance_type": self.experience.affordance_type,
+                "artifact_type": self.experience.artifact_type,
+                "workspace_type": self.experience.workspace_type,
+                "verb": self.experience.verb,
+                "home_id": self.experience.home_id,
+                "is_infeasible": self.experience.is_infeasible,
+                "bt_leaf_json_ir": self.experience.bt_leaf_json_ir,
+                "source_test_id": self.experience.source_test_id,
+                "created_at": self.experience.created_at,
+            }
         return {
             "intent": self.intent.to_dict(),
             "matched": self.matched,
             "experience_id": self.experience.id if self.experience else None,
+            "experience": exp_data,
             "similarity_score": self.similarity_score,
             "is_infeasible": self.is_infeasible,
         }
@@ -122,6 +138,7 @@ class ExperienceMatcher:
         self,
         intents: list[StructuredIntent],
         engine: ExperienceEngine,
+        home_id: str = "",
     ) -> list[MatchResult]:
         """
         Match each intent against stored experiences.
@@ -133,6 +150,18 @@ class ExperienceMatcher:
           4. Among those, find entries with a perfect slot-key match.
           5. Return the best (highest similarity) perfect-slot match,
              or no match if none qualifies.
+
+        Infeasibility is home-specific: an entry marked ``is_infeasible``
+        is only treated as a matched-infeasible result when it was recorded
+        in the same home (``home_id`` matches).  Entries from a different
+        home that happen to match on slots/similarity are silently skipped
+        for the infeasible case, because device capabilities can differ
+        between homes even for the same device type.
+
+        Args:
+            intents: Structured intents to match.
+            engine: The experience engine to search.
+            home_id: The home being queried.  Used to scope infeasible matches.
 
         Returns one ``MatchResult`` per intent (same order as input).
         """
@@ -164,6 +193,17 @@ class ExperienceMatcher:
 
                 # Check perfect slot match
                 if entry.slot_key() != intent_slot:
+                    continue
+
+                # Infeasible entries are home-specific: only match when the
+                # stored entry came from the same home as the current query.
+                # Feasible entries are not restricted this way — the
+                # adaptation step handles differences in concrete device state.
+                if entry.is_infeasible and home_id and entry.home_id and entry.home_id != home_id:
+                    logger.debug(
+                        f"Skipping infeasible entry {entry.id} "
+                        f"(home_id={entry.home_id!r} != current={home_id!r})"
+                    )
                     continue
 
                 if sim > best_sim:

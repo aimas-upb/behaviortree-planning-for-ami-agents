@@ -25,13 +25,21 @@ RUN pip install --no-cache-dir \
     pandas \
     matplotlib \
     pyyaml \
-    requests
+    requests \
+    fastembed \
+    tqdm \
+    rich
+
+# Pre-download fastembed model so it's available at runtime (even as non-root)
+ENV FASTEMBED_CACHE_PATH=/app/.fastembed_cache
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='BAAI/bge-small-en-v1.5')" \
+    && chmod -R a+rX /app/.fastembed_cache
 
 # Copy the entire project
 COPY . .
 
-# Make entrypoint executable
-RUN chmod +x /app/docker/entrypoint.sh
+# Make entrypoints executable
+RUN chmod +x /app/docker/entrypoint.sh /app/docker/entrypoint_experience.sh
 
 # Default environment variables
 ENV PYTHONUNBUFFERED=1

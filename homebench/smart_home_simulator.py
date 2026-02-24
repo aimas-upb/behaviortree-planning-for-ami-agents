@@ -6,6 +6,7 @@ Simulates smart home devices based on TD artifact descriptions
 """
 
 import argparse
+import asyncio
 import json
 import re
 from pathlib import Path
@@ -1134,7 +1135,11 @@ async def sparql_query(request: Request):
     home_id = str(payload["home_id"])
     query = payload["query"]
 
-    return simulator.query_sparql(home_id, query)
+    # rdflib Graph.query() is synchronous and CPU-bound; run it in a thread
+    # pool so it does not block FastAPI's async event loop and cause timeouts
+    # when multiple SPARQL requests arrive concurrently.
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, simulator.query_sparql, home_id, query)
 
 
 @app.post("/reset")
@@ -1197,6 +1202,14 @@ Examples:
     )
 
     parser.add_argument(
+        '--home-config',
+        type=Path,
+        default=None,
+        metavar='FILE',
+        help='JSON file containing a list of home IDs to load (e.g., [2, 4, 6]). Overrides --home if both given.'
+    )
+
+    parser.add_argument(
         '--host',
         type=str,
         default="0.0.0.0",
@@ -1215,8 +1228,11 @@ Examples:
     # Update global config
     config["home_description_dir"] = args.data_dir
 
-    # Parse --home argument (can be "0" or "0,1,5")
-    if args.home is not None:
+    # Parse home ID arguments: --home-config takes precedence over --home
+    if args.home_config is not None:
+        with open(args.home_config) as f:
+            config["home_ids"] = json.load(f)
+    elif args.home is not None:
         home_ids = [int(h.strip()) for h in args.home.split(",")]
         config["home_ids"] = home_ids
     else:

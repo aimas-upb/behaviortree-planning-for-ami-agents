@@ -21,6 +21,8 @@ from typing import Optional
 
 import py_trees
 
+from pathlib import Path
+
 from ..config import (
     ExperimentConfig,
     ModelConfig,
@@ -28,6 +30,14 @@ from ..config import (
     AffordanceConfig,
     StateConfig,
 )
+
+# Path to the structured semantic query prompt
+_STRUCTURED_QUERY_PROMPT_PATH = (
+    Path(__file__).resolve().parents[2] / "ontologies" / "semantic-query-structured-prompt.txt"
+)
+
+# Prompt strategy name for structured-goal BT generation
+_STRUCTURED_PROMPT_STRATEGY = "detailed_structured"
 from ..discovery import create_discovery_pipeline, DiscoveryResult
 from ..planning import create_planner, Plan
 from ..execution import create_executor, ExecutionResult, IRExecutor, CodeExecutor
@@ -121,6 +131,7 @@ class ExperiencePipelineRunner:
         matcher: ExperienceMatcher,
         intent_extractor: IntentExtractor,
         adapter: ExperienceAdapter,
+        structured_goal: bool = False,
     ):
         self.config = config
         self.client = client
@@ -128,6 +139,11 @@ class ExperiencePipelineRunner:
         self.matcher = matcher
         self.intent_extractor = intent_extractor
         self.adapter = adapter
+        self.structured_goal = structured_goal
+        logger.info(
+            f"ExperiencePipelineRunner initialized "
+            f"(structured_goal={self.structured_goal})"
+        )
 
     def run(
         self,
@@ -152,6 +168,11 @@ class ExperiencePipelineRunner:
         """
         result = ExperienceRunResult()
         start_time = time.time()
+
+        logger.info(
+            f"Starting experience pipeline "
+            f"[structured_goal={self.structured_goal}, test_id={test_id}]"
+        )
 
         try:
             # Step 1: Intent Extraction
@@ -179,7 +200,7 @@ class ExperiencePipelineRunner:
             logger.info("STEP 2: Experience Matching")
             logger.info("=" * 60)
 
-            match_results = self.matcher.match(intents, self.engine)
+            match_results = self.matcher.match(intents, self.engine, home_id=home_id)
             result.match_results = match_results
 
             # Partition intents
@@ -273,25 +294,55 @@ class ExperiencePipelineRunner:
             unmatched_irs: list[dict] = []
 
             if unmatched:
-                # Build the full goal from unmatched intents for discovery
-                unmatched_goal = ", ".join(i.text_intent for i in unmatched)
+                # Build the goal string from unmatched intents
+                if self.structured_goal:
+                    unmatched_goal = self._format_structured_goal(unmatched)
+                    logger.info(
+                        f"structured_goal=True: formatted goal for {len(unmatched)} intents:\n"
+                        f"{unmatched_goal}"
+                    )
+                else:
+                    unmatched_goal = ", ".join(i.text_intent for i in unmatched)
+                    logger.info(
+                        f"structured_goal=False: plain goal for {len(unmatched)} intents: "
+                        f"{unmatched_goal!r}"
+                    )
                 logger.info(
                     f"Running full pipeline for {len(unmatched)} unmatched intents"
                 )
 
                 try:
-                    # Full discovery
+                    # Full discovery — use structured query prompt when flag is set
+                    _query_prompt = (
+                        _STRUCTURED_QUERY_PROMPT_PATH if self.structured_goal else None
+                    )
+                    logger.info(
+                        f"Discovery: semantic_query_prompt_path="
+                        f"{_query_prompt or '(default)'}"
+                    )
                     discovery_pipeline = create_discovery_pipeline(
                         config=self.config.discovery,
                         client=self.client,
                         model_config=self.config.model,
+                        semantic_query_prompt_path=_query_prompt,
                     )
                     discovery_result = discovery_pipeline.discover(
                         entry_point, unmatched_goal
                     )
 
-                    # Planning
-                    planner = create_planner(self.config.planning)
+                    # Planning — use structured prompt strategy when flag is set
+                    planning_config = self.config.planning
+                    if self.structured_goal:
+                        from ..config import PlanningConfig
+                        planning_config = PlanningConfig(
+                            reasoning=planning_config.reasoning,
+                            output=planning_config.output,
+                            prompt_strategy=_STRUCTURED_PROMPT_STRATEGY,
+                        )
+                    logger.info(
+                        f"Planning: prompt_strategy={planning_config.prompt_strategy!r}"
+                    )
+                    planner = create_planner(planning_config)
                     planning_result = planner.plan(
                         goal=unmatched_goal,
                         discovery=discovery_result,
@@ -607,6 +658,7 @@ class ExperiencePipelineRunner:
         self,
         intent: StructuredIntent,
         test_id: str,
+        home_id: str = "",
     ) -> bool:
         """
         Store a confirmed infeasible intent.
@@ -614,6 +666,9 @@ class ExperiencePipelineRunner:
         Args:
             intent: The infeasible intent.
             test_id: Test identifier for provenance.
+            home_id: The home the intent was recorded in.  Stored so that
+                     future matching can restrict infeasible matches to the
+                     same home (device capabilities vary across homes).
 
         Returns:
             True if stored (not a duplicate).
@@ -621,13 +676,34 @@ class ExperiencePipelineRunner:
         if self.engine.has_identical(intent):
             return False
 
-        self.engine.add_infeasible(intent, test_id)
+        self.engine.add_infeasible(intent, test_id, home_id=home_id)
         self.engine.save()
         return True
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _format_structured_goal(intents: list["StructuredIntent"]) -> str:
+        """
+        Format a list of structured intents into a rich goal string.
+
+        Each intent is rendered as a labelled block containing its semantic
+        fields so that downstream LLM calls (SPARQL query generation and BT
+        code generation) have explicit ontology-grounded context rather than
+        just the raw natural-language text.
+        """
+        lines: list[str] = []
+        for idx, intent in enumerate(intents, start=1):
+            lines.append(f"**Intent {idx}**")
+            lines.append(f"text_intent: {intent.text_intent}")
+            lines.append(f"action.affordance_type: {intent.affordance_type}")
+            lines.append(f"action.verb: {intent.verb}")
+            lines.append(f"target.artifact_type: {intent.artifact_type}")
+            lines.append(f"target.workspace_type: {intent.workspace_type}")
+            lines.append("")  # blank line between intents
+        return "\n".join(lines).rstrip()
 
     def _discover_for_adaptation(
         self,
