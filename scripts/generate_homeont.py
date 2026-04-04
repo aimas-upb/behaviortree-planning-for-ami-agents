@@ -6,8 +6,8 @@ file (homeont.ttl) that describes the types and their affordance classes.
 Usage:
     python scripts/generate_homeont.py \
         -o ontologies/homeont.ttl \
-        datasets/HomeBench/hmas_format/home_description/home_0.ttl \
-        datasets/HomeBench/hmas_format/home_description/home_1.ttl \
+        data/homebench/hmas/home_description/home_0.ttl \
+        data/homebench/hmas/home_description/home_1.ttl \
         ...
 """
 

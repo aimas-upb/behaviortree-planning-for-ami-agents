@@ -19,6 +19,8 @@ from fastapi.responses import JSONResponse, Response
 from rdflib import Graph, Namespace, URIRef, RDF, Literal
 import uvicorn
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 # Namespaces for RDF parsing
 TD = Namespace("https://www.w3.org/2019/wot/td#")
@@ -984,7 +986,7 @@ class SmartHomeSimulator:
 # Global simulator instance and config
 simulator: Optional[SmartHomeSimulator] = None
 config: Dict[str, Any] = {
-    "home_description_dir": Path("datasets/HomeBench/hmas_format/home_description"),
+    "home_description_dir": REPO_ROOT / "data" / "homebench" / "hmas" / "home_description",
     "home_ids": None,  # None = load all, or list of ints e.g. [0, 1, 5]
 }
 
@@ -1188,9 +1190,9 @@ Examples:
     parser.add_argument(
         '--data-dir',
         type=Path,
-        default=Path("../datasets/HomeBench/hmas_format/home_description"),
+        default=REPO_ROOT / "data" / "homebench" / "hmas" / "home_description",
         metavar='DIR',
-        help='Path to home description data directory (default: ../datasets/HomeBench/hmas_format/home_description)'
+        help='Path to home description data directory (default: data/homebench/hmas/home_description)'
     )
 
     parser.add_argument(

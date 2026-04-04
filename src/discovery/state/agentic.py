@@ -13,7 +13,7 @@ from openai import OpenAI
 
 from ..base import CapabilityModel, EnvironmentState
 from ...config import ModelConfig, get_model_kwargs
-from hmas_client import get_property_by_uri, GetPropertyError, list_properties
+from ...hmas_client import get_property_by_uri, GetPropertyError, list_properties
 
 logger = logging.getLogger(__name__)
 

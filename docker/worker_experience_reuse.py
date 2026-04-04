@@ -517,13 +517,13 @@ def generate_trace_html(result: dict, results_dir: Path, config_name: str,
     # Generate HTML
     if is_experience:
         try:
-            from experience_trace_viewer import export_experience_html
+            from viewers.experience_trace_viewer import export_experience_html
             export_experience_html(reshaped, str(trace_file.with_suffix(".html")))
         except Exception:
             pass
     else:
         try:
-            from trace_viewer import export_html
+            from viewers.trace_viewer import export_html
             export_html(reshaped, str(trace_file.with_suffix(".html")))
         except Exception:
             pass
@@ -1218,7 +1218,7 @@ def run_ns_test(
     with open(trace_file, 'w') as f:
         json.dump(reshaped, f, indent=2, default=str)
     try:
-        from experience_trace_viewer import export_experience_html
+        from viewers.experience_trace_viewer import export_experience_html
         export_experience_html(reshaped, str(trace_file.with_suffix(".html")))
     except Exception:
         pass

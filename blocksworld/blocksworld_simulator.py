@@ -18,6 +18,8 @@ from fastapi.responses import JSONResponse, Response
 from rdflib import Graph, Namespace, URIRef, RDF, Literal
 import uvicorn
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 # Namespaces for RDF parsing
 TD = Namespace("https://www.w3.org/2019/wot/td#")
@@ -540,7 +542,7 @@ class BlocksworldSimulator:
 # Global simulator instance and config
 simulator: Optional[BlocksworldSimulator] = None
 config: Dict[str, Any] = {
-    "description_dir": Path("../datasets/Blocksworld/hmas_format/generated_basic")
+    "description_dir": REPO_ROOT / "data" / "blocksworld" / "hmas" / "generated_basic"
 }
 
 
@@ -667,7 +669,7 @@ if __name__ == "__main__":
         epilog="""
 Examples:
   python blocksworld_simulator.py
-  python blocksworld_simulator.py --data-dir ../datasets/Blocksworld/hmas_format/generated_basic
+  python blocksworld_simulator.py --data-dir ../data/blocksworld/hmas/generated_basic
   python blocksworld_simulator.py --data-dir /path/to/data --port 8081
         """
     )
@@ -675,9 +677,9 @@ Examples:
     parser.add_argument(
         '--data-dir',
         type=Path,
-        default=Path("../datasets/Blocksworld/hmas_format/generated_basic"),
+        default=REPO_ROOT / "data" / "blocksworld" / "hmas" / "generated_basic",
         metavar='DIR',
-        help='Path to blocksworld data directory (default: ../datasets/Blocksworld/hmas_format/generated_basic)'
+        help='Path to blocksworld data directory (default: data/blocksworld/hmas/generated_basic)'
     )
 
     parser.add_argument(

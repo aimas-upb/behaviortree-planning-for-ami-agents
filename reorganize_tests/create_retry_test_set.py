@@ -4,8 +4,14 @@ Usage: python reorganize_tests/create_retry_test_set.py
 
 import os
 import json
+from pathlib import Path
 
 from typing import Dict, List, Tuple
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+GROUND_TRUTH_FILE = REPO_ROOT / "data" / "homebench" / "converted" / "test_data.json"
+BENCHMARKS_DIR = REPO_ROOT / "data" / "homebench" / "benchmarks" / "action_groups"
+RETRIES_DIR = REPO_ROOT / "data" / "homebench" / "retries" / "action_groups"
 
 
 def get_dining_room_and_open_close_tests(tests_dir: str) -> Tuple[Dict[str, Dict], Dict[str, Dict]]:
@@ -85,7 +91,7 @@ def merge_dining_room_and_open_close_tests(
 def create_retry_tests(merged_tests: Dict[str, List[Dict]]) -> None:
     no_tests_to_retry = 0
 
-    with open("datasets/HomeBench/converted/test_data.json") as f:
+    with open(GROUND_TRUTH_FILE) as f:
         ground_truth_tests = json.load(f)
 
     for file, tests in merged_tests.items():
@@ -109,20 +115,19 @@ def create_retry_tests(merged_tests: Dict[str, List[Dict]]) -> None:
 
         if retry_tests:    
             # Save the retry tests back to the file
-            with open(os.path.join("retry_experiments_data", file), 'w') as f:
+            with open(RETRIES_DIR / file, 'w') as f:
                 json.dump(retry_tests, f, indent=2)
 
         if feasible_retry_tests:
             # Save the feasible retry tests back to the file
-            with open(os.path.join("retry_experiments_data", "single_feasible_action_tests.json"), 'a') as f:
+            with open(RETRIES_DIR / "single_feasible_action_tests.json", 'a') as f:
                 json.dump(feasible_retry_tests, f, indent=2)
 
     print(f"Total tests to retry: {no_tests_to_retry}")
 
 
 def main():
-    tests_dir = os.path.join(os.path.dirname(__file__), '..', 'experiments_data')
-    dining_room_tests, open_close_tests = get_dining_room_and_open_close_tests(tests_dir)
+    dining_room_tests, open_close_tests = get_dining_room_and_open_close_tests(str(BENCHMARKS_DIR))
 
     save_dining_room_and_open_close_tests(dining_room_tests, open_close_tests)
 

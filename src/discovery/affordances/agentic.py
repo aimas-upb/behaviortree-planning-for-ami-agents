@@ -12,7 +12,7 @@ from openai import OpenAI
 
 from ..base import CapabilityModel, Artifact, Affordance
 from ...config import ModelConfig, get_model_kwargs
-from hmas_client import (
+from ...hmas_client import (
     list_workspaces,
     list_artifacts,
     list_properties,

@@ -1025,7 +1025,7 @@ class NeuroSymbolicRunner:
             EnvironmentState,
             DiscoveryResult,
         )
-        from hmas_client import (
+        from ..hmas_client import (
             list_actions,
             list_properties,
             get_artifact_semantic_type,

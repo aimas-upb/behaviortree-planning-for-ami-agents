@@ -17,37 +17,37 @@ python3 ground_truth_converter.py -i INPUT_FILE -o OUTPUT_FILE [-t TTL_DIR]
 ### Arguments
 
 - `-i, --input`: Input JSONL file (required)
-  - Example: `datasets/HomeBench/original/train_data_part1.jsonl`
+  - Example: `data/homebench/raw/train_data_part1.jsonl`
 
 - `-o, --output`: Output JSON file path (required)
-  - Example: `datasets/HomeBench/converted/train_data_part1.json`
+  - Example: `data/homebench/converted/train_data_part1.json`
 
 - `-t, --ttl-dir`: Directory containing TTL files (optional)
-  - Default: `datasets/HomeBench/hmas_format`
+  - Default: `data/homebench/hmas/home_description`
 
 ### Examples
 
 Convert training data part 1:
 ```bash
 python3 ground_truth_converter.py \
-  -i datasets/HomeBench/original/train_data_part1.jsonl \
-  -o datasets/HomeBench/converted/train_data_part1.json
+  -i data/homebench/raw/train_data_part1.jsonl \
+  -o data/homebench/converted/train_data_part1.json
 ```
 
 Convert validation data:
 ```bash
 python3 ground_truth_converter.py \
-  -i datasets/HomeBench/original/valid_data.jsonl \
-  -o datasets/HomeBench/converted/valid_data.json
+  -i data/homebench/raw/valid_data.jsonl \
+  -o data/homebench/converted/valid_data.json
 ```
 
 Convert all datasets:
 ```bash
-for file in datasets/HomeBench/original/*.jsonl; do
+for file in data/homebench/raw/*.jsonl; do
     filename=$(basename "$file" .jsonl)
     python3 ground_truth_converter.py \
         -i "$file" \
-        -o "datasets/HomeBench/converted/${filename}.json"
+        -o "data/homebench/converted/${filename}.json"
 done
 ```
 

@@ -37,7 +37,7 @@ echo "=========================================="
 
 # Start the simulator in the background
 echo "[Worker $WORKER_ID] Starting simulator..."
-SIMULATOR_CMD="python -m homebench.smart_home_simulator --port $SIMULATOR_PORT --data-dir /app/datasets/HomeBench/hmas_format/home_description"
+SIMULATOR_CMD="python -m homebench.smart_home_simulator --port $SIMULATOR_PORT --data-dir /app/data/homebench/hmas/home_description"
 if [ -n "$HOME_CONFIG" ]; then
     SIMULATOR_CMD="$SIMULATOR_CMD --home-config $HOME_CONFIG"
 fi

@@ -8,7 +8,7 @@ from typing import Optional
 import logging
 
 from ..base import CapabilityModel, Artifact, Affordance
-from hmas_client import (
+from ...hmas_client import (
     list_workspaces,
     list_artifacts,
     list_properties,

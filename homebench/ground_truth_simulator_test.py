@@ -142,7 +142,7 @@ def main():
         description="Test ground truth data against a running simulator",
         epilog="""
 Examples:
-  %(prog)s -f datasets/HomeBench/converted/test_data.json -i home86_multi_329
+  %(prog)s -f data/homebench/converted/test_data.json -i home86_multi_329
   %(prog)s --file test_data.json --id home86_multi_329 --pretty
   %(prog)s -f test_data.json -i home86_multi_329 -o results.json --pretty
         """,
@@ -152,7 +152,7 @@ Examples:
         "-f", "--file",
         dest="ground_truth_file",
         required=True,
-        help="Path to the ground truth JSON file (e.g., datasets/HomeBench/converted/test_data.json)"
+        help="Path to the ground truth JSON file (e.g., data/homebench/converted/test_data.json)"
     )
     parser.add_argument(
         "-i", "--id",

@@ -4,18 +4,24 @@ Usage: python reorganize_tests/update_experiments_data.py
 
 import os
 import json
+from pathlib import Path
 
-with open("datasets/HomeBench/converted/test_data.json") as f:
+REPO_ROOT = Path(__file__).resolve().parents[1]
+GROUND_TRUTH_FILE = REPO_ROOT / "data" / "homebench" / "converted" / "test_data.json"
+LEGACY_GROUPS_DIR = REPO_ROOT / "reorganize_tests" / "legacy_action_groups"
+OUTPUT_GROUPS_DIR = REPO_ROOT / "data" / "homebench" / "benchmarks" / "action_groups"
+
+with open(GROUND_TRUTH_FILE) as f:
     ground_truth_tests = json.load(f)
 
-test_groups_files = os.listdir("old_experiments_data/")
+test_groups_files = os.listdir(LEGACY_GROUPS_DIR)
 test_groups_files = [f for f in test_groups_files if f.endswith("_tests.json")]
 
 new_feasible_retry_tests = []
 total_number_of_tests_per_group = {}
 
 for test_group_file in test_groups_files:
-    with open(os.path.join("old_experiments_data", test_group_file)) as f:
+    with open(LEGACY_GROUPS_DIR / test_group_file) as f:
         test_group_tests = json.load(f)
 
     fixed_test = []
@@ -34,14 +40,14 @@ for test_group_file in test_groups_files:
             print(f"Warning: No matching ground truth test found for test ID {test['id']}")
 
     # Save the fixed tests back to the file
-    with open(os.path.join("experiments_data", test_group_file), 'w') as f:
+    with open(OUTPUT_GROUPS_DIR / test_group_file, 'w') as f:
         json.dump(fixed_test, f, indent=2)
 
     total_number_of_tests_per_group[test_group_file] = len(fixed_test)
 
 if new_feasible_retry_tests:
     # Merge with existing single_feasible_action_tests.json if it exists
-    feasible_file_path = os.path.join("experiments_data", "single_feasible_action_tests.json")
+    feasible_file_path = OUTPUT_GROUPS_DIR / "single_feasible_action_tests.json"
     print(f"Total new feasible retry tests: {len(new_feasible_retry_tests)}")
 
     with open(feasible_file_path, 'r') as f:

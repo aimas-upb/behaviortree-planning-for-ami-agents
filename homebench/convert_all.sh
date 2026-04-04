@@ -5,8 +5,8 @@ set -e
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INPUT_DIR="${SCRIPT_DIR}/../datasets/HomeBench/original"
-OUTPUT_DIR="${SCRIPT_DIR}/../datasets/HomeBench/converted"
+INPUT_DIR="${SCRIPT_DIR}/../data/homebench/raw"
+OUTPUT_DIR="${SCRIPT_DIR}/../data/homebench/converted"
 CONVERTER="${SCRIPT_DIR}/ground_truth_converter.py"
 
 # Create output directory if it doesn't exist

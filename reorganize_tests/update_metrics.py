@@ -7,12 +7,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Ensure project root is on sys.path so run_homebench can be imported when running as a script
+# Ensure project root is on sys.path so repo packages can be imported when running as a script
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from run_homebench import EvaluationMetrics, TestResult
+from scripts.experiments.run_homebench import EvaluationMetrics, TestResult
 
 
 def parse_results(path: str) -> list[TestResult]:
@@ -220,7 +220,11 @@ def main():
     # Generate new report
     output_report_path = tests_dir + '/new_report.html'
 
-    subprocess.run(["uv", "run", "python", "eval_viewer.py", str(tests_dir), "--output", output_report_path], check=True)
+    subprocess.run(
+        [sys.executable, "-m", "viewers.eval_viewer", str(tests_dir), "--output", output_report_path],
+        check=True,
+        cwd=PROJECT_ROOT,
+    )
     
     if os.path.exists(output_report_path):
         print(f"New report generated at: {output_report_path}")

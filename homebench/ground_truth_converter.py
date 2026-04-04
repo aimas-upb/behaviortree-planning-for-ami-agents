@@ -12,6 +12,9 @@ from pathlib import Path
 from typing import Dict, Optional, Any
 import rdflib
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_TTL_DIR = REPO_ROOT / "data" / "homebench" / "hmas" / "home_description"
+
 
 class TTLParser:
     """Parser for TTL files to extract affordance mappings."""
@@ -469,7 +472,7 @@ def main():
     parser.add_argument(
         '-i', '--input',
         required=True,
-        help='Input JSONL file (e.g., datasets/HomeBench/original/train_data_part1.jsonl)'
+        help='Input JSONL file (e.g., data/homebench/raw/train_data_part1.jsonl)'
     )
     parser.add_argument(
         '-o', '--output',
@@ -478,13 +481,14 @@ def main():
     )
     parser.add_argument(
         '-t', '--ttl-dir',
-        default='datasets/HomeBench/hmas_format',
-        help='Directory containing TTL files (default: datasets/HomeBench/hmas_format)'
+        type=Path,
+        default=DEFAULT_TTL_DIR,
+        help='Directory containing TTL files (default: data/homebench/hmas/home_description)'
     )
 
     args = parser.parse_args()
 
-    converter = GroundTruthConverter(args.ttl_dir)
+    converter = GroundTruthConverter(str(args.ttl_dir))
     converter.convert_file(args.input, args.output)
 
 

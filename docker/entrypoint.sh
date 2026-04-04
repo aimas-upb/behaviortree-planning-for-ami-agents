@@ -25,7 +25,7 @@ echo "=========================================="
 
 # Start the simulator in the background
 echo "[Worker $WORKER_ID] Starting simulator..."
-python -m homebench.smart_home_simulator --port $SIMULATOR_PORT --data-dir /app/datasets/HomeBench/hmas_format/home_description &
+python -m homebench.smart_home_simulator --port $SIMULATOR_PORT --data-dir /app/data/homebench/hmas/home_description &
 SIMULATOR_PID=$!
 
 # Wait for simulator to be ready

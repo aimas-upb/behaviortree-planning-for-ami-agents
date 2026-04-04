@@ -13,10 +13,11 @@ from rdflib import Graph, Namespace, URIRef
 TD = Namespace("https://www.w3.org/2019/wot/td#")
 HMAS = Namespace("https://purl.org/hmas/")
 EX = Namespace("http://example.org/")
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 def analyze_all_homes():
     """Analyze all home descriptions"""
-    home_dir = Path("datasets/HomeBench/hmas_format/home_description")
+    home_dir = REPO_ROOT / "data" / "homebench" / "hmas" / "home_description"
 
     # Track all properties and actions per device type
     device_properties = defaultdict(set)

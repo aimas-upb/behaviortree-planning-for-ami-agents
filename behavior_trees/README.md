@@ -364,14 +364,14 @@ Before running behavior trees, start the appropriate simulator:
 
 ```bash
 cd homebench
-python smart_home_simulator.py --state-file ../datasets/HomeBench/hmas_format/home_0_state.json
+python smart_home_simulator.py --data-dir ../data/homebench/hmas/home_description --home 0
 ```
 
 ### Blocksworld Simulator
 
 ```bash
 cd blocksworld
-python blocksworld_simulator.py --data-dir ../datasets/Blocksworld/hmas_format/generated_basic --port 8081
+python blocksworld_simulator.py --data-dir ../data/blocksworld/hmas/generated_basic --port 8081
 ```
 
 ## Architecture

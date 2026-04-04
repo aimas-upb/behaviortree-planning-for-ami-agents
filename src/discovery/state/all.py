@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 
 from ..base import CapabilityModel, EnvironmentState
-from hmas_client import get_property_by_uri, GetPropertyError
+from ...hmas_client import get_property_by_uri, GetPropertyError
 
 logger = logging.getLogger(__name__)
 

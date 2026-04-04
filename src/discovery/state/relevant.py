@@ -12,7 +12,7 @@ from datetime import datetime
 from openai import OpenAI
 
 from ..base import CapabilityModel, EnvironmentState
-from hmas_client import get_property_by_uri, GetPropertyError
+from ...hmas_client import get_property_by_uri, GetPropertyError
 from ...config import ModelConfig, get_model_kwargs
 
 logger = logging.getLogger(__name__)

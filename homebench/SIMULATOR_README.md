@@ -52,7 +52,7 @@ python smart_home_simulator.py
 ```
 
 The simulator will:
-1. Load all home descriptions from `datasets/HomeBench/hmas_format/home_description/`
+1. Load all home descriptions from `data/homebench/hmas/home_description/`
 2. Parse `.ttl` files for artifact descriptions
 3. Load initial states from `*_state.json` files
 4. Register all property and action endpoints
