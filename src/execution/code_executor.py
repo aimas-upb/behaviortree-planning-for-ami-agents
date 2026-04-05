@@ -6,20 +6,19 @@ Supports both constrained (template nodes) and unconstrained (custom behaviors) 
 """
 
 import ast
-import re
 import logging
+import re
 
 import httpx
 import py_trees
-from py_trees.common import Status
-
 from behavior_trees.affordance_nodes import (
     ActionAffordanceNode,
+    ComparisonOperator,
+    ComparisonPropertyConditionNode,
     PropertyAffordanceNode,
     PropertyConditionNode,
-    ComparisonPropertyConditionNode,
-    ComparisonOperator,
 )
+from py_trees.common import Status
 
 from ..planning import Plan
 from .base import ExecutionResult
@@ -29,28 +28,28 @@ logger = logging.getLogger(__name__)
 
 # Patterns that indicate potentially dangerous code (apply to both modes)
 FORBIDDEN_PATTERNS = [
-    r'\bos\.(remove|unlink|rmdir|rmtree|system|popen|exec|spawn)',
-    r'\bshutil\.(rmtree|move|copy|copytree)',
-    r'\bsubprocess\.',
-    r'\b__import__\s*\(',
-    r'\beval\s*\(',
-    r'\bexec\s*\(',
-    r'\bcompile\s*\(',
+    r"\bos\.(remove|unlink|rmdir|rmtree|system|popen|exec|spawn)",
+    r"\bshutil\.(rmtree|move|copy|copytree)",
+    r"\bsubprocess\.",
+    r"\b__import__\s*\(",
+    r"\beval\s*\(",
+    r"\bexec\s*\(",
+    r"\bcompile\s*\(",
     r'\bopen\s*\([^)]*["\']w',  # write mode
-    r'\brm\s+-rf',
-    r'\bimport\s+subprocess',
-    r'\bimport\s+shutil',
-    r'\bimport\s+os\b',
-    r'\bfrom\s+os\s+import',
-    r'\bimport\s+sys\b',
-    r'\bfrom\s+sys\s+import',
-    r'\b__builtins__',
-    r'\b__class__',
-    r'\b__bases__',
-    r'\b__subclasses__',
-    r'\b__mro__',
-    r'\b__globals__',
-    r'\b__code__',
+    r"\brm\s+-rf",
+    r"\bimport\s+subprocess",
+    r"\bimport\s+shutil",
+    r"\bimport\s+os\b",
+    r"\bfrom\s+os\s+import",
+    r"\bimport\s+sys\b",
+    r"\bfrom\s+sys\s+import",
+    r"\b__builtins__",
+    r"\b__class__",
+    r"\b__bases__",
+    r"\b__subclasses__",
+    r"\b__mro__",
+    r"\b__globals__",
+    r"\b__code__",
 ]
 
 # Allowed imports for constrained mode
@@ -66,6 +65,7 @@ ALLOWED_IMPORTS_UNCONSTRAINED = {
 
 class CodeSafetyError(Exception):
     """Raised when generated code fails safety checks."""
+
     pass
 
 
@@ -120,7 +120,9 @@ class CodeExecutor:
 
         try:
             # Safety check
-            logger.info(f"Checking code safety (unconstrained={is_unconstrained})")
+            logger.info(
+                f"Checking code safety (unconstrained={is_unconstrained})"
+            )
             self._check_safety(code, unconstrained=is_unconstrained)
 
             # Execute code
@@ -167,7 +169,11 @@ class CodeExecutor:
                 raise CodeSafetyError(f"Forbidden pattern detected: {pattern}")
 
         # Choose allowed imports based on mode
-        allowed_imports = ALLOWED_IMPORTS_UNCONSTRAINED if unconstrained else ALLOWED_IMPORTS_CONSTRAINED
+        allowed_imports = (
+            ALLOWED_IMPORTS_UNCONSTRAINED
+            if unconstrained
+            else ALLOWED_IMPORTS_CONSTRAINED
+        )
 
         # AST-based import checking
         try:
@@ -175,18 +181,24 @@ class CodeExecutor:
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        module = alias.name.split('.')[0]
+                        module = alias.name.split(".")[0]
                         if module not in allowed_imports:
-                            raise CodeSafetyError(f"Forbidden import: {alias.name}")
+                            raise CodeSafetyError(
+                                f"Forbidden import: {alias.name}"
+                            )
                 elif isinstance(node, ast.ImportFrom):
                     if node.module:
-                        module = node.module.split('.')[0]
+                        module = node.module.split(".")[0]
                         if module not in allowed_imports:
-                            raise CodeSafetyError(f"Forbidden import from: {node.module}")
+                            raise CodeSafetyError(
+                                f"Forbidden import from: {node.module}"
+                            )
         except SyntaxError as e:
             raise CodeSafetyError(f"Invalid Python syntax: {e}")
 
-    def _execute_code(self, code: str, unconstrained: bool = False) -> py_trees.behaviour.Behaviour:
+    def _execute_code(
+        self, code: str, unconstrained: bool = False
+    ) -> py_trees.behaviour.Behaviour:
         """
         Execute code and extract the behavior tree.
 
@@ -239,7 +251,11 @@ class CodeExecutor:
             "any": any,
             "all": all,
             # Required runtime primitives for class definitions/import statements
-            "__build_class__": __builtins__["__build_class__"] if isinstance(__builtins__, dict) else getattr(__builtins__, "__build_class__"),
+            "__build_class__": (
+                __builtins__["__build_class__"]
+                if isinstance(__builtins__, dict)
+                else getattr(__builtins__, "__build_class__")
+            ),
             "__import__": __import__,
         }
 
@@ -259,7 +275,9 @@ class CodeExecutor:
                 "ComparisonPropertyConditionNode": ComparisonPropertyConditionNode,
                 "ComparisonOperator": ComparisonOperator,
             }
-            logger.info("Unconstrained mode: providing http_client and full py_trees access")
+            logger.info(
+                "Unconstrained mode: providing http_client and full py_trees access"
+            )
         else:
             # Constrained mode: template nodes only
             safe_globals = {
@@ -305,9 +323,13 @@ class CodeExecutor:
             except Exception as e:
                 raise CodeSafetyError(f"build_tree() failed: {e}")
         else:
-            raise CodeSafetyError("Code must define 'tree' variable or 'build_tree()' function")
+            raise CodeSafetyError(
+                "Code must define 'tree' variable or 'build_tree()' function"
+            )
 
-    def _execute_tree(self, tree: py_trees.behaviour.Behaviour) -> ExecutionResult:
+    def _execute_tree(
+        self, tree: py_trees.behaviour.Behaviour
+    ) -> ExecutionResult:
         """
         Execute a behavior tree.
 
@@ -346,5 +368,7 @@ class CodeExecutor:
             result.final_status = "RUNNING (max ticks reached)"
 
         tree.shutdown()
-        logger.info(f"Execution complete: {result.final_status} after {result.ticks} ticks")
+        logger.info(
+            f"Execution complete: {result.final_status} after {result.ticks} ticks"
+        )
         return result

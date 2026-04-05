@@ -7,8 +7,8 @@ Generates Python py_trees code that is exec'd directly.
 import logging
 import re
 
-from ..base import Plan
 from ...config import ModelConfig, get_model_kwargs
+from ..base import Plan
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def extract_impossible_subgoals(code: str) -> list[str]:
 
     Returns a list of the descriptions.
     """
-    pattern = r'^#\s*IMPOSSIBLE:\s*(.+)$'
+    pattern = r"^#\s*IMPOSSIBLE:\s*(.+)$"
     matches = re.findall(pattern, code, re.MULTILINE)
     return [m.strip() for m in matches]
 
@@ -80,10 +80,14 @@ class PythonCodeGenerator:
         """
         from ...prompts import get_prompt
 
-        logger.info(f"Generating Python code with prompt strategy: {prompt_strategy}")
+        logger.info(
+            f"Generating Python code with prompt strategy: {prompt_strategy}"
+        )
 
         # Get prompt template
-        system_prompt, tool_description = get_prompt(prompt_strategy, "python_code")
+        system_prompt, tool_description = get_prompt(
+            prompt_strategy, "python_code"
+        )
 
         # Format system prompt with context
         formatted_system = system_prompt.format(capability_model=context)
@@ -97,12 +101,19 @@ class PythonCodeGenerator:
             {"role": "user", "content": goal},
         ]
 
-        api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
-        api_kwargs.update({
-            "messages": messages,
-            "tools": [tool],
-            "tool_choice": {"type": "function", "function": {"name": "generate_behavior_tree_code"}},
-        })
+        api_kwargs = get_model_kwargs(
+            model_config.name, model_config=model_config
+        )
+        api_kwargs.update(
+            {
+                "messages": messages,
+                "tools": [tool],
+                "tool_choice": {
+                    "type": "function",
+                    "function": {"name": "generate_behavior_tree_code"},
+                },
+            }
+        )
 
         response = client.chat.completions.create(**api_kwargs)
 
@@ -119,6 +130,7 @@ class PythonCodeGenerator:
         tool_call = message.tool_calls[0]
         try:
             import json
+
             args = json.loads(tool_call.function.arguments)
         except Exception as e:
             logger.error(f"Failed to parse response: {e}")
@@ -143,7 +155,9 @@ class PythonCodeGenerator:
         # Extract any impossible sub-goals from code comments
         detected_impossible = extract_impossible_subgoals(code)
         if detected_impossible:
-            logger.info(f"Detected {len(detected_impossible)} impossible sub-goals")
+            logger.info(
+                f"Detected {len(detected_impossible)} impossible sub-goals"
+            )
 
         logger.info(f"Generated Python code ({len(code)} chars)")
 
@@ -186,10 +200,14 @@ class UnconstrainedPythonCodeGenerator:
         """
         from ...prompts import get_prompt
 
-        logger.info(f"Generating unconstrained Python code with prompt strategy: {prompt_strategy}")
+        logger.info(
+            f"Generating unconstrained Python code with prompt strategy: {prompt_strategy}"
+        )
 
         # Get unconstrained prompt template
-        system_prompt, tool_description = get_prompt(prompt_strategy, "python_code_unconstrained")
+        system_prompt, tool_description = get_prompt(
+            prompt_strategy, "python_code_unconstrained"
+        )
 
         # Format system prompt with context
         formatted_system = system_prompt.format(capability_model=context)
@@ -203,12 +221,19 @@ class UnconstrainedPythonCodeGenerator:
             {"role": "user", "content": goal},
         ]
 
-        api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
-        api_kwargs.update({
-            "messages": messages,
-            "tools": [tool],
-            "tool_choice": {"type": "function", "function": {"name": "generate_behavior_tree_code"}},
-        })
+        api_kwargs = get_model_kwargs(
+            model_config.name, model_config=model_config
+        )
+        api_kwargs.update(
+            {
+                "messages": messages,
+                "tools": [tool],
+                "tool_choice": {
+                    "type": "function",
+                    "function": {"name": "generate_behavior_tree_code"},
+                },
+            }
+        )
 
         response = client.chat.completions.create(**api_kwargs)
 
@@ -225,6 +250,7 @@ class UnconstrainedPythonCodeGenerator:
         tool_call = message.tool_calls[0]
         try:
             import json
+
             args = json.loads(tool_call.function.arguments)
         except Exception as e:
             logger.error(f"Failed to parse response: {e}")
@@ -249,7 +275,9 @@ class UnconstrainedPythonCodeGenerator:
         # Extract any impossible sub-goals from code comments
         detected_impossible = extract_impossible_subgoals(code)
         if detected_impossible:
-            logger.info(f"Detected {len(detected_impossible)} impossible sub-goals")
+            logger.info(
+                f"Detected {len(detected_impossible)} impossible sub-goals"
+            )
 
         logger.info(f"Generated unconstrained Python code ({len(code)} chars)")
 

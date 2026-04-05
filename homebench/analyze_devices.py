@@ -6,14 +6,16 @@ Analyze all device instances across all homes to determine:
 """
 
 import json
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
+
 from rdflib import Graph, Namespace, URIRef
 
 TD = Namespace("https://www.w3.org/2019/wot/td#")
 HMAS = Namespace("https://purl.org/hmas/")
 EX = Namespace("http://example.org/")
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def analyze_all_homes():
     """Analyze all home descriptions"""
@@ -33,20 +35,27 @@ def analyze_all_homes():
             continue
 
         # Load state to get properties
-        with open(state_file, 'r') as f:
+        with open(state_file, "r") as f:
             states = json.load(f)
 
         # Parse TTL
         g = Graph()
-        g.parse(ttl_file, format='turtle')
+        g.parse(ttl_file, format="turtle")
 
         # Find all artifacts
-        for artifact_uri in g.subjects(predicate=HMAS.isContainedIn, object=None):
+        for artifact_uri in g.subjects(
+            predicate=HMAS.isContainedIn, object=None
+        ):
             artifact_uri_str = str(artifact_uri)
 
             # Get device type
             device_type = None
-            for type_uri in g.objects(artifact_uri, predicate=URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")):
+            for type_uri in g.objects(
+                artifact_uri,
+                predicate=URIRef(
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                ),
+            ):
                 type_str = str(type_uri)
                 if type_str.startswith("http://example.org/"):
                     device_type = type_str.replace("http://example.org/", "")
@@ -68,13 +77,14 @@ def analyze_all_homes():
 
     return device_properties, device_actions
 
+
 if __name__ == "__main__":
     print("Analyzing all homes...")
     properties, actions = analyze_all_homes()
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("DEVICE ANALYSIS RESULTS")
-    print("="*80)
+    print("=" * 80)
 
     for device_type in sorted(properties.keys()):
         print(f"\n{device_type}:")

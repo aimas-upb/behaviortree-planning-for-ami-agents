@@ -8,10 +8,10 @@ Strategies:
 - none: No state gathering (current behavior)
 """
 
-from .all import AllStateGathering
-from .relevant import RelevantStateGathering
 from .agentic import AgenticStateGathering
+from .all import AllStateGathering
 from .none import NoStateGathering
+from .relevant import RelevantStateGathering
 
 __all__ = [
     "AllStateGathering",

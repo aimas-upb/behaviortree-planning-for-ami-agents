@@ -6,20 +6,23 @@ Captures all agent interactions for later visualization and analysis.
 
 import json
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
-from enum import Enum
 
 
 class TraceEventType(Enum):
     """Types of trace events."""
+
     AGENT_START = "agent_start"
     AGENT_END = "agent_end"
     CAPABILITY_MODEL_START = "capability_model_start"
     CAPABILITY_MODEL_END = "capability_model_end"
-    CAPABILITY_MODEL_SUMMARY = "capability_model_summary"  # Full model for analysis
+    CAPABILITY_MODEL_SUMMARY = (
+        "capability_model_summary"  # Full model for analysis
+    )
     WORKSPACE_DISCOVERED = "workspace_discovered"
     ARTIFACT_DISCOVERED = "artifact_discovered"
     # Discovery conversation events (for agentic mode)
@@ -40,6 +43,7 @@ class TraceEventType(Enum):
 @dataclass
 class TraceEvent:
     """A single trace event."""
+
     event_type: str
     timestamp: str
     elapsed_ms: float
@@ -52,6 +56,7 @@ class TraceEvent:
 @dataclass
 class AgentTrace:
     """Complete trace of an agent run."""
+
     trace_id: str
     goal: str
     model: str
@@ -140,12 +145,17 @@ class Tracer:
             ablation_config=ablation_config or {},
         )
 
-        self.log(TraceEventType.AGENT_START, {
-            "goal": goal,
-            "model": model,
-        })
+        self.log(
+            TraceEventType.AGENT_START,
+            {
+                "goal": goal,
+                "model": model,
+            },
+        )
 
-    def log(self, event_type: TraceEventType, data: Optional[dict] = None) -> None:
+    def log(
+        self, event_type: TraceEventType, data: Optional[dict] = None
+    ) -> None:
         """Log a trace event."""
         if not self.enabled or not self.current_trace:
             return
@@ -171,10 +181,13 @@ class Tracer:
         if not self.enabled or not self.current_trace:
             return
 
-        self.log(TraceEventType.AGENT_END, {
-            "success": success,
-            "result": result,
-        })
+        self.log(
+            TraceEventType.AGENT_END,
+            {
+                "success": success,
+                "result": result,
+            },
+        )
 
         self.current_trace.end_time = datetime.now().isoformat()
         self.current_trace.success = success

@@ -8,9 +8,9 @@ Supports multiple execution modes:
 """
 
 from .base import ExecutionResult
-from .ir_executor import IRExecutor
 from .code_executor import CodeExecutor
 from .direct_agent import DirectAgentExecutor, DirectAgentResult
+from .ir_executor import IRExecutor
 
 __all__ = [
     "ExecutionResult",

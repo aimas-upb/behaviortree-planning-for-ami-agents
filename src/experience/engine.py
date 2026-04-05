@@ -31,7 +31,9 @@ class ExperienceEntry:
     verb: str
     bt_leaf_json_ir: dict  # JSON-IR of the BT leaf node (empty if infeasible)
     is_infeasible: bool = False
-    home_id: str = ""  # home the experience was recorded in (used to scope infeasible matches)
+    home_id: str = (
+        ""  # home the experience was recorded in (used to scope infeasible matches)
+    )
     embedding: Optional[list[float]] = None
     created_at: str = ""
     source_test_id: str = ""
@@ -113,9 +115,7 @@ class ExperienceEngine:
                 self.entries.append(entry)
                 key = entry.slot_key()
                 self._slot_index.setdefault(key, []).append(idx)
-            logger.info(
-                f"Loaded {len(self.entries)} experiences from {path}"
-            )
+            logger.info(f"Loaded {len(self.entries)} experiences from {path}")
         except Exception as e:
             logger.error(f"Failed to load experience store: {e}")
 

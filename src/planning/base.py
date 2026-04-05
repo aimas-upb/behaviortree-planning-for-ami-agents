@@ -3,7 +3,7 @@ Base classes and dataclasses for planning.
 """
 
 from dataclasses import dataclass, field
-from typing import Literal, Any, Protocol, Optional
+from typing import Any, Literal, Optional, Protocol
 
 
 @dataclass
@@ -14,11 +14,14 @@ class Plan:
     Contains either a JSON IR specification or Python code
     that constructs a behavior tree.
     """
+
     format: Literal["json_ir", "python_code"]
     content: str | dict  # JSON dict or Python code string
     explanation: str = ""
     reasoning_trace: list[str] = field(default_factory=list)
-    detected_impossible: list[str] = field(default_factory=list)  # Sub-goals that cannot be achieved
+    detected_impossible: list[str] = field(
+        default_factory=list
+    )  # Sub-goals that cannot be achieved
 
     def to_dict(self) -> dict:
         """Convert to dictionary for tracing."""
@@ -47,6 +50,7 @@ class PlanningResult:
 
     Includes the plan and metadata about the planning process.
     """
+
     plan: Plan
     success: bool
     error: Optional[str] = None

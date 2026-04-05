@@ -178,23 +178,32 @@ class MultiTurnReasoning:
         Returns:
             Tuple of (enhanced context with reasoning, reasoning trace)
         """
-        logger.info(f"Starting multi-turn reasoning (max {self.max_turns} turns)")
+        logger.info(
+            f"Starting multi-turn reasoning (max {self.max_turns} turns)"
+        )
 
         messages = [
             {"role": "system", "content": MULTI_TURN_SYSTEM_PROMPT},
-            {"role": "user", "content": f"## Context\n\n{context}\n\n## Goal\n\n{goal}\n\nAnalyze this goal step by step using the available tools."},
+            {
+                "role": "user",
+                "content": f"## Context\n\n{context}\n\n## Goal\n\n{goal}\n\nAnalyze this goal step by step using the available tools.",
+            },
         ]
 
         reasoning_trace = []
         analysis_results = []
 
         for turn in range(self.max_turns):
-            api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
-            api_kwargs.update({
-                "messages": messages,
-                "tools": MULTI_TURN_TOOLS,
-                "tool_choice": "auto",
-            })
+            api_kwargs = get_model_kwargs(
+                model_config.name, model_config=model_config
+            )
+            api_kwargs.update(
+                {
+                    "messages": messages,
+                    "tools": MULTI_TURN_TOOLS,
+                    "tool_choice": "auto",
+                }
+            )
             response = client.chat.completions.create(**api_kwargs)
 
             message = response.choices[0].message
@@ -203,7 +212,9 @@ class MultiTurnReasoning:
             if not message.tool_calls:
                 # Model responded without tool call
                 if message.content:
-                    reasoning_trace.append(f"Turn {turn + 1}: {message.content}")
+                    reasoning_trace.append(
+                        f"Turn {turn + 1}: {message.content}"
+                    )
                 break
 
             for tool_call in message.tool_calls:
@@ -211,32 +222,47 @@ class MultiTurnReasoning:
                 fn_args = json.loads(tool_call.function.arguments)
 
                 # Record reasoning
-                reasoning_trace.append(f"Turn {turn + 1} - {fn_name}: {json.dumps(fn_args, indent=2)}")
-                analysis_results.append({
-                    "tool": fn_name,
-                    "result": fn_args,
-                })
+                reasoning_trace.append(
+                    f"Turn {turn + 1} - {fn_name}: {json.dumps(fn_args, indent=2)}"
+                )
+                analysis_results.append(
+                    {
+                        "tool": fn_name,
+                        "result": fn_args,
+                    }
+                )
 
                 if fn_name == "done_reasoning":
-                    logger.info(f"Multi-turn reasoning complete after {turn + 1} turns")
+                    logger.info(
+                        f"Multi-turn reasoning complete after {turn + 1} turns"
+                    )
                     break
 
                 # Echo back the tool result
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": json.dumps({"status": "recorded", "data": fn_args}),
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(
+                            {"status": "recorded", "data": fn_args}
+                        ),
+                    }
+                )
 
             # Check if done_reasoning was called
-            if any(tc.function.name == "done_reasoning" for tc in (message.tool_calls or [])):
+            if any(
+                tc.function.name == "done_reasoning"
+                for tc in (message.tool_calls or [])
+            ):
                 break
 
         # Build enhanced context
-        analysis_text = "\n\n".join([
-            f"### {r['tool']}\n{json.dumps(r['result'], indent=2)}"
-            for r in analysis_results
-        ])
+        analysis_text = "\n\n".join(
+            [
+                f"### {r['tool']}\n{json.dumps(r['result'], indent=2)}"
+                for r in analysis_results
+            ]
+        )
 
         enhanced_context = f"""{context}
 
@@ -244,5 +270,7 @@ class MultiTurnReasoning:
 
 {analysis_text}"""
 
-        logger.info(f"Multi-turn reasoning produced {len(reasoning_trace)} trace entries")
+        logger.info(
+            f"Multi-turn reasoning produced {len(reasoning_trace)} trace entries"
+        )
         return enhanced_context, reasoning_trace

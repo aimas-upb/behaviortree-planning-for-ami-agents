@@ -23,36 +23,40 @@ Discovery modes:
 
 import json
 import os
-from typing import Any, Optional
 from dataclasses import dataclass, field
-from openai import OpenAI
-from dotenv import load_dotenv
+from typing import Any, Optional
+
 import py_trees
-from py_trees.common import Status
-
-from src.hmas_client import (
-    list_workspaces,
-    list_artifacts,
-    list_properties,
-    list_actions,
-    get_artifact_name,
-)
-
 from behavior_trees.affordance_nodes import (
     ActionAffordanceNode,
-    PropertyConditionNode,
-    ComparisonPropertyConditionNode,
     ComparisonOperator,
+    ComparisonPropertyConditionNode,
+    PropertyConditionNode,
 )
-
-from legacy.standalone.tracing import Tracer, TraceEventType, get_tracer, set_tracer
+from dotenv import load_dotenv
 from legacy.standalone.prompts import (
-    get_strategy,
-    list_strategies,
-    get_strategy_descriptions,
     PromptStrategy,
+    get_strategy,
+    get_strategy_descriptions,
+    list_strategies,
 )
+from legacy.standalone.tracing import (
+    TraceEventType,
+    Tracer,
+    get_tracer,
+    set_tracer,
+)
+from openai import OpenAI
+from py_trees.common import Status
+
 from src.config import ModelConfig, get_model_kwargs
+from src.hmas_client import (
+    get_artifact_name,
+    list_actions,
+    list_artifacts,
+    list_properties,
+    list_workspaces,
+)
 
 load_dotenv()
 
@@ -63,9 +67,11 @@ DEFAULT_ENTRY_POINT = "http://localhost:8080/workspaces/home0#workspace"
 # Phase 1: Capability Model
 # =============================================================================
 
+
 @dataclass
 class Affordance:
     """Represents an action or property affordance."""
+
     name: str
     uri: str
     schema: dict = field(default_factory=dict)
@@ -74,6 +80,7 @@ class Affordance:
 @dataclass
 class Artifact:
     """Represents a discovered artifact with its affordances."""
+
     name: str
     uri: str
     workspace: str
@@ -84,6 +91,7 @@ class Artifact:
 @dataclass
 class CapabilityModel:
     """Complete model of discovered environment capabilities."""
+
     entry_point: str
     workspaces: dict[str, list[str]] = field(default_factory=dict)
     artifacts: dict[str, Artifact] = field(default_factory=dict)
@@ -111,8 +119,12 @@ class CapabilityModel:
                         if action.schema:
                             params = action.schema.get("properties", {})
                             if params:
-                                schema_info = f" (params: {list(params.keys())})"
-                        lines.append(f"  - `{action.name}`: `{action.uri}`{schema_info}")
+                                schema_info = (
+                                    f" (params: {list(params.keys())})"
+                                )
+                        lines.append(
+                            f"  - `{action.name}`: `{action.uri}`{schema_info}"
+                        )
 
                 if art.properties:
                     lines.append("**Properties:**")
@@ -127,8 +139,12 @@ class CapabilityModel:
             "entry_point": self.entry_point,
             "workspace_count": len(self.workspaces),
             "artifact_count": len(self.artifacts),
-            "action_count": sum(len(a.actions) for a in self.artifacts.values()),
-            "property_count": sum(len(a.properties) for a in self.artifacts.values()),
+            "action_count": sum(
+                len(a.actions) for a in self.artifacts.values()
+            ),
+            "property_count": sum(
+                len(a.properties) for a in self.artifacts.values()
+            ),
         }
 
     def to_full_dict(self) -> dict:
@@ -140,18 +156,28 @@ class CapabilityModel:
             for art_uri in artifact_uris:
                 art = self.artifacts.get(art_uri)
                 if art:
-                    artifacts_data.append({
-                        "name": art.name,
-                        "uri": art.uri,
-                        "actions": [
-                            {"name": a.name, "uri": a.uri, "schema": a.schema}
-                            for a in art.actions
-                        ],
-                        "properties": [
-                            {"name": p.name, "uri": p.uri, "schema": p.schema}
-                            for p in art.properties
-                        ],
-                    })
+                    artifacts_data.append(
+                        {
+                            "name": art.name,
+                            "uri": art.uri,
+                            "actions": [
+                                {
+                                    "name": a.name,
+                                    "uri": a.uri,
+                                    "schema": a.schema,
+                                }
+                                for a in art.actions
+                            ],
+                            "properties": [
+                                {
+                                    "name": p.name,
+                                    "uri": p.uri,
+                                    "schema": p.schema,
+                                }
+                                for p in art.properties
+                            ],
+                        }
+                    )
             workspaces_data[ws_name] = artifacts_data
 
         return {
@@ -175,7 +201,9 @@ def build_capability_model(
         tracer: Optional tracer for logging
     """
     tracer = tracer or get_tracer()
-    tracer.log(TraceEventType.CAPABILITY_MODEL_START, {"entry_point": entry_point})
+    tracer.log(
+        TraceEventType.CAPABILITY_MODEL_START, {"entry_point": entry_point}
+    )
 
     print("Building capability model...")
     model = CapabilityModel(entry_point=entry_point)
@@ -184,7 +212,9 @@ def build_capability_model(
         workspaces = list_workspaces(entry_point)[:max_workspaces]
     except Exception as e:
         print(f"  Failed to list workspaces: {e}")
-        tracer.log(TraceEventType.ERROR, {"error": str(e), "phase": "list_workspaces"})
+        tracer.log(
+            TraceEventType.ERROR, {"error": str(e), "phase": "list_workspaces"}
+        )
         return model
 
     for ws_uri in workspaces:
@@ -195,10 +225,13 @@ def build_capability_model(
             artifact_uris = list_artifacts(ws_uri)
             model.workspaces[ws_uri] = artifact_uris
 
-            tracer.log(TraceEventType.WORKSPACE_DISCOVERED, {
-                "workspace": ws_name,
-                "artifact_count": len(artifact_uris),
-            })
+            tracer.log(
+                TraceEventType.WORKSPACE_DISCOVERED,
+                {
+                    "workspace": ws_name,
+                    "artifact_count": len(artifact_uris),
+                },
+            )
 
             for art_uri in artifact_uris:
                 try:
@@ -207,40 +240,52 @@ def build_capability_model(
                     properties = []
 
                     for a in list_actions(art_uri):
-                        actions.append(Affordance(
-                            name=a["name"],
-                            uri=a["uri"],
-                            schema=a.get("input_schema", {})
-                        ))
+                        actions.append(
+                            Affordance(
+                                name=a["name"],
+                                uri=a["uri"],
+                                schema=a.get("input_schema", {}),
+                            )
+                        )
 
                     for p in list_properties(art_uri):
-                        properties.append(Affordance(
-                            name=p["name"],
-                            uri=p["uri"],
-                            schema=p.get("output_schema", {})
-                        ))
+                        properties.append(
+                            Affordance(
+                                name=p["name"],
+                                uri=p["uri"],
+                                schema=p.get("output_schema", {}),
+                            )
+                        )
 
                     model.artifacts[art_uri] = Artifact(
                         name=name,
                         uri=art_uri,
                         workspace=ws_uri,
                         actions=actions,
-                        properties=properties
+                        properties=properties,
                     )
 
-                    tracer.log(TraceEventType.ARTIFACT_DISCOVERED, {
-                        "artifact": name,
-                        "actions": [a.name for a in actions],
-                        "properties": [p.name for p in properties],
-                    })
+                    tracer.log(
+                        TraceEventType.ARTIFACT_DISCOVERED,
+                        {
+                            "artifact": name,
+                            "actions": [a.name for a in actions],
+                            "properties": [p.name for p in properties],
+                        },
+                    )
 
                 except Exception as e:
                     print(f"    Failed to inspect {art_uri}: {e}")
-                    tracer.log(TraceEventType.ERROR, {"error": str(e), "artifact": art_uri})
+                    tracer.log(
+                        TraceEventType.ERROR,
+                        {"error": str(e), "artifact": art_uri},
+                    )
 
         except Exception as e:
             print(f"  Failed to list artifacts in {ws_name}: {e}")
-            tracer.log(TraceEventType.ERROR, {"error": str(e), "workspace": ws_name})
+            tracer.log(
+                TraceEventType.ERROR, {"error": str(e), "workspace": ws_name}
+            )
 
     artifact_count = len(model.artifacts)
     action_count = sum(len(a.actions) for a in model.artifacts.values())
@@ -348,16 +393,21 @@ def build_capability_model_agentic(
     rather than exhaustively exploring everything.
     """
     tracer = tracer or get_tracer()
-    tracer.log(TraceEventType.CAPABILITY_MODEL_START, {
-        "entry_point": entry_point,
-        "mode": "agentic",
-        "goal": goal,
-    })
+    tracer.log(
+        TraceEventType.CAPABILITY_MODEL_START,
+        {
+            "entry_point": entry_point,
+            "mode": "agentic",
+            "goal": goal,
+        },
+    )
 
     print(f"Building capability model (agentic for: '{goal}')...")
     capability_model = CapabilityModel(entry_point=entry_point)
 
-    system_prompt = DISCOVERY_SYSTEM_PROMPT.format(entry_point=entry_point, goal=goal)
+    system_prompt = DISCOVERY_SYSTEM_PROMPT.format(
+        entry_point=entry_point, goal=goal
+    )
     user_message = f"Find capabilities needed to: {goal}"
 
     messages = [
@@ -366,20 +416,27 @@ def build_capability_model_agentic(
     ]
 
     # Log the initial discovery prompt
-    tracer.log(TraceEventType.LLM_PROMPT_CONTENT, {
-        "phase": "discovery",
-        "system_prompt": system_prompt,
-        "user_message": user_message,
-        "tools": [t["function"]["name"] for t in DISCOVERY_TOOLS],
-    })
+    tracer.log(
+        TraceEventType.LLM_PROMPT_CONTENT,
+        {
+            "phase": "discovery",
+            "system_prompt": system_prompt,
+            "user_message": user_message,
+            "tools": [t["function"]["name"] for t in DISCOVERY_TOOLS],
+        },
+    )
 
     for iteration in range(max_iterations):
-        api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
-        api_kwargs.update({
-            "messages": messages,
-            "tools": DISCOVERY_TOOLS,
-            "tool_choice": "auto",
-        })
+        api_kwargs = get_model_kwargs(
+            model_config.name, model_config=model_config
+        )
+        api_kwargs.update(
+            {
+                "messages": messages,
+                "tools": DISCOVERY_TOOLS,
+                "tool_choice": "auto",
+            }
+        )
         response = client.chat.completions.create(**api_kwargs)
 
         message = response.choices[0].message
@@ -389,20 +446,27 @@ def build_capability_model_agentic(
         tool_calls_data = []
         if message.tool_calls:
             for tc in message.tool_calls:
-                tool_calls_data.append({
-                    "id": tc.id,
-                    "function": tc.function.name,
-                    "arguments": tc.function.arguments,
-                })
-        tracer.log(TraceEventType.DISCOVERY_LLM_TURN, {
-            "iteration": iteration + 1,
-            "content": message.content,
-            "tool_calls": tool_calls_data,
-        })
+                tool_calls_data.append(
+                    {
+                        "id": tc.id,
+                        "function": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    }
+                )
+        tracer.log(
+            TraceEventType.DISCOVERY_LLM_TURN,
+            {
+                "iteration": iteration + 1,
+                "content": message.content,
+                "tool_calls": tool_calls_data,
+            },
+        )
 
         if not message.tool_calls:
             # LLM stopped without calling done_exploring
-            print(f"  Discovery ended after {iteration + 1} iterations (no tool call)")
+            print(
+                f"  Discovery ended after {iteration + 1} iterations (no tool call)"
+            )
             break
 
         for tool_call in message.tool_calls:
@@ -410,26 +474,38 @@ def build_capability_model_agentic(
             fn_args = json.loads(tool_call.function.arguments)
 
             # Log tool call
-            tracer.log(TraceEventType.DISCOVERY_TOOL_CALL, {
-                "tool_call_id": tool_call.id,
-                "function": fn_name,
-                "arguments": fn_args,
-            })
+            tracer.log(
+                TraceEventType.DISCOVERY_TOOL_CALL,
+                {
+                    "tool_call_id": tool_call.id,
+                    "function": fn_name,
+                    "arguments": fn_args,
+                },
+            )
 
             if fn_name == "done_exploring":
                 print(f"  Discovery complete: {fn_args.get('reason', 'done')}")
                 # Log tool result for done_exploring
-                tracer.log(TraceEventType.DISCOVERY_TOOL_RESULT, {
-                    "tool_call_id": tool_call.id,
-                    "function": fn_name,
-                    "result": {"status": "discovery_complete", "reason": fn_args.get("reason")},
-                })
-                tracer.log(TraceEventType.CAPABILITY_MODEL_END, {
-                    **capability_model.to_dict(),
-                    "mode": "agentic",
-                    "iterations": iteration + 1,
-                    "reason": fn_args.get("reason"),
-                })
+                tracer.log(
+                    TraceEventType.DISCOVERY_TOOL_RESULT,
+                    {
+                        "tool_call_id": tool_call.id,
+                        "function": fn_name,
+                        "result": {
+                            "status": "discovery_complete",
+                            "reason": fn_args.get("reason"),
+                        },
+                    },
+                )
+                tracer.log(
+                    TraceEventType.CAPABILITY_MODEL_END,
+                    {
+                        **capability_model.to_dict(),
+                        "mode": "agentic",
+                        "iterations": iteration + 1,
+                        "reason": fn_args.get("reason"),
+                    },
+                )
                 return capability_model
 
             elif fn_name == "explore_workspace":
@@ -472,24 +548,34 @@ def build_capability_model_agentic(
 
                 except Exception as e:
                     result = {"error": str(e)}
-                    tracer.log(TraceEventType.ERROR, {"error": str(e), "workspace": ws_uri})
+                    tracer.log(
+                        TraceEventType.ERROR,
+                        {"error": str(e), "workspace": ws_uri},
+                    )
 
                 # Log tool result
-                tracer.log(TraceEventType.DISCOVERY_TOOL_RESULT, {
-                    "tool_call_id": tool_call.id,
-                    "function": fn_name,
-                    "result": result,
-                })
+                tracer.log(
+                    TraceEventType.DISCOVERY_TOOL_RESULT,
+                    {
+                        "tool_call_id": tool_call.id,
+                        "function": fn_name,
+                        "result": result,
+                    },
+                )
 
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": json.dumps(result),
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(result),
+                    }
+                )
 
             elif fn_name == "inspect_artifact":
                 art_uri = fn_args["artifact_uri"]
-                print(f"    Inspecting {art_uri.split('/')[-1].replace('#artifact', '')}...")
+                print(
+                    f"    Inspecting {art_uri.split('/')[-1].replace('#artifact', '')}..."
+                )
 
                 try:
                     name = get_artifact_name(art_uri)
@@ -497,18 +583,22 @@ def build_capability_model_agentic(
                     properties = []
 
                     for a in list_actions(art_uri):
-                        actions.append(Affordance(
-                            name=a["name"],
-                            uri=a["uri"],
-                            schema=a.get("input_schema", {})
-                        ))
+                        actions.append(
+                            Affordance(
+                                name=a["name"],
+                                uri=a["uri"],
+                                schema=a.get("input_schema", {}),
+                            )
+                        )
 
                     for p in list_properties(art_uri):
-                        properties.append(Affordance(
-                            name=p["name"],
-                            uri=p["uri"],
-                            schema=p.get("output_schema", {})
-                        ))
+                        properties.append(
+                            Affordance(
+                                name=p["name"],
+                                uri=p["uri"],
+                                schema=p.get("output_schema", {}),
+                            )
+                        )
 
                     # Find workspace for this artifact
                     ws_uri = "/".join(art_uri.split("/")[:-2]) + "#workspace"
@@ -518,47 +608,69 @@ def build_capability_model_agentic(
                         uri=art_uri,
                         workspace=ws_uri,
                         actions=actions,
-                        properties=properties
+                        properties=properties,
                     )
 
                     result = {
                         "name": name,
-                        "actions": [{"name": a.name, "uri": a.uri} for a in actions],
-                        "properties": [{"name": p.name, "uri": p.uri} for p in properties],
+                        "actions": [
+                            {"name": a.name, "uri": a.uri} for a in actions
+                        ],
+                        "properties": [
+                            {"name": p.name, "uri": p.uri} for p in properties
+                        ],
                     }
 
-                    tracer.log(TraceEventType.ARTIFACT_DISCOVERED, {
-                        "artifact": name,
-                        "actions": [a.name for a in actions],
-                        "properties": [p.name for p in properties],
-                    })
+                    tracer.log(
+                        TraceEventType.ARTIFACT_DISCOVERED,
+                        {
+                            "artifact": name,
+                            "actions": [a.name for a in actions],
+                            "properties": [p.name for p in properties],
+                        },
+                    )
 
                 except Exception as e:
                     result = {"error": str(e)}
-                    tracer.log(TraceEventType.ERROR, {"error": str(e), "artifact": art_uri})
+                    tracer.log(
+                        TraceEventType.ERROR,
+                        {"error": str(e), "artifact": art_uri},
+                    )
 
                 # Log tool result
-                tracer.log(TraceEventType.DISCOVERY_TOOL_RESULT, {
-                    "tool_call_id": tool_call.id,
-                    "function": fn_name,
-                    "result": result,
-                })
+                tracer.log(
+                    TraceEventType.DISCOVERY_TOOL_RESULT,
+                    {
+                        "tool_call_id": tool_call.id,
+                        "function": fn_name,
+                        "result": result,
+                    },
+                )
 
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": json.dumps(result),
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(result),
+                    }
+                )
 
     artifact_count = len(capability_model.artifacts)
-    action_count = sum(len(a.actions) for a in capability_model.artifacts.values())
-    print(f"  Found {artifact_count} artifacts with {action_count} actions (agentic)")
+    action_count = sum(
+        len(a.actions) for a in capability_model.artifacts.values()
+    )
+    print(
+        f"  Found {artifact_count} artifacts with {action_count} actions (agentic)"
+    )
 
-    tracer.log(TraceEventType.CAPABILITY_MODEL_END, {
-        **capability_model.to_dict(),
-        "mode": "agentic",
-        "iterations": max_iterations,
-    })
+    tracer.log(
+        TraceEventType.CAPABILITY_MODEL_END,
+        {
+            **capability_model.to_dict(),
+            "mode": "agentic",
+            "iterations": max_iterations,
+        },
+    )
 
     return capability_model
 
@@ -566,6 +678,7 @@ def build_capability_model_agentic(
 # =============================================================================
 # Phase 1c: Relevant Filtering (post-discovery filter)
 # =============================================================================
+
 
 def filter_capabilities_for_goal(
     model: CapabilityModel,
@@ -585,12 +698,14 @@ def filter_capabilities_for_goal(
     artifact_list = []
     for art_uri, art in model.artifacts.items():
         ws_name = art.workspace.split("/")[-1].replace("#workspace", "")
-        artifact_list.append({
-            "uri": art_uri,
-            "name": art.name,
-            "workspace": ws_name,
-            "actions": [a.name for a in art.actions],
-        })
+        artifact_list.append(
+            {
+                "uri": art_uri,
+                "name": art.name,
+                "workspace": ws_name,
+                "actions": [a.name for a in art.actions],
+            }
+        )
 
     if not artifact_list:
         return model
@@ -639,12 +754,15 @@ Return ONLY a JSON array of relevant URIs, nothing else."""
     filtered_count = len(filtered.artifacts)
     print(f"  Filtered: {original_count} → {filtered_count} artifacts")
 
-    tracer.log(TraceEventType.CAPABILITY_MODEL_SUMMARY, {
-        "mode": "relevant_filter",
-        "original_count": original_count,
-        "filtered_count": filtered_count,
-        "relevant_uris": list(relevant_uris),
-    })
+    tracer.log(
+        TraceEventType.CAPABILITY_MODEL_SUMMARY,
+        {
+            "mode": "relevant_filter",
+            "original_count": original_count,
+            "filtered_count": filtered_count,
+            "relevant_uris": list(relevant_uris),
+        },
+    )
 
     return filtered
 
@@ -681,11 +799,15 @@ def compile_bt(spec: dict) -> py_trees.behaviour.Behaviour:
 
     if node_type == "sequence":
         children = [compile_bt(child) for child in spec.get("children", [])]
-        return py_trees.composites.Sequence(name=name, memory=True, children=children)
+        return py_trees.composites.Sequence(
+            name=name, memory=True, children=children
+        )
 
     elif node_type == "selector":
         children = [compile_bt(child) for child in spec.get("children", [])]
-        return py_trees.composites.Selector(name=name, memory=False, children=children)
+        return py_trees.composites.Selector(
+            name=name, memory=False, children=children
+        )
 
     elif node_type == "parallel":
         children = [compile_bt(child) for child in spec.get("children", [])]
@@ -694,7 +816,9 @@ def compile_bt(spec: dict) -> py_trees.behaviour.Behaviour:
             policy = py_trees.common.ParallelPolicy.SuccessOnOne()
         else:
             policy = py_trees.common.ParallelPolicy.SuccessOnAll()
-        return py_trees.composites.Parallel(name=name, policy=policy, children=children)
+        return py_trees.composites.Parallel(
+            name=name, policy=policy, children=children
+        )
 
     elif node_type == "action":
         return ActionAffordanceNode(
@@ -757,10 +881,13 @@ def execute_bt(
         print(f"  Tick {tick + 1}: {status_name}")
 
         results["tick_history"].append(status_name)
-        tracer.log(TraceEventType.BT_TICK, {
-            "tick": tick + 1,
-            "status": status_name,
-        })
+        tracer.log(
+            TraceEventType.BT_TICK,
+            {
+                "tick": tick + 1,
+                "status": status_name,
+            },
+        )
 
         if tree.status == Status.SUCCESS:
             results["final_status"] = "SUCCESS"
@@ -782,6 +909,7 @@ def execute_bt(
 # Phase 3: LLM Agent (with modular prompting)
 # =============================================================================
 
+
 def build_tools(strategy: PromptStrategy) -> list[dict]:
     """Build tool definitions using the strategy's tool description."""
     return [
@@ -799,8 +927,8 @@ def build_tools(strategy: PromptStrategy) -> list[dict]:
                         },
                         "explanation": {
                             "type": "string",
-                            "description": "Explanation of the plan"
-                        }
+                            "description": "Explanation of the plan",
+                        },
                     },
                     "required": ["tree", "explanation"],
                 },
@@ -843,41 +971,58 @@ def run_bt_agent(
     ]
 
     # Log capability model (full) for analysis
-    tracer.log(TraceEventType.CAPABILITY_MODEL_SUMMARY, {
-        "discovered_capabilities": capability_model.to_full_dict(),
-        "prompt_representation": capability_model.to_summary(),
-    })
+    tracer.log(
+        TraceEventType.CAPABILITY_MODEL_SUMMARY,
+        {
+            "discovered_capabilities": capability_model.to_full_dict(),
+            "prompt_representation": capability_model.to_summary(),
+        },
+    )
 
     # Log LLM request with full prompt for reproducibility
-    tracer.log(TraceEventType.LLM_REQUEST, {
-        "goal": goal,
-        "model": model_config.name,
-        "strategy": strategy.name,
-        "system_prompt_length": len(system_prompt),
-    })
+    tracer.log(
+        TraceEventType.LLM_REQUEST,
+        {
+            "goal": goal,
+            "model": model_config.name,
+            "strategy": strategy.name,
+            "system_prompt_length": len(system_prompt),
+        },
+    )
 
     # Log full prompt content for analysis
-    tracer.log(TraceEventType.LLM_PROMPT_CONTENT, {
-        "system_prompt": system_prompt,
-        "user_message": goal,
-        "tool_description": strategy.tool_description,
-    })
+    tracer.log(
+        TraceEventType.LLM_PROMPT_CONTENT,
+        {
+            "system_prompt": system_prompt,
+            "user_message": goal,
+            "tool_description": strategy.tool_description,
+        },
+    )
 
     api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
-    api_kwargs.update({
-        "messages": messages,
-        "tools": tools,
-        "tool_choice": {"type": "function", "function": {"name": "generate_behavior_tree"}},
-    })
+    api_kwargs.update(
+        {
+            "messages": messages,
+            "tools": tools,
+            "tool_choice": {
+                "type": "function",
+                "function": {"name": "generate_behavior_tree"},
+            },
+        }
+    )
     response = client.chat.completions.create(**api_kwargs)
 
     message = response.choices[0].message
 
     # Log LLM response
-    tracer.log(TraceEventType.LLM_RESPONSE, {
-        "has_tool_calls": bool(message.tool_calls),
-        "finish_reason": response.choices[0].finish_reason,
-    })
+    tracer.log(
+        TraceEventType.LLM_RESPONSE,
+        {
+            "has_tool_calls": bool(message.tool_calls),
+            "finish_reason": response.choices[0].finish_reason,
+        },
+    )
 
     if not message.tool_calls:
         return f"No behavior tree generated. Response: {message.content}"
@@ -896,10 +1041,13 @@ def run_bt_agent(
     tree_spec = args["tree"]
     explanation = args.get("explanation", "")
 
-    tracer.log(TraceEventType.BT_SPEC_GENERATED, {
-        "tree_spec": tree_spec,
-        "explanation": explanation,
-    })
+    tracer.log(
+        TraceEventType.BT_SPEC_GENERATED,
+        {
+            "tree_spec": tree_spec,
+            "explanation": explanation,
+        },
+    )
 
     print(f"\n--- Plan ---")
     print(f"{explanation}")
@@ -926,7 +1074,9 @@ def run_bt_agent(
         return f"Execution failed: {e}"
 
     status = "SUCCESS" if result["success"] else "FAILED"
-    return f"Tree '{result['tree_name']}' {status} after {result['ticks']} tick(s)"
+    return (
+        f"Tree '{result['tree_name']}' {status} after {result['ticks']} tick(s)"
+    )
 
 
 def interactive_mode(
@@ -946,7 +1096,9 @@ def interactive_mode(
     print(f"Discovery: {discovery_mode}")
     print(f"Tracing: {'enabled' if tracer.enabled else 'disabled'}")
     print(f"Artifacts: {len(capability_model.artifacts)}")
-    print(f"Actions: {sum(len(a.actions) for a in capability_model.artifacts.values())}")
+    print(
+        f"Actions: {sum(len(a.actions) for a in capability_model.artifacts.values())}"
+    )
     print("\nCommands:")
     print("  /model      - Show capability model")
     print("  /strategies - List available strategies")
@@ -982,13 +1134,20 @@ def interactive_mode(
             goal=user_input,
             model=model_config.name,
             entry_point=capability_model.entry_point,
-            ablation_config={"strategy": strategy.name, "discovery": discovery_mode},
+            ablation_config={
+                "strategy": strategy.name,
+                "discovery": discovery_mode,
+            },
         )
 
         try:
             result = run_bt_agent(
-                user_input, client, model_config, capability_model,
-                strategy=strategy, tracer=tracer
+                user_input,
+                client,
+                model_config,
+                capability_model,
+                strategy=strategy,
+                tracer=tracer,
             )
             tracer.end_trace(success="SUCCESS" in result, result=result)
             print(f"\n{result}\n")
@@ -1024,41 +1183,63 @@ Examples:
   uv run python -m legacy.standalone.bt_agent --discovery agentic "Turn on bathroom light"
   uv run python -m legacy.standalone.bt_agent --discovery relevant "Turn on the AC"
   uv run python -m legacy.standalone.bt_agent --trace --trace-dir ./traces "Turn on AC"
-        """
+        """,
     )
 
     # Model settings
-    parser.add_argument("--model", default="gpt-4o",
-                        help="Model to use (gpt-4o recommended)")
-    parser.add_argument("--base-url", default=None,
-                        help="OpenAI-compatible API base URL")
-    parser.add_argument("--api-key", default=None,
-                        help="API key")
+    parser.add_argument(
+        "--model", default="gpt-4o", help="Model to use (gpt-4o recommended)"
+    )
+    parser.add_argument(
+        "--base-url", default=None, help="OpenAI-compatible API base URL"
+    )
+    parser.add_argument("--api-key", default=None, help="API key")
 
     # Environment settings
-    parser.add_argument("--home", type=int, default=0,
-                        help="Home ID to use (0-99, default: 0). Sets entry point to home{N}")
-    parser.add_argument("--entry", default=None,
-                        help="Entry point URI (overrides --home if specified)")
-    parser.add_argument("--max-workspaces", type=int, default=5,
-                        help="Max workspaces to explore")
+    parser.add_argument(
+        "--home",
+        type=int,
+        default=0,
+        help="Home ID to use (0-99, default: 0). Sets entry point to home{N}",
+    )
+    parser.add_argument(
+        "--entry",
+        default=None,
+        help="Entry point URI (overrides --home if specified)",
+    )
+    parser.add_argument(
+        "--max-workspaces",
+        type=int,
+        default=5,
+        help="Max workspaces to explore",
+    )
 
     # Ablation settings
-    parser.add_argument("--strategy", default="detailed",
-                        choices=list_strategies(),
-                        help="Prompting strategy for ablation")
-    parser.add_argument("--discovery", default="exhaustive",
-                        choices=["exhaustive", "agentic", "relevant"],
-                        help="Discovery mode: exhaustive (all), agentic (LLM-guided), relevant (filtered)")
-    parser.add_argument("--trace", action="store_true",
-                        help="Enable tracing")
-    parser.add_argument("--trace-dir", default="traces",
-                        help="Directory for trace files")
-    parser.add_argument("--trace-verbose", action="store_true",
-                        help="Print trace events to console")
+    parser.add_argument(
+        "--strategy",
+        default="detailed",
+        choices=list_strategies(),
+        help="Prompting strategy for ablation",
+    )
+    parser.add_argument(
+        "--discovery",
+        default="exhaustive",
+        choices=["exhaustive", "agentic", "relevant"],
+        help="Discovery mode: exhaustive (all), agentic (LLM-guided), relevant (filtered)",
+    )
+    parser.add_argument("--trace", action="store_true", help="Enable tracing")
+    parser.add_argument(
+        "--trace-dir", default="traces", help="Directory for trace files"
+    )
+    parser.add_argument(
+        "--trace-verbose",
+        action="store_true",
+        help="Print trace events to console",
+    )
 
-    parser.add_argument("goal", nargs="?",
-                        help="Goal (interactive if not provided)")
+    parser.add_argument(
+        "goal", nargs="?", help="Goal (interactive if not provided)"
+    )
 
     args = parser.parse_args()
 
@@ -1066,7 +1247,9 @@ Examples:
     if args.entry:
         entry_point = args.entry
     else:
-        entry_point = f"http://localhost:8080/workspaces/home{args.home}#workspace"
+        entry_point = (
+            f"http://localhost:8080/workspaces/home{args.home}#workspace"
+        )
 
     # Setup API client
     api_key = args.api_key or os.environ.get("OPENAI_API_KEY")
@@ -1102,14 +1285,20 @@ Examples:
             goal=args.goal,
             model=model_config.name,
             entry_point=entry_point,
-            ablation_config={"strategy": strategy.name, "discovery": args.discovery, "home": args.home},
+            ablation_config={
+                "strategy": strategy.name,
+                "discovery": args.discovery,
+                "home": args.home,
+            },
         )
 
     # Build capability model based on discovery mode
     if args.discovery == "agentic":
         # Agentic discovery requires a goal upfront
         if not args.goal:
-            print("Error: Agentic discovery requires a goal (--discovery agentic needs a goal argument)")
+            print(
+                "Error: Agentic discovery requires a goal (--discovery agentic needs a goal argument)"
+            )
             print("Use --discovery exhaustive for interactive mode")
             return
         capability_model = build_capability_model_agentic(
@@ -1142,8 +1331,12 @@ Examples:
     if args.goal:
         # Single goal mode (trace already started before discovery)
         result = run_bt_agent(
-            args.goal, client, model_config, capability_model,
-            strategy=strategy, tracer=tracer
+            args.goal,
+            client,
+            model_config,
+            capability_model,
+            strategy=strategy,
+            tracer=tracer,
         )
         print(result)
 
@@ -1154,7 +1347,14 @@ Examples:
             print(f"\nTrace saved to: {trace_path}")
     else:
         # Interactive mode
-        interactive_mode(client, model_config, capability_model, strategy, args.discovery, tracer)
+        interactive_mode(
+            client,
+            model_config,
+            capability_model,
+            strategy,
+            args.discovery,
+            tracer,
+        )
 
         if args.trace:
             trace_path = tracer.save(args.trace_dir)

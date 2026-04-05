@@ -9,8 +9,8 @@ import logging
 
 from openai import OpenAI
 
-from ..base import Plan
 from ...config import ModelConfig, get_model_kwargs
+from ..base import Plan
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ GENERATE_BT_TOOL = {
                 "impossible": {
                     "type": "boolean",
                     "description": "If the goal is impossible to achieve, mark this as true",
-                }
+                },
             },
             "required": ["tree", "explanation", "impossible"],
         },
@@ -148,7 +148,9 @@ class JsonIRGenerator:
         """
         from ...prompts import get_prompt
 
-        logger.info(f"Generating JSON IR with prompt strategy: {prompt_strategy}")
+        logger.info(
+            f"Generating JSON IR with prompt strategy: {prompt_strategy}"
+        )
 
         # Get prompt template
         system_prompt, tool_description = get_prompt(prompt_strategy, "json_ir")
@@ -170,17 +172,27 @@ class JsonIRGenerator:
         validation_errors: list[str] = []
 
         for attempt in range(max_attempts):
-            api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
-            api_kwargs.update({
-                "messages": messages,
-                "tools": [tool],
-                "tool_choice": {"type": "function", "function": {"name": "generate_behavior_tree"}},
-            })
+            api_kwargs = get_model_kwargs(
+                model_config.name, model_config=model_config
+            )
+            api_kwargs.update(
+                {
+                    "messages": messages,
+                    "tools": [tool],
+                    "tool_choice": {
+                        "type": "function",
+                        "function": {"name": "generate_behavior_tree"},
+                    },
+                }
+            )
             response = client.chat.completions.create(**api_kwargs)
 
             message = response.choices[0].message
 
-            assistant_message = {"role": "assistant", "content": message.content}
+            assistant_message = {
+                "role": "assistant",
+                "content": message.content,
+            }
             if message.tool_calls:
                 assistant_message["tool_calls"] = message.tool_calls
             messages.append(assistant_message)
@@ -217,7 +229,9 @@ class JsonIRGenerator:
 
             validation_errors = self._validate_tree(tree_spec)
             if not validation_errors:
-                logger.info(f"Generated JSON IR with {self._count_nodes(tree_spec)} nodes")
+                logger.info(
+                    f"Generated JSON IR with {self._count_nodes(tree_spec)} nodes"
+                )
                 return Plan(
                     format="json_ir",
                     content=tree_spec,
@@ -274,7 +288,13 @@ class JsonIRGenerator:
             errors.append(f"{path}: missing 'name'")
 
         node_type = spec.get("type")
-        valid_types = {"sequence", "selector", "parallel", "action", "condition"}
+        valid_types = {
+            "sequence",
+            "selector",
+            "parallel",
+            "action",
+            "condition",
+        }
         if node_type not in valid_types:
             errors.append(f"{path}: missing or invalid 'type'")
 
@@ -282,11 +302,15 @@ class JsonIRGenerator:
         if node_type in {"sequence", "selector", "parallel"}:
             children = spec.get("children")
             if not isinstance(children, list) or not children:
-                errors.append(f"{path}: composite nodes require non-empty 'children'")
+                errors.append(
+                    f"{path}: composite nodes require non-empty 'children'"
+                )
             else:
                 for idx, child in enumerate(children):
                     errors.extend(
-                        self._validate_tree(child, path=f"{path}.children[{idx}]")
+                        self._validate_tree(
+                            child, path=f"{path}.children[{idx}]"
+                        )
                     )
         # Action nodes
         elif node_type == "action":
@@ -299,6 +323,8 @@ class JsonIRGenerator:
             if not property_url or not isinstance(property_url, str):
                 errors.append(f"{path}: condition nodes require 'property_url'")
             if "expected_value" not in spec:
-                errors.append(f"{path}: condition nodes require 'expected_value'")
+                errors.append(
+                    f"{path}: condition nodes require 'expected_value'"
+                )
 
         return errors

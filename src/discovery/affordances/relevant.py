@@ -5,14 +5,14 @@ Performs exhaustive discovery, then uses LLM to filter to goal-relevant artifact
 """
 
 import json
-from typing import Optional
 import logging
+from typing import Optional
 
 from openai import OpenAI
 
-from ..base import CapabilityModel, Artifact, Workspace
-from .exhaustive import ExhaustiveAffordanceDiscovery
 from ...config import ModelConfig, get_model_kwargs
+from ..base import Artifact, CapabilityModel, Workspace
+from .exhaustive import ExhaustiveAffordanceDiscovery
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,9 @@ class RelevantAffordanceDiscovery:
         self.client = client
         self.model_config = model_config
         self.model = model_config.name
-        self.exhaustive = ExhaustiveAffordanceDiscovery(max_workspaces=max_workspaces)
+        self.exhaustive = ExhaustiveAffordanceDiscovery(
+            max_workspaces=max_workspaces
+        )
 
     def discover(
         self,
@@ -72,12 +74,14 @@ class RelevantAffordanceDiscovery:
         artifact_list = []
         for art_uri, art in model.artifacts.items():
             ws_name = art.workspace.split("/")[-1].replace("#workspace", "")
-            artifact_list.append({
-                "uri": art_uri,
-                "name": art.name,
-                "workspace": ws_name,
-                "actions": [a.name for a in art.actions],
-            })
+            artifact_list.append(
+                {
+                    "uri": art_uri,
+                    "name": art.name,
+                    "workspace": ws_name,
+                    "actions": [a.name for a in art.actions],
+                }
+            )
 
         if not artifact_list:
             return model
@@ -93,8 +97,12 @@ Devices:
 Return ONLY a JSON array of relevant URIs, nothing else."""
 
         try:
-            api_kwargs = get_model_kwargs(self.model, model_config=self.model_config)
-            api_kwargs["messages"] = [{"role": "user", "content": filter_prompt}]
+            api_kwargs = get_model_kwargs(
+                self.model, model_config=self.model_config
+            )
+            api_kwargs["messages"] = [
+                {"role": "user", "content": filter_prompt}
+            ]
 
             response = self.client.chat.completions.create(**api_kwargs)
 
@@ -117,7 +125,9 @@ Return ONLY a JSON array of relevant URIs, nothing else."""
         filtered = CapabilityModel(entry_point=model.entry_point)
 
         for ws_uri, workspace in model.workspaces.items():
-            filtered_arts = [u for u in workspace.artifact_uris if u in relevant_uris]
+            filtered_arts = [
+                u for u in workspace.artifact_uris if u in relevant_uris
+            ]
             if filtered_arts:
                 filtered.workspaces[ws_uri] = Workspace(
                     uri=ws_uri,

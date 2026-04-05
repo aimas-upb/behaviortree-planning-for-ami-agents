@@ -8,19 +8,20 @@ no hardcoded knowledge of rooms, devices, or actions.
 import json
 import os
 from typing import Any
-from openai import OpenAI
+
 from dotenv import load_dotenv
+from openai import OpenAI
 
 from src.hmas_client import (
-    list_workspaces,
-    list_artifacts,
-    list_properties,
-    list_actions,
-    get_property_by_uri,
-    invoke_action_by_uri,
-    get_artifact_name,
     GetPropertyError,
     InvokeActionError,
+    get_artifact_name,
+    get_property_by_uri,
+    invoke_action_by_uri,
+    list_actions,
+    list_artifacts,
+    list_properties,
+    list_workspaces,
 )
 
 load_dotenv()
@@ -150,17 +151,21 @@ def handle_tool_call(name: str, args: dict) -> dict[str, Any]:
             try:
                 artifact_name = get_artifact_name(artifact_uri)
             except Exception:
-                artifact_name = artifact_uri.split("/")[-1].replace("#artifact", "")
+                artifact_name = artifact_uri.split("/")[-1].replace(
+                    "#artifact", ""
+                )
 
             # Get actions with their schemas
             actions = []
             try:
                 for a in list_actions(artifact_uri):
-                    actions.append({
-                        "name": a["name"],
-                        "uri": a["uri"],
-                        "input_schema": a.get("input_schema", {}),
-                    })
+                    actions.append(
+                        {
+                            "name": a["name"],
+                            "uri": a["uri"],
+                            "input_schema": a.get("input_schema", {}),
+                        }
+                    )
             except Exception as e:
                 actions = [{"error": str(e)}]
 
@@ -168,11 +173,13 @@ def handle_tool_call(name: str, args: dict) -> dict[str, Any]:
             properties = []
             try:
                 for p in list_properties(artifact_uri):
-                    properties.append({
-                        "name": p["name"],
-                        "uri": p["uri"],
-                        "output_schema": p.get("output_schema", {}),
-                    })
+                    properties.append(
+                        {
+                            "name": p["name"],
+                            "uri": p["uri"],
+                            "output_schema": p.get("output_schema", {}),
+                        }
+                    )
             except Exception as e:
                 properties = [{"error": str(e)}]
 
@@ -233,10 +240,15 @@ Entry point: {entry_point}
 Be concise. After completing a task, summarize what you discovered and did."""
 
 
-def run_agent(user_goal: str, client: OpenAI, model: str, entry_point: str) -> str:
+def run_agent(
+    user_goal: str, client: OpenAI, model: str, entry_point: str
+) -> str:
     """Run the agent loop for a given user goal."""
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT.format(entry_point=entry_point)},
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT.format(entry_point=entry_point),
+        },
         {"role": "user", "content": user_goal},
     ]
 
@@ -280,13 +292,19 @@ def run_agent(user_goal: str, client: OpenAI, model: str, entry_point: str) -> s
                 print("\n".join(f"    {l}" for l in lines[:8]))
                 print(f"    ... ({len(lines) - 8} more lines)")
             else:
-                print("\n".join(f"    {l}" if i > 0 else l for i, l in enumerate(lines)))
+                print(
+                    "\n".join(
+                        f"    {l}" if i > 0 else l for i, l in enumerate(lines)
+                    )
+                )
 
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": json.dumps(result),
-            })
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(result),
+                }
+            )
 
     return "Max iterations reached. Task may be incomplete."
 
@@ -339,16 +357,28 @@ def main():
 
     parser = argparse.ArgumentParser(description="HMAS Explorer Agent")
     parser.add_argument("--model", default="gpt-4o-mini", help="Model to use")
-    parser.add_argument("--base-url", default=None, help="OpenAI-compatible API base URL")
-    parser.add_argument("--api-key", default=None, help="API key (or set OPENAI_API_KEY)")
-    parser.add_argument("--entry", default=DEFAULT_ENTRY_POINT, help="Entry point URI")
-    parser.add_argument("goal", nargs="?", help="Goal to accomplish (interactive if not provided)")
+    parser.add_argument(
+        "--base-url", default=None, help="OpenAI-compatible API base URL"
+    )
+    parser.add_argument(
+        "--api-key", default=None, help="API key (or set OPENAI_API_KEY)"
+    )
+    parser.add_argument(
+        "--entry", default=DEFAULT_ENTRY_POINT, help="Entry point URI"
+    )
+    parser.add_argument(
+        "goal",
+        nargs="?",
+        help="Goal to accomplish (interactive if not provided)",
+    )
     args = parser.parse_args()
 
     api_key = args.api_key or os.environ.get("OPENAI_API_KEY")
     if not api_key and not args.base_url:
         print("Error: Set OPENAI_API_KEY in .env or provide --api-key")
-        print("For local models: --base-url http://localhost:11434/v1 --api-key dummy")
+        print(
+            "For local models: --base-url http://localhost:11434/v1 --api-key dummy"
+        )
         return
 
     client = OpenAI(

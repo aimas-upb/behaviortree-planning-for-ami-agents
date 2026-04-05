@@ -6,10 +6,10 @@ artifacts, properties, and actions in a hypermedia multi-agent system.
 """
 
 import re
-import requests
-from typing import List, Dict, Any, Optional
-from rdflib import Graph, Namespace, URIRef, RDF
+from typing import Any, Dict, List, Optional
 
+import requests
+from rdflib import RDF, Graph, Namespace, URIRef
 
 # Namespaces for RDF parsing
 TD = Namespace("https://www.w3.org/2019/wot/td#")
@@ -60,13 +60,13 @@ def _fetch_rdf(uri: str, timeout: int = DEFAULT_TIMEOUT) -> Graph:
         requests.RequestException: If fetching fails
     """
     # Remove fragment identifier for HTTP request
-    base_uri = uri.split('#')[0]
+    base_uri = uri.split("#")[0]
 
     response = requests.get(base_uri, timeout=timeout)
     response.raise_for_status()
 
     graph = Graph()
-    graph.parse(data=response.text, format='turtle')
+    graph.parse(data=response.text, format="turtle")
     return graph
 
 
@@ -81,11 +81,13 @@ def _camel_to_snake(name: str) -> str:
         snake_case string
     """
     # Insert underscore before uppercase letters and convert to lowercase
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
-def _parse_schema(graph: Graph, schema_node: Optional[URIRef]) -> Dict[str, Any]:
+def _parse_schema(
+    graph: Graph, schema_node: Optional[URIRef]
+) -> Dict[str, Any]:
     """
     Parse a JSON schema from RDF.
 
@@ -104,38 +106,42 @@ def _parse_schema(graph: Graph, schema_node: Optional[URIRef]) -> Dict[str, Any]
     # Get schema type
     for type_triple in graph.objects(schema_node, RDF.type):
         type_str = str(type_triple)
-        if 'IntegerSchema' in type_str:
-            schema['type'] = 'integer'
-        elif 'StringSchema' in type_str:
-            schema['type'] = 'string'
-        elif 'NumberSchema' in type_str:
-            schema['type'] = 'number'
-        elif 'BooleanSchema' in type_str:
-            schema['type'] = 'boolean'
-        elif 'ObjectSchema' in type_str:
-            schema['type'] = 'object'
-        elif 'ArraySchema' in type_str:
-            schema['type'] = 'array'
+        if "IntegerSchema" in type_str:
+            schema["type"] = "integer"
+        elif "StringSchema" in type_str:
+            schema["type"] = "string"
+        elif "NumberSchema" in type_str:
+            schema["type"] = "number"
+        elif "BooleanSchema" in type_str:
+            schema["type"] = "boolean"
+        elif "ObjectSchema" in type_str:
+            schema["type"] = "object"
+        elif "ArraySchema" in type_str:
+            schema["type"] = "array"
 
     # Get minimum/maximum for numeric types
     minimum = graph.value(schema_node, JSONSCHEMA.minimum)
     if minimum:
-        schema['minimum'] = int(minimum) if schema.get('type') == 'integer' else float(minimum)
+        schema["minimum"] = (
+            int(minimum) if schema.get("type") == "integer" else float(minimum)
+        )
 
     maximum = graph.value(schema_node, JSONSCHEMA.maximum)
     if maximum:
-        schema['maximum'] = int(maximum) if schema.get('type') == 'integer' else float(maximum)
+        schema["maximum"] = (
+            int(maximum) if schema.get("type") == "integer" else float(maximum)
+        )
 
     # Get enum values
     enum_values = list(graph.objects(schema_node, JSONSCHEMA.enum))
     if enum_values:
-        schema['enum'] = [str(v) for v in enum_values]
+        schema["enum"] = [str(v) for v in enum_values]
 
     # Get items for array schemas
     items_node = graph.value(schema_node, JSONSCHEMA.items)
     if items_node:
         items_schema = _parse_schema(graph, items_node)
-        schema['items'] = items_schema
+        schema["items"] = items_schema
 
     # Get properties for object schemas
     properties = {}
@@ -146,12 +152,12 @@ def _parse_schema(graph: Graph, schema_node: Optional[URIRef]) -> Dict[str, Any]
             properties[str(prop_name)] = prop_schema
 
     if properties:
-        schema['properties'] = properties
+        schema["properties"] = properties
 
     # Get required properties
     required = graph.value(schema_node, JSONSCHEMA.required)
     if required:
-        schema['required'] = [str(required)]
+        schema["required"] = [str(required)]
 
     return schema
 
@@ -167,7 +173,7 @@ def _get_semantic_type(graph: Graph, subject: URIRef) -> Optional[str]:
     for type_obj in graph.objects(subject, RDF.type):
         type_str = str(type_obj)
         if type_str.startswith(ex_prefix):
-            return type_str[len(ex_prefix):]
+            return type_str[len(ex_prefix) :]
     return None
 
 
@@ -282,7 +288,9 @@ def list_properties(artifact_uri: str) -> List[Dict[str, Any]]:
     artifact_ref = URIRef(artifact_uri)
 
     properties = []
-    for prop_affordance in graph.objects(artifact_ref, TD.hasPropertyAffordance):
+    for prop_affordance in graph.objects(
+        artifact_ref, TD.hasPropertyAffordance
+    ):
         # Get property name
         prop_name = graph.value(prop_affordance, TD.title)
 
@@ -292,19 +300,21 @@ def list_properties(artifact_uri: str) -> List[Dict[str, Any]]:
             prop_uri = graph.value(form, HCTL.hasTarget)
 
             # Get output schema
-            output_schema_node = graph.value(prop_affordance, TD.hasOutputSchema)
+            output_schema_node = graph.value(
+                prop_affordance, TD.hasOutputSchema
+            )
             output_schema = _parse_schema(graph, output_schema_node)
 
             # Extract ontology class type (rare for properties, usually None)
             semantic_type = _get_semantic_type(graph, prop_affordance)
 
             prop_dict = {
-                'name': str(prop_name) if prop_name else "",
-                'uri': str(prop_uri) if prop_uri else "",
-                'output_schema': output_schema,
+                "name": str(prop_name) if prop_name else "",
+                "uri": str(prop_uri) if prop_uri else "",
+                "output_schema": output_schema,
             }
             if semantic_type:
-                prop_dict['semantic_type'] = semantic_type
+                prop_dict["semantic_type"] = semantic_type
 
             properties.append(prop_dict)
 
@@ -328,7 +338,9 @@ def list_actions(artifact_uri: str) -> List[Dict[str, Any]]:
     artifact_ref = URIRef(artifact_uri)
 
     actions = []
-    for action_affordance in graph.objects(artifact_ref, TD.hasActionAffordance):
+    for action_affordance in graph.objects(
+        artifact_ref, TD.hasActionAffordance
+    ):
         # Get action name
         action_name = graph.value(action_affordance, TD.title)
 
@@ -338,19 +350,21 @@ def list_actions(artifact_uri: str) -> List[Dict[str, Any]]:
             action_uri = graph.value(form, HCTL.hasTarget)
 
             # Get input schema
-            input_schema_node = graph.value(action_affordance, TD.hasInputSchema)
+            input_schema_node = graph.value(
+                action_affordance, TD.hasInputSchema
+            )
             input_schema = _parse_schema(graph, input_schema_node)
 
             # Extract ontology class type (e.g. "SetBrightnessCommand")
             semantic_type = _get_semantic_type(graph, action_affordance)
 
             action_dict = {
-                'name': str(action_name) if action_name else "",
-                'uri': str(action_uri) if action_uri else "",
-                'input_schema': input_schema,
+                "name": str(action_name) if action_name else "",
+                "uri": str(action_uri) if action_uri else "",
+                "input_schema": input_schema,
             }
             if semantic_type:
-                action_dict['semantic_type'] = semantic_type
+                action_dict["semantic_type"] = semantic_type
 
             actions.append(action_dict)
 
@@ -383,10 +397,12 @@ def get_property_by_uri(property_uri: str) -> Any:
     except requests.HTTPError as e:
         raise GetPropertyError(
             f"Failed to get property from {property_uri}: {str(e)}",
-            status_code=e.response.status_code if e.response else None
+            status_code=e.response.status_code if e.response else None,
         )
     except requests.RequestException as e:
-        raise GetPropertyError(f"Failed to get property from {property_uri}: {str(e)}")
+        raise GetPropertyError(
+            f"Failed to get property from {property_uri}: {str(e)}"
+        )
 
 
 def get_property(artifact_uri: str, property_name: str) -> Any:
@@ -404,7 +420,7 @@ def get_property(artifact_uri: str, property_name: str) -> Any:
         GetPropertyError: If getting the property fails
     """
     # Construct property URI from artifact URI and property name
-    base_uri = artifact_uri.split('#')[0]
+    base_uri = artifact_uri.split("#")[0]
     snake_name = _camel_to_snake(property_name)
     property_uri = f"{base_uri}/properties/{snake_name}"
 
@@ -430,7 +446,7 @@ def invoke_action_by_uri(action_uri: str, params: Dict[str, Any]) -> bool:
             action_uri,
             json=params,
             timeout=DEFAULT_TIMEOUT,
-            headers={'Content-Type': 'application/json'}
+            headers={"Content-Type": "application/json"},
         )
         response.raise_for_status()
         return True
@@ -438,13 +454,17 @@ def invoke_action_by_uri(action_uri: str, params: Dict[str, Any]) -> bool:
     except requests.HTTPError as e:
         raise InvokeActionError(
             f"Failed to invoke action at {action_uri}: {str(e)}",
-            status_code=e.response.status_code if e.response else None
+            status_code=e.response.status_code if e.response else None,
         )
     except requests.RequestException as e:
-        raise InvokeActionError(f"Failed to invoke action at {action_uri}: {str(e)}")
+        raise InvokeActionError(
+            f"Failed to invoke action at {action_uri}: {str(e)}"
+        )
 
 
-def invoke_action(artifact_uri: str, action_name: str, params: Dict[str, Any]) -> bool:
+def invoke_action(
+    artifact_uri: str, action_name: str, params: Dict[str, Any]
+) -> bool:
     """
     Invoke an action on an artifact by name.
 
@@ -460,7 +480,7 @@ def invoke_action(artifact_uri: str, action_name: str, params: Dict[str, Any]) -
         InvokeActionError: If invoking the action fails
     """
     # Construct action URI from artifact URI and action name
-    base_uri = artifact_uri.split('#')[0]
+    base_uri = artifact_uri.split("#")[0]
     snake_name = _camel_to_snake(action_name)
     action_uri = f"{base_uri}/{snake_name}"
 

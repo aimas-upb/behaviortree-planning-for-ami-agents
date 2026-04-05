@@ -3,8 +3,9 @@
 Test script for the /reset endpoint
 """
 
-import requests
 import json
+
+import requests
 
 BASE_URL = "http://localhost:8080"
 
@@ -16,50 +17,35 @@ def test_reset_endpoint():
 
     # Test 1: Reset home 0
     print("Test 1: Reset home 0")
-    response = requests.post(
-        f"{BASE_URL}/reset",
-        json={"home": "0"}
-    )
+    response = requests.post(f"{BASE_URL}/reset", json={"home": "0"})
     print(f"Status Code: {response.status_code}")
     print(f"Response: {json.dumps(response.json(), indent=2)}")
     print()
 
     # Test 2: Reset home 1
     print("Test 2: Reset home 1")
-    response = requests.post(
-        f"{BASE_URL}/reset",
-        json={"home": "1"}
-    )
+    response = requests.post(f"{BASE_URL}/reset", json={"home": "1"})
     print(f"Status Code: {response.status_code}")
     print(f"Response: {json.dumps(response.json(), indent=2)}")
     print()
 
     # Test 3: Try to reset non-existent home
     print("Test 3: Reset non-existent home (should fail)")
-    response = requests.post(
-        f"{BASE_URL}/reset",
-        json={"home": "999"}
-    )
+    response = requests.post(f"{BASE_URL}/reset", json={"home": "999"})
     print(f"Status Code: {response.status_code}")
     print(f"Response: {json.dumps(response.json(), indent=2)}")
     print()
 
     # Test 4: Missing 'home' parameter
     print("Test 4: Missing 'home' parameter (should fail)")
-    response = requests.post(
-        f"{BASE_URL}/reset",
-        json={}
-    )
+    response = requests.post(f"{BASE_URL}/reset", json={})
     print(f"Status Code: {response.status_code}")
     print(f"Response: {json.dumps(response.json(), indent=2)}")
     print()
 
     # Test 5: Invalid JSON payload
     print("Test 5: Invalid JSON payload (should fail)")
-    response = requests.post(
-        f"{BASE_URL}/reset",
-        data="invalid json"
-    )
+    response = requests.post(f"{BASE_URL}/reset", data="invalid json")
     print(f"Status Code: {response.status_code}")
     print(f"Response: {json.dumps(response.json(), indent=2)}")
     print()
@@ -90,7 +76,7 @@ def test_state_reset_verification():
 
     response = requests.post(
         f"{BASE_URL}/workspaces/home0/master_bedroom/artifacts/masterBedroomLight/{action}",
-        json={}
+        json={},
     )
     print(f"Action response: {response.json()}")
 
@@ -104,10 +90,7 @@ def test_state_reset_verification():
 
     # Step 3: Reset the home
     print("Step 3: Reset home 0")
-    response = requests.post(
-        f"{BASE_URL}/reset",
-        json={"home": "0"}
-    )
+    response = requests.post(f"{BASE_URL}/reset", json={"home": "0"})
     print(f"Reset response: {response.json()}")
     print()
 
@@ -146,6 +129,8 @@ if __name__ == "__main__":
 
     except requests.exceptions.ConnectionError:
         print("Error: Could not connect to simulator at http://localhost:8080")
-        print("Please ensure the simulator is running before running this test.")
+        print(
+            "Please ensure the simulator is running before running this test."
+        )
     except Exception as e:
         print(f"Error occurred: {e}")

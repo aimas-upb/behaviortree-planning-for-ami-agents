@@ -16,7 +16,6 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-
 # Human-readable descriptions for each device type.
 # These are kept generic and do not enumerate specific actions, since not all
 # instances of a device type expose every possible action.
@@ -68,18 +67,33 @@ COMMAND_DESCRIPTIONS = {
 # Workspace (room) type descriptions, keyed by snake_case name from the TTL.
 # VacuumRobot is excluded as it is not a room type.
 WORKSPACE_DESCRIPTIONS = {
-    "balcony": ("Balcony", "An outdoor or semi-outdoor elevated platform attached to the home."),
-    "bathroom": ("Bathroom", "A room equipped with bathing and sanitary facilities."),
-    "corridor": ("Corridor", "A hallway or passage connecting different rooms in the home."),
+    "balcony": (
+        "Balcony",
+        "An outdoor or semi-outdoor elevated platform attached to the home.",
+    ),
+    "bathroom": (
+        "Bathroom",
+        "A room equipped with bathing and sanitary facilities.",
+    ),
+    "corridor": (
+        "Corridor",
+        "A hallway or passage connecting different rooms in the home.",
+    ),
     "dining_room": ("DiningRoom", "A room designated for eating meals."),
     "foyer": ("Foyer", "An entrance hall or lobby area of the home."),
     "garage": ("Garage", "An enclosed space for parking vehicles and storage."),
     "guest_bedroom": ("GuestBedroom", "A bedroom designated for guests."),
     "kitchen": ("Kitchen", "A room used for cooking and food preparation."),
-    "living_room": ("LivingRoom", "A main living area used for relaxation and socializing."),
+    "living_room": (
+        "LivingRoom",
+        "A main living area used for relaxation and socializing.",
+    ),
     "master_bedroom": ("MasterBedroom", "The primary bedroom in the home."),
     "store_room": ("StoreRoom", "A room used for storing household items."),
-    "study_room": ("StudyRoom", "A room designated for reading, working, or studying."),
+    "study_room": (
+        "StudyRoom",
+        "A room designated for reading, working, or studying.",
+    ),
 }
 
 # Workspace names to exclude (not actual rooms)
@@ -141,7 +155,9 @@ def merge_parsed(all_parsed: list[dict]) -> dict:
     return {
         "device_types": sorted(device_types),
         "command_types": sorted(command_types),
-        "device_commands": {k: sorted(v) for k, v in sorted(device_commands.items())},
+        "device_commands": {
+            k: sorted(v) for k, v in sorted(device_commands.items())
+        },
         "room_names": sorted(room_names),
     }
 
@@ -166,9 +182,13 @@ def generate_ontology(parsed: dict, output_path: str):
     lines.append("")
 
     # Property definition
-    lines.append("# ============================================================")
+    lines.append(
+        "# ============================================================"
+    )
     lines.append("# Properties")
-    lines.append("# ============================================================")
+    lines.append(
+        "# ============================================================"
+    )
     lines.append("")
     lines.append("ex:hasPossibleCommand a rdf:Property ;")
     lines.append("    rdfs:domain hmas:Artifact ;")
@@ -180,9 +200,13 @@ def generate_ontology(parsed: dict, output_path: str):
     lines.append("")
 
     # Workspace types
-    lines.append("# ============================================================")
+    lines.append(
+        "# ============================================================"
+    )
     lines.append("# Workspace Types (Home and Rooms)")
-    lines.append("# ============================================================")
+    lines.append(
+        "# ============================================================"
+    )
     lines.append("")
     lines.append("ex:Home a rdfs:Class ;")
     lines.append("    rdfs:subClassOf hmas:Workspace ;")
@@ -204,9 +228,13 @@ def generate_ontology(parsed: dict, output_path: str):
         lines.append("")
 
     # Device type classes
-    lines.append("# ============================================================")
+    lines.append(
+        "# ============================================================"
+    )
     lines.append("# Device Types")
-    lines.append("# ============================================================")
+    lines.append(
+        "# ============================================================"
+    )
     lines.append("")
 
     for device in parsed["device_types"]:
@@ -217,9 +245,13 @@ def generate_ontology(parsed: dict, output_path: str):
         lines.append("")
 
     # Command (action affordance) classes
-    lines.append("# ============================================================")
+    lines.append(
+        "# ============================================================"
+    )
     lines.append("# Action Affordance Types (Commands)")
-    lines.append("# ============================================================")
+    lines.append(
+        "# ============================================================"
+    )
     lines.append("")
 
     for cmd in parsed["command_types"]:
@@ -230,9 +262,13 @@ def generate_ontology(parsed: dict, output_path: str):
         lines.append("")
 
     # Device-to-command associations
-    lines.append("# ============================================================")
+    lines.append(
+        "# ============================================================"
+    )
     lines.append("# Device Type to Possible Action Affordance Associations")
-    lines.append("# ============================================================")
+    lines.append(
+        "# ============================================================"
+    )
     lines.append("")
 
     for device, commands in parsed["device_commands"].items():

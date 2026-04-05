@@ -10,37 +10,43 @@ Orchestrates the full experience-based planning pipeline:
   6. Execution — run the combined BT
 """
 
+import ast
 import json
 import logging
 import time
 import uuid
-import ast
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 import py_trees
 
-from pathlib import Path
-
 from ..config import (
+    AffordanceConfig,
+    DiscoveryConfig,
     ExperimentConfig,
     ModelConfig,
-    DiscoveryConfig,
-    AffordanceConfig,
     StateConfig,
 )
 
 # Path to the structured semantic query prompt
 _STRUCTURED_QUERY_PROMPT_PATH = (
-    Path(__file__).resolve().parents[2] / "ontologies" / "semantic-query-structured-prompt.txt"
+    Path(__file__).resolve().parents[2]
+    / "ontologies"
+    / "semantic-query-structured-prompt.txt"
 )
 
 # Prompt strategy name for structured-goal BT generation
 _STRUCTURED_PROMPT_STRATEGY = "detailed_structured"
-from ..discovery import create_discovery_pipeline, DiscoveryResult
-from ..planning import create_planner, Plan
-from ..execution import create_executor, ExecutionResult, IRExecutor, CodeExecutor
+from ..discovery import DiscoveryResult, create_discovery_pipeline
+from ..execution import (
+    CodeExecutor,
+    ExecutionResult,
+    IRExecutor,
+    create_executor,
+)
+from ..planning import Plan, create_planner
 from .adaptation import ExperienceAdapter
 from .bt_serialization import (
     combine_trees_parallel,
@@ -66,13 +72,19 @@ class ExperienceRunResult:
     match_results: list[MatchResult] = field(default_factory=list)
 
     # Matched experience planning
-    matched_plans: list[dict] = field(default_factory=list)  # adapted JSON-IR dicts
-    matched_infeasible_intents: list[StructuredIntent] = field(default_factory=list)
+    matched_plans: list[dict] = field(
+        default_factory=list
+    )  # adapted JSON-IR dicts
+    matched_infeasible_intents: list[StructuredIntent] = field(
+        default_factory=list
+    )
     matched_plan_traces: list[dict] = field(default_factory=list)
     matched_plan_time_seconds: float = 0.0
 
     # Unmatched (full pipeline) planning
-    unmatched_plans: list[dict] = field(default_factory=list)  # JSON-IR or code plans
+    unmatched_plans: list[dict] = field(
+        default_factory=list
+    )  # JSON-IR or code plans
     unmatched_plan_traces: list[dict] = field(default_factory=list)
     unmatched_plan_time_seconds: float = 0.0
 
@@ -105,7 +117,11 @@ class ExperienceRunResult:
             "unmatched_plan_traces": self.unmatched_plan_traces,
             "unmatched_plan_time_seconds": self.unmatched_plan_time_seconds,
             "combined_plan_ir": self.combined_plan_ir,
-            "execution": self.execution_result.to_dict() if self.execution_result else None,
+            "execution": (
+                self.execution_result.to_dict()
+                if self.execution_result
+                else None
+            ),
             "new_experiences_stored": self.new_experiences_stored,
             "success": self.success,
             "error": self.error,
@@ -200,7 +216,9 @@ class ExperiencePipelineRunner:
             logger.info("STEP 2: Experience Matching")
             logger.info("=" * 60)
 
-            match_results = self.matcher.match(intents, self.engine, home_id=home_id)
+            match_results = self.matcher.match(
+                intents, self.engine, home_id=home_id
+            )
             result.match_results = match_results
 
             # Partition intents
@@ -314,7 +332,9 @@ class ExperiencePipelineRunner:
                 try:
                     # Full discovery — use structured query prompt when flag is set
                     _query_prompt = (
-                        _STRUCTURED_QUERY_PROMPT_PATH if self.structured_goal else None
+                        _STRUCTURED_QUERY_PROMPT_PATH
+                        if self.structured_goal
+                        else None
                     )
                     logger.info(
                         f"Discovery: semantic_query_prompt_path="
@@ -334,6 +354,7 @@ class ExperiencePipelineRunner:
                     planning_config = self.config.planning
                     if self.structured_goal:
                         from ..config import PlanningConfig
+
                         planning_config = PlanningConfig(
                             reasoning=planning_config.reasoning,
                             output=planning_config.output,
@@ -350,10 +371,12 @@ class ExperiencePipelineRunner:
                         model_config=self.config.model,
                     )
 
-                    result.unmatched_plan_traces.append({
-                        "discovery": discovery_result.to_dict(),
-                        "planning": planning_result.to_dict(),
-                    })
+                    result.unmatched_plan_traces.append(
+                        {
+                            "discovery": discovery_result.to_dict(),
+                            "planning": planning_result.to_dict(),
+                        }
+                    )
 
                     if planning_result.success:
                         plan = planning_result.plan
@@ -396,7 +419,9 @@ class ExperiencePipelineRunner:
                                     # proper dict instead of a code string.
                                     code_plan_json_ir = None
                                     try:
-                                        assert isinstance(executor, CodeExecutor)
+                                        assert isinstance(
+                                            executor, CodeExecutor
+                                        )
                                         tree = executor._execute_code(
                                             plan.content,
                                             unconstrained=(
@@ -413,12 +438,14 @@ class ExperiencePipelineRunner:
                                             f"JSON-IR: {e}"
                                         )
 
-                                    unmatched_irs.append({
-                                        "_code_plan": True,
-                                        "_plan": plan.to_dict(),
-                                        "_execution": exec_result.to_dict(),
-                                        "_json_ir": code_plan_json_ir,
-                                    })
+                                    unmatched_irs.append(
+                                        {
+                                            "_code_plan": True,
+                                            "_plan": plan.to_dict(),
+                                            "_execution": exec_result.to_dict(),
+                                            "_json_ir": code_plan_json_ir,
+                                        }
+                                    )
                                 else:
                                     logger.warning(
                                         f"Unmatched plan execution failed: "
@@ -450,9 +477,7 @@ class ExperiencePipelineRunner:
             json_irs = adapted_irs + [
                 ir for ir in unmatched_irs if not ir.get("_code_plan")
             ]
-            code_plans = [
-                ir for ir in unmatched_irs if ir.get("_code_plan")
-            ]
+            code_plans = [ir for ir in unmatched_irs if ir.get("_code_plan")]
 
             # If we only have code plans (no JSON-IR), use the already-
             # completed execution result from Step 4 directly.
@@ -541,9 +566,7 @@ class ExperiencePipelineRunner:
 
                 result.combined_plan_ir = combined_ir
 
-                logger.info(
-                    f"Combined plan: {len(json_irs)} subtrees"
-                )
+                logger.info(f"Combined plan: {len(json_irs)} subtrees")
 
                 # Step 6: Execution
                 logger.info("=" * 60)
@@ -830,9 +853,14 @@ class ExperiencePipelineRunner:
                     if isinstance(target, ast.Name) and target.id == "tree":
                         return True
             elif isinstance(node, ast.AnnAssign):
-                if isinstance(node.target, ast.Name) and node.target.id == "tree":
+                if (
+                    isinstance(node.target, ast.Name)
+                    and node.target.id == "tree"
+                ):
                     return True
-            elif isinstance(node, ast.FunctionDef) and node.name == "build_tree":
+            elif (
+                isinstance(node, ast.FunctionDef) and node.name == "build_tree"
+            ):
                 return True
 
         return False

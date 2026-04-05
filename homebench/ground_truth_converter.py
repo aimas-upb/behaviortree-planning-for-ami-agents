@@ -9,7 +9,8 @@ import argparse
 import json
 import re
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
+
 import rdflib
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -54,7 +55,7 @@ class TTLParser:
 
             # Extract room, artifact, and action from URL
             # Format: http://localhost:8080/workspaces/home76/living_room/artifacts/livingRoomLight/turn_off
-            pattern = r'/workspaces/home\d+/([^/]+)/artifacts/([^/]+)/(.+)$'
+            pattern = r"/workspaces/home\d+/([^/]+)/artifacts/([^/]+)/(.+)$"
             match = re.search(pattern, target_url)
 
             if match:
@@ -75,8 +76,8 @@ class TTLParser:
                     params_schema = self._parse_input_schema(row.schema)
 
                 affordance_map[key] = {
-                    'url': target_url,
-                    'params_schema': params_schema
+                    "url": target_url,
+                    "params_schema": params_schema,
                 }
 
         return affordance_map
@@ -86,20 +87,29 @@ class TTLParser:
         # Convert camelCase to snake_case and extract device type
         # Remove common room prefixes
         room_prefixes = [
-            'livingRoom', 'masterBedroom', 'guestBedroom', 'studyRoom',
-            'storeRoom', 'diningRoom', 'balcony', 'bathroom', 'corridor',
-            'foyer', 'garage', 'kitchen'
+            "livingRoom",
+            "masterBedroom",
+            "guestBedroom",
+            "studyRoom",
+            "storeRoom",
+            "diningRoom",
+            "balcony",
+            "bathroom",
+            "corridor",
+            "foyer",
+            "garage",
+            "kitchen",
         ]
 
         device_name = artifact_name
         for prefix in room_prefixes:
             if artifact_name.startswith(prefix):
-                device_name = artifact_name[len(prefix):]
+                device_name = artifact_name[len(prefix) :]
                 break
 
         # Convert from camelCase to snake_case
         # Insert underscore before capitals and convert to lowercase
-        snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', device_name).lower()
+        snake_case = re.sub(r"(?<!^)(?=[A-Z])", "_", device_name).lower()
 
         return snake_case
 
@@ -128,18 +138,18 @@ class TTLParser:
             for s2, p2, o2 in self.graph.triples((o, None, None)):
                 temp_graph.add((s2, p2, o2))
 
-        results = temp_graph.query(query, initBindings={'schema': schema_node})
+        results = temp_graph.query(query, initBindings={"schema": schema_node})
 
         for row in results:
             if row.propName:
                 param_info = {
-                    'name': str(row.propName),
-                    'type': str(row.propType) if row.propType else 'unknown'
+                    "name": str(row.propName),
+                    "type": str(row.propType) if row.propType else "unknown",
                 }
                 if row.min is not None:
-                    param_info['min'] = int(row.min)
+                    param_info["min"] = int(row.min)
                 if row.max is not None:
-                    param_info['max'] = int(row.max)
+                    param_info["max"] = int(row.max)
                 params_schema[str(row.propName)] = param_info
 
         return params_schema
@@ -169,7 +179,9 @@ class TTLParser:
 
             # Extract artifact URL and property name from target
             # Format: http://localhost:8080/workspaces/home76/living_room/artifacts/livingRoomLight/properties/state
-            pattern = r'(/workspaces/home\d+/[^/]+/artifacts/[^/]+)/properties/(.+)$'
+            pattern = (
+                r"(/workspaces/home\d+/[^/]+/artifacts/[^/]+)/properties/(.+)$"
+            )
             match = re.search(pattern, target_url)
 
             if match:
@@ -182,12 +194,16 @@ class TTLParser:
 
         return property_map
 
-    def find_affordance(self, room: str, device: str, action: str) -> Optional[Dict[str, Any]]:
+    def find_affordance(
+        self, room: str, device: str, action: str
+    ) -> Optional[Dict[str, Any]]:
         """Find affordance URL and schema for a given room.device.action."""
         key = f"{room}.{device}.{action}"
         return self.affordance_map.get(key)
 
-    def find_property_url(self, artifact_url: str, property_name: str) -> Optional[str]:
+    def find_property_url(
+        self, artifact_url: str, property_name: str
+    ) -> Optional[str]:
         """Find property URL for a given artifact and property name."""
         key = f"{artifact_url}.{property_name}"
         return self.property_map.get(key)
@@ -196,7 +212,7 @@ class TTLParser:
         """Extract artifact base URL from affordance URL."""
         # Format: http://localhost:8080/workspaces/home76/living_room/artifacts/livingRoomLight/turn_off
         # Extract: http://localhost:8080/workspaces/home76/living_room/artifacts/livingRoomLight
-        pattern = r'(/workspaces/home\d+/[^/]+/artifacts/[^/]+)/[^/]+$'
+        pattern = r"(/workspaces/home\d+/[^/]+/artifacts/[^/]+)/[^/]+$"
         match = re.search(pattern, affordance_url)
         if match:
             return match.group(1)
@@ -222,7 +238,7 @@ class GroundTruthConverter:
     def _parse_action_call(self, call_str: str) -> Optional[Dict[str, Any]]:
         """Parse an action call string like 'living_room.light.turn_off()'."""
         # Pattern: room.device.action(params)
-        pattern = r'([^.]+)\.([^.]+)\.([^(]+)\(([^)]*)\)'
+        pattern = r"([^.]+)\.([^.]+)\.([^(]+)\(([^)]*)\)"
         match = re.match(pattern, call_str.strip())
 
         if not match:
@@ -237,21 +253,21 @@ class GroundTruthConverter:
         params = {}
         if params_str:
             # Handle simple parameters like "60" or "auto" or "intensity=60"
-            if '=' in params_str:
+            if "=" in params_str:
                 # Named parameter
-                for param in params_str.split(','):
-                    key, value = param.strip().split('=')
+                for param in params_str.split(","):
+                    key, value = param.strip().split("=")
                     params[key.strip()] = self._parse_value(value.strip())
             else:
                 # Positional parameter - we need to infer the name
                 # This will be handled later when we have the schema
-                params['_positional'] = self._parse_value(params_str.strip())
+                params["_positional"] = self._parse_value(params_str.strip())
 
         return {
-            'room': room,
-            'device': device,
-            'action': action,
-            'params': params
+            "room": room,
+            "device": device,
+            "action": action,
+            "params": params,
         }
 
     def _parse_value(self, value_str: str) -> Any:
@@ -269,9 +285,11 @@ class GroundTruthConverter:
             pass
 
         # Return as string, removing quotes if present
-        return value_str.strip('\'"')
+        return value_str.strip("'\"")
 
-    def _extract_param_name_from_schema(self, schema: Dict[str, Any]) -> Optional[str]:
+    def _extract_param_name_from_schema(
+        self, schema: Dict[str, Any]
+    ) -> Optional[str]:
         """Extract the first parameter name from schema."""
         if schema and len(schema) > 0:
             return list(schema.keys())[0]
@@ -282,7 +300,7 @@ class GroundTruthConverter:
         parser: TTLParser,
         affordance_url: str,
         action: str,
-        params: Dict[str, Any]
+        params: Dict[str, Any],
     ) -> Optional[Dict[str, Any]]:
         """Determine which property to test and what value to expect."""
         # Get artifact base URL
@@ -301,19 +319,19 @@ class GroundTruthConverter:
         property_name = None
         expected_value = None
 
-        if action == 'turn_on':
-            property_name = 'state'
-            expected_value = 'on'
-        elif action == 'turn_off':
-            property_name = 'state'
-            expected_value = 'off'
-        elif action == 'open':
-            property_name = 'state'
-            expected_value = 'open'
-        elif action == 'close':
-            property_name = 'state'
-            expected_value = 'closed'
-        elif action.startswith('set_'):
+        if action == "turn_on":
+            property_name = "state"
+            expected_value = "on"
+        elif action == "turn_off":
+            property_name = "state"
+            expected_value = "off"
+        elif action == "open":
+            property_name = "state"
+            expected_value = "open"
+        elif action == "close":
+            property_name = "state"
+            expected_value = "closed"
+        elif action.startswith("set_"):
             # Extract property name from action (e.g., set_temperature -> temperature)
             property_name = action[4:]  # Remove 'set_' prefix
             # The expected value is the parameter value
@@ -326,22 +344,24 @@ class GroundTruthConverter:
             property_url = parser.find_property_url(artifact_url, property_name)
             if property_url:
                 return {
-                    'property': property_url,
-                    'expected_value': expected_value
+                    "property": property_url,
+                    "expected_value": expected_value,
                 }
 
         return None
 
     def convert_entry(self, entry: Dict[str, Any]) -> Dict[str, Any]:
         """Convert a single ground truth entry."""
-        entry_id = entry['id']
-        input_text = entry['input']
-        output_text = entry['output']
+        entry_id = entry["id"]
+        input_text = entry["input"]
+        output_text = entry["output"]
 
         # Extract home_id from entry id (e.g., "home76_multi_201" -> 76)
-        home_id_match = re.match(r'home(\d+)_', entry_id)
+        home_id_match = re.match(r"home(\d+)_", entry_id)
         if not home_id_match:
-            raise ValueError(f"Cannot extract home_id from entry id: {entry_id}")
+            raise ValueError(
+                f"Cannot extract home_id from entry id: {entry_id}"
+            )
 
         home_id = int(home_id_match.group(1))
 
@@ -353,15 +373,17 @@ class GroundTruthConverter:
         output_text = output_text.strip().strip("'")
 
         # Split by comma and process each action
-        actions = [action.strip() for action in output_text.split(',') if action.strip()]
+        actions = [
+            action.strip()
+            for action in output_text.split(",")
+            if action.strip()
+        ]
 
         converted_output = []
 
         for action in actions:
-            if action == 'error_input':
-                converted_output.append({
-                    'execution': 'error_input'
-                })
+            if action == "error_input":
+                converted_output.append({"execution": "error_input"})
             else:
                 # Parse the action call
                 parsed = self._parse_action_call(action)
@@ -369,60 +391,53 @@ class GroundTruthConverter:
                 if parsed:
                     # Find the affordance
                     affordance_info = parser.find_affordance(
-                        parsed['room'],
-                        parsed['device'],
-                        parsed['action']
+                        parsed["room"], parsed["device"], parsed["action"]
                     )
 
                     if affordance_info:
                         # Handle positional parameters
-                        params = parsed['params']
-                        if '_positional' in params and affordance_info['params_schema']:
+                        params = parsed["params"]
+                        if (
+                            "_positional" in params
+                            and affordance_info["params_schema"]
+                        ):
                             param_name = self._extract_param_name_from_schema(
-                                affordance_info['params_schema']
+                                affordance_info["params_schema"]
                             )
                             if param_name:
-                                params = {param_name: params['_positional']}
+                                params = {param_name: params["_positional"]}
                             else:
                                 params = {}
-                        elif '_positional' in params:
+                        elif "_positional" in params:
                             params = {}
 
                         # Build the output entry
                         output_entry = {
-                            'execution': 'success',
-                            'affordance': affordance_info['url'],
-                            'params': params
+                            "execution": "success",
+                            "affordance": affordance_info["url"],
+                            "params": params,
                         }
 
                         # Determine test information
                         test_info = self._determine_test_info(
                             parser,
-                            affordance_info['url'],
-                            parsed['action'],
-                            params
+                            affordance_info["url"],
+                            parsed["action"],
+                            params,
                         )
 
                         if test_info:
-                            output_entry['test'] = test_info
+                            output_entry["test"] = test_info
 
                         converted_output.append(output_entry)
                     else:
                         # Affordance not found, treat as error
-                        converted_output.append({
-                            'execution': 'error_input'
-                        })
+                        converted_output.append({"execution": "error_input"})
                 else:
                     # Failed to parse action
-                    converted_output.append({
-                        'execution': 'error_input'
-                    })
+                    converted_output.append({"execution": "error_input"})
 
-        return {
-            'id': entry_id,
-            'input': input_text,
-            'output': converted_output
-        }
+        return {"id": entry_id, "input": input_text, "output": converted_output}
 
     def convert_file(self, input_file: str, output_file: str):
         """Convert a JSONL file to JSON format."""
@@ -434,7 +449,7 @@ class GroundTruthConverter:
 
         # Read JSONL file
         entries = []
-        with open(input_path, 'r') as f:
+        with open(input_path, "r") as f:
             for line in f:
                 if line.strip():
                     entries.append(json.loads(line))
@@ -448,42 +463,48 @@ class GroundTruthConverter:
                 if (i + 1) % 100 == 0:
                     print(f"Processed {i + 1}/{len(entries)} entries...")
             except Exception as e:
-                print(f"Error processing entry {entry.get('id', 'unknown')}: {e}")
+                print(
+                    f"Error processing entry {entry.get('id', 'unknown')}: {e}"
+                )
                 # Add entry with error marker
-                converted_entries.append({
-                    'id': entry.get('id', 'unknown'),
-                    'input': entry.get('input', ''),
-                    'output': [{'execution': 'error_input'}],
-                    'error': str(e)
-                })
+                converted_entries.append(
+                    {
+                        "id": entry.get("id", "unknown"),
+                        "input": entry.get("input", ""),
+                        "output": [{"execution": "error_input"}],
+                        "error": str(e),
+                    }
+                )
 
         # Write output JSON file
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(converted_entries, f, indent=2)
 
-        print(f"Conversion complete. Wrote {len(converted_entries)} entries to {output_file}")
+        print(
+            f"Conversion complete. Wrote {len(converted_entries)} entries to {output_file}"
+        )
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Convert HomeBench ground truth to ThingDescription format'
+        description="Convert HomeBench ground truth to ThingDescription format"
     )
     parser.add_argument(
-        '-i', '--input',
+        "-i",
+        "--input",
         required=True,
-        help='Input JSONL file (e.g., data/homebench/raw/train_data_part1.jsonl)'
+        help="Input JSONL file (e.g., data/homebench/raw/train_data_part1.jsonl)",
     )
     parser.add_argument(
-        '-o', '--output',
-        required=True,
-        help='Output JSON file path'
+        "-o", "--output", required=True, help="Output JSON file path"
     )
     parser.add_argument(
-        '-t', '--ttl-dir',
+        "-t",
+        "--ttl-dir",
         type=Path,
         default=DEFAULT_TTL_DIR,
-        help='Directory containing TTL files (default: data/homebench/hmas/home_description)'
+        help="Directory containing TTL files (default: data/homebench/hmas/home_description)",
     )
 
     args = parser.parse_args()
@@ -492,5 +513,5 @@ def main():
     converter.convert_file(args.input, args.output)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

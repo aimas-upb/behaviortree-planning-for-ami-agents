@@ -3,7 +3,7 @@ Base classes for execution.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Protocol, Any
+from typing import Any, Optional, Protocol
 
 from ..planning import Plan
 
@@ -11,6 +11,7 @@ from ..planning import Plan
 @dataclass
 class ExecutionResult:
     """Result of executing a behavior tree."""
+
     success: bool
     tree_name: str = ""
     ticks: int = 0

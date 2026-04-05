@@ -2,11 +2,11 @@
 Prompt registry for accessing prompts by strategy and format.
 """
 
-from typing import Tuple
 import logging
+from typing import Tuple
 
-from . import ir as ir_prompts
 from . import code as code_prompts
+from . import ir as ir_prompts
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,9 @@ def get_prompt(strategy: str, output_format: str) -> Tuple[str, str]:
         raise ValueError(f"Unknown output format: {output_format}")
 
     if strategy not in prompts:
-        logger.warning(f"Strategy '{strategy}' not found for {output_format}, falling back to 'detailed'")
+        logger.warning(
+            f"Strategy '{strategy}' not found for {output_format}, falling back to 'detailed'"
+        )
         strategy = "detailed"
 
     return prompts[strategy]

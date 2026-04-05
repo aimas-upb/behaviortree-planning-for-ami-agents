@@ -5,15 +5,14 @@ IR Executor - compiles JSON IR to py_trees and executes.
 import logging
 
 import py_trees
-from py_trees.common import Status
-
 from behavior_trees.affordance_nodes import (
     ActionAffordanceNode,
-    PropertyConditionNode,
-    PropertyAffordanceNode,
-    ComparisonPropertyConditionNode,
     ComparisonOperator,
+    ComparisonPropertyConditionNode,
+    PropertyAffordanceNode,
+    PropertyConditionNode,
 )
+from py_trees.common import Status
 
 from ..planning import Plan
 from .base import ExecutionResult
@@ -65,13 +64,15 @@ class IRExecutor:
                 success=False,
                 error="Invalid tree specification",
             )
-        
-        if plan.explanation.startswith("Generation failed") or plan.explanation.startswith("JSON parse error"):
+
+        if plan.explanation.startswith(
+            "Generation failed"
+        ) or plan.explanation.startswith("JSON parse error"):
             return ExecutionResult(
                 success=False,
                 error=f"Plan generation error: {plan.explanation}",
             )
-        
+
         if not plan.content:
             # No behavior tree to execute
             logger.info("No behavior tree to execute;")
@@ -114,21 +115,33 @@ class IRExecutor:
         name = spec.get("name", "unnamed")
 
         if node_type == "sequence":
-            children = [self._compile(child) for child in spec.get("children", [])]
-            return py_trees.composites.Sequence(name=name, memory=True, children=children)
+            children = [
+                self._compile(child) for child in spec.get("children", [])
+            ]
+            return py_trees.composites.Sequence(
+                name=name, memory=True, children=children
+            )
 
         elif node_type == "selector":
-            children = [self._compile(child) for child in spec.get("children", [])]
-            return py_trees.composites.Selector(name=name, memory=False, children=children)
+            children = [
+                self._compile(child) for child in spec.get("children", [])
+            ]
+            return py_trees.composites.Selector(
+                name=name, memory=False, children=children
+            )
 
         elif node_type == "parallel":
-            children = [self._compile(child) for child in spec.get("children", [])]
+            children = [
+                self._compile(child) for child in spec.get("children", [])
+            ]
             policy_name = spec.get("policy", "success_on_all")
             if policy_name == "success_on_one":
                 policy = py_trees.common.ParallelPolicy.SuccessOnOne()
             else:
                 policy = py_trees.common.ParallelPolicy.SuccessOnAll()
-            return py_trees.composites.Parallel(name=name, policy=policy, children=children)
+            return py_trees.composites.Parallel(
+                name=name, policy=policy, children=children
+            )
 
         elif node_type == "action":
             return ActionAffordanceNode(
@@ -154,7 +167,9 @@ class IRExecutor:
                     name=name,
                     property_url=spec["property_url"],
                     expected_value=spec["expected_value"],
-                    operator=OPERATOR_MAP.get(operator, ComparisonOperator.EQUAL),
+                    operator=OPERATOR_MAP.get(
+                        operator, ComparisonOperator.EQUAL
+                    ),
                     value_path=spec.get("value_path"),
                 )
             else:
@@ -168,7 +183,9 @@ class IRExecutor:
         else:
             raise ValueError(f"Unknown node type: {node_type}")
 
-    def _execute_tree(self, tree: py_trees.behaviour.Behaviour) -> ExecutionResult:
+    def _execute_tree(
+        self, tree: py_trees.behaviour.Behaviour
+    ) -> ExecutionResult:
         """
         Execute a compiled behavior tree.
 
@@ -207,5 +224,7 @@ class IRExecutor:
             result.final_status = "RUNNING (max ticks reached)"
 
         tree.shutdown()
-        logger.info(f"Execution complete: {result.final_status} after {result.ticks} ticks")
+        logger.info(
+            f"Execution complete: {result.final_status} after {result.ticks} ticks"
+        )
         return result

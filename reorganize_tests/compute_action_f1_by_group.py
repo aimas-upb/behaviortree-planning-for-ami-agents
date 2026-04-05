@@ -105,7 +105,9 @@ def aggregate_by_group(
     target_groups: Iterable[ActionGroup],
 ) -> Dict[str, Any]:
     """Aggregate expected/matched/extra action counts for each action group."""
-    stats: Dict[ActionGroup, ActionCounts] = {g: ActionCounts() for g in target_groups}
+    stats: Dict[ActionGroup, ActionCounts] = {
+        g: ActionCounts() for g in target_groups
+    }
     ignored_groups: Dict[str, str] = {}
     unknown_tests: List[str] = []
 
@@ -137,7 +139,9 @@ def aggregate_by_group(
     }
 
 
-def build_report(stats: Dict[ActionGroup, ActionCounts], unknown_tests: List[str]) -> Dict[str, Any]:
+def build_report(
+    stats: Dict[ActionGroup, ActionCounts], unknown_tests: List[str]
+) -> Dict[str, Any]:
     """Prepare a JSON-serializable report of group metrics and unmapped tests."""
     report: Dict[str, Any] = {}
     for group, counts in stats.items():
@@ -169,7 +173,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset-file",
         type=str,
-        default=os.path.join("datasets", "HomeBench", "converted", "test_data.json"),
+        default=os.path.join(
+            "datasets", "HomeBench", "converted", "test_data.json"
+        ),
         help="Path to the dataset JSON file with all test definitions.",
     )
     return parser.parse_args()
@@ -199,12 +205,13 @@ def main() -> None:
     results_path = find_latest_results_file(args.experiment_dir)
     results = load_results(results_path)
 
-    agg_result = aggregate_by_group(results, group_map, target_groups=target_groups)
-    report = build_report(
-        stats=agg_result["stats"],
-        unknown_tests=agg_result["unknown_tests"]
+    agg_result = aggregate_by_group(
+        results, group_map, target_groups=target_groups
     )
-    
+    report = build_report(
+        stats=agg_result["stats"], unknown_tests=agg_result["unknown_tests"]
+    )
+
     with open(
         os.path.join(args.experiment_dir, "action_f1_by_group_report.json"), "w"
     ) as f:

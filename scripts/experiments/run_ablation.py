@@ -16,7 +16,20 @@ from openai import OpenAI
 load_dotenv()
 
 from scripts.common import resolve_repo_path
-from src.config import ExperimentConfig, load_config, ExperimentMeta, DiscoveryConfig, PlanningConfig, ExecutionConfig, ModelConfig, TracingConfig, AffordanceConfig, StateConfig, ReasoningConfig, OutputConfig
+from src.config import (
+    AffordanceConfig,
+    DiscoveryConfig,
+    ExecutionConfig,
+    ExperimentConfig,
+    ExperimentMeta,
+    ModelConfig,
+    OutputConfig,
+    PlanningConfig,
+    ReasoningConfig,
+    StateConfig,
+    TracingConfig,
+    load_config,
+)
 from src.runner import run_experiment
 
 
@@ -48,7 +61,9 @@ def create_config(
         ),
         execution=ExecutionConfig(max_ticks=10),
         model=ModelConfig(name=model, temperature=0.0),
-        tracing=TracingConfig(enabled=True, output_dir="traces/", verbose=False),
+        tracing=TracingConfig(
+            enabled=True, output_dir="traces/", verbose=False
+        ),
     )
 
 
@@ -60,14 +75,12 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "none",
     },
-
     # With state gathering
     "baseline_with_state": {
         "reasoning_enabled": False,
         "output_format": "json_ir",
         "state_strategy": "all",
     },
-
     # Chain of thought reasoning
     "cot_reasoning": {
         "reasoning_enabled": True,
@@ -75,7 +88,6 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "all",
     },
-
     # Reflection reasoning
     "reflection_reasoning": {
         "reasoning_enabled": True,
@@ -83,7 +95,6 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "all",
     },
-
     # Multi-turn reasoning
     "multi_turn_reasoning": {
         "reasoning_enabled": True,
@@ -91,14 +102,12 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "all",
     },
-
     # Python code generation (no reasoning)
     "python_code_direct": {
         "reasoning_enabled": False,
         "output_format": "python_code",
         "state_strategy": "none",
     },
-
     # Python code with CoT
     "python_code_cot": {
         "reasoning_enabled": True,
@@ -106,7 +115,6 @@ ABLATION_CONFIGS = {
         "output_format": "python_code",
         "state_strategy": "all",
     },
-
     # Agentic discovery (LLM-guided exploration)
     "agentic_discovery": {
         "affordance_strategy": "agentic",
@@ -114,7 +122,6 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "relevant",
     },
-
     # Agentic discovery with CoT reasoning
     "agentic_discovery_cot": {
         "affordance_strategy": "agentic",
@@ -123,7 +130,6 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "relevant",
     },
-
     # Fully agentic (both affordance and state discovery)
     "fully_agentic": {
         "affordance_strategy": "agentic",
@@ -131,7 +137,6 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "agentic",
     },
-
     # Fully agentic with CoT reasoning
     "fully_agentic_cot": {
         "affordance_strategy": "agentic",
@@ -140,14 +145,12 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "agentic",
     },
-
     # Unconstrained Python code (custom py_trees behaviors)
     "python_unconstrained": {
         "reasoning_enabled": False,
         "output_format": "python_code_unconstrained",
         "state_strategy": "all",
     },
-
     # Unconstrained Python code with CoT
     "python_unconstrained_cot": {
         "reasoning_enabled": True,
@@ -212,7 +215,9 @@ def run_ablation(
 
             print(f"\n{'-' * 50}")
             print(f"CONFIG: {config_name}")
-            print(f"  Reasoning: {config_params.get('reasoning_enabled', False)} ({config_params.get('reasoning_strategy', 'none')})")
+            print(
+                f"  Reasoning: {config_params.get('reasoning_enabled', False)} ({config_params.get('reasoning_strategy', 'none')})"
+            )
             print(f"  Output: {config_params.get('output_format', 'json_ir')}")
             print(f"  State: {config_params.get('state_strategy', 'none')}")
             print(f"{'-' * 50}")
@@ -236,15 +241,21 @@ def run_ablation(
                 result["goal"] = goal
 
                 # Print summary
-                print(f"\n  Result: {'SUCCESS' if result['success'] else 'FAILED'}")
+                print(
+                    f"\n  Result: {'SUCCESS' if result['success'] else 'FAILED'}"
+                )
                 if result.get("execution"):
                     exec_result = result["execution"]
                     print(f"  Ticks: {exec_result.get('ticks', 'N/A')}")
-                    print(f"  Final status: {exec_result.get('final_status', 'N/A')}")
+                    print(
+                        f"  Final status: {exec_result.get('final_status', 'N/A')}"
+                    )
 
                 if result.get("planning"):
                     plan = result["planning"].get("plan", {})
-                    print(f"  Reasoning steps: {len(plan.get('reasoning_trace', []))}")
+                    print(
+                        f"  Reasoning steps: {len(plan.get('reasoning_trace', []))}"
+                    )
                     if plan.get("explanation"):
                         print(f"  Explanation: {plan['explanation'][:100]}...")
 
@@ -254,20 +265,26 @@ def run_ablation(
                 all_results.append(result)
 
                 # Save individual result
-                result_file = output_dir / f"{config_name}_{goal[:30].replace(' ', '_')}.json"
+                result_file = (
+                    output_dir
+                    / f"{config_name}_{goal[:30].replace(' ', '_')}.json"
+                )
                 with open(result_file, "w") as f:
                     json.dump(result, f, indent=2, default=str)
 
             except Exception as e:
                 print(f"  ERROR: {e}")
                 import traceback
+
                 traceback.print_exc()
-                all_results.append({
-                    "config_name": config_name,
-                    "goal": goal,
-                    "success": False,
-                    "error": str(e),
-                })
+                all_results.append(
+                    {
+                        "config_name": config_name,
+                        "goal": goal,
+                        "success": False,
+                        "error": str(e),
+                    }
+                )
 
     # Save summary
     summary_file = output_dir / "summary.json"
@@ -282,7 +299,11 @@ def run_ablation(
                 "goal": r.get("goal"),
                 "success": r.get("success", False),
                 "error": r.get("error"),
-                "ticks": r.get("execution", {}).get("ticks") if r.get("execution") else None,
+                "ticks": (
+                    r.get("execution", {}).get("ticks")
+                    if r.get("execution")
+                    else None
+                ),
             }
             for r in all_results
         ],
@@ -298,7 +319,9 @@ def run_ablation(
 
     for r in all_results:
         status = "✓" if r.get("success") else "✗"
-        print(f"  {status} {r.get('config_name', 'unknown')}: {r.get('goal', 'unknown')[:40]}")
+        print(
+            f"  {status} {r.get('config_name', 'unknown')}: {r.get('goal', 'unknown')[:40]}"
+        )
 
     print(f"\nResults saved to: {output_dir}")
     return all_results
@@ -308,11 +331,15 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Run ablation experiments")
-    parser.add_argument("--configs", nargs="+", help="Configs to run (default: all)")
+    parser.add_argument(
+        "--configs", nargs="+", help="Configs to run (default: all)"
+    )
     parser.add_argument("--goals", nargs="+", help="Goals to test")
     parser.add_argument("--home", type=int, default=96, help="Home ID")
     parser.add_argument("--model", default="gpt-4o", help="Model to use")
-    parser.add_argument("--list", action="store_true", help="List available configs")
+    parser.add_argument(
+        "--list", action="store_true", help="List available configs"
+    )
 
     args = parser.parse_args()
 

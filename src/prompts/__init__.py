@@ -14,7 +14,7 @@ Output formats:
 - python_code: Direct Python py_trees code
 """
 
-from .registry import get_prompt, list_strategies, get_strategy_descriptions
+from .registry import get_prompt, get_strategy_descriptions, list_strategies
 
 __all__ = [
     "get_prompt",

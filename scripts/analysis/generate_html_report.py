@@ -7,11 +7,11 @@ Usage:
     uv run python -m scripts.analysis.generate_html_report --latest
 """
 
-import json
-import html
 import argparse
-from pathlib import Path
+import html
+import json
 from collections import defaultdict
+from pathlib import Path
 from typing import Optional
 
 
@@ -256,47 +256,59 @@ td.label {
 
 def generate_individual_html(result: dict, output_path: Path) -> None:
     """Generate HTML for a single experiment result."""
-    config = result.get('config', {})
-    discovery = result.get('discovery', {})
-    planning = result.get('planning', {})
-    execution = result.get('execution', {})
-    evaluation = result.get('evaluation', {})
+    config = result.get("config", {})
+    discovery = result.get("discovery", {})
+    planning = result.get("planning", {})
+    execution = result.get("execution", {})
+    evaluation = result.get("evaluation", {})
 
-    success = result.get('success', False)
-    goal = result.get('goal', 'N/A')
-    config_name = result.get('config_name', 'unknown')
-    prompt_id = result.get('prompt_id', 'unknown')
-    duration = result.get('duration_seconds', 0)
+    success = result.get("success", False)
+    goal = result.get("goal", "N/A")
+    config_name = result.get("config_name", "unknown")
+    prompt_id = result.get("prompt_id", "unknown")
+    duration = result.get("duration_seconds", 0)
 
     # Extract config details
-    model_name = config.get('model', {}).get('name', 'N/A')
-    affordance_strategy = config.get('discovery', {}).get('affordances', {}).get('strategy', 'N/A')
-    state_strategy = config.get('discovery', {}).get('state', {}).get('strategy', 'N/A')
-    reasoning_config = config.get('planning', {}).get('reasoning', {})
-    reasoning_enabled = reasoning_config.get('enabled', False)
-    reasoning_strategy = reasoning_config.get('strategy', 'N/A') if reasoning_enabled else 'disabled'
-    output_format = config.get('planning', {}).get('output', {}).get('format', 'N/A')
+    model_name = config.get("model", {}).get("name", "N/A")
+    affordance_strategy = (
+        config.get("discovery", {})
+        .get("affordances", {})
+        .get("strategy", "N/A")
+    )
+    state_strategy = (
+        config.get("discovery", {}).get("state", {}).get("strategy", "N/A")
+    )
+    reasoning_config = config.get("planning", {}).get("reasoning", {})
+    reasoning_enabled = reasoning_config.get("enabled", False)
+    reasoning_strategy = (
+        reasoning_config.get("strategy", "N/A")
+        if reasoning_enabled
+        else "disabled"
+    )
+    output_format = (
+        config.get("planning", {}).get("output", {}).get("format", "N/A")
+    )
 
     # Discovery stats
-    affordances = discovery.get('affordances', {})
-    stats = affordances.get('stats', {})
-    workspaces = affordances.get('workspaces', {})
-    state_values = discovery.get('state', {}).get('property_values', {})
-    exploration_trace = discovery.get('exploration_trace', [])
+    affordances = discovery.get("affordances", {})
+    stats = affordances.get("stats", {})
+    workspaces = affordances.get("workspaces", {})
+    state_values = discovery.get("state", {}).get("property_values", {})
+    exploration_trace = discovery.get("exploration_trace", [])
 
     # Planning
-    plan = planning.get('plan', {})
-    plan_content = plan.get('content', {})
-    explanation = plan.get('explanation', '')
-    reasoning_trace = plan.get('reasoning_trace', [])
+    plan = planning.get("plan", {})
+    plan_content = plan.get("content", {})
+    explanation = plan.get("explanation", "")
+    reasoning_trace = plan.get("reasoning_trace", [])
 
     # Execution
-    exec_success = execution.get('success', False)
-    tree_name = execution.get('tree_name', 'N/A')
-    ticks = execution.get('ticks', 0)
-    final_status = execution.get('final_status', 'N/A')
-    tick_history = execution.get('tick_history', [])
-    exec_error = execution.get('error', '')
+    exec_success = execution.get("success", False)
+    tree_name = execution.get("tree_name", "N/A")
+    ticks = execution.get("ticks", 0)
+    final_status = execution.get("final_status", "N/A")
+    tick_history = execution.get("tick_history", [])
+    exec_error = execution.get("error", "")
 
     html_content = f"""<!DOCTYPE html>
 <html>
@@ -457,23 +469,25 @@ def generate_individual_html(result: dict, output_path: Path) -> None:
 </html>
 """
 
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         f.write(html_content)
 
 
-def generate_index_html(results: list[dict], output_dir: Path, charts_dir: Optional[Path] = None) -> None:
+def generate_index_html(
+    results: list[dict], output_dir: Path, charts_dir: Optional[Path] = None
+) -> None:
     """Generate index HTML with overview of all results."""
 
     # Group results by config and prompt
     by_config = defaultdict(list)
     by_prompt = defaultdict(list)
     for r in results:
-        by_config[r.get('config_name', 'unknown')].append(r)
-        by_prompt[r.get('prompt_id', 'unknown')].append(r)
+        by_config[r.get("config_name", "unknown")].append(r)
+        by_prompt[r.get("prompt_id", "unknown")].append(r)
 
     # Calculate statistics
     total = len(results)
-    total_success = sum(1 for r in results if r.get('success'))
+    total_success = sum(1 for r in results if r.get("success"))
     configs = list(by_config.keys())
     prompts = list(by_prompt.keys())
 
@@ -481,26 +495,39 @@ def generate_index_html(results: list[dict], output_dir: Path, charts_dir: Optio
     config_stats = []
     for config in sorted(configs):
         config_results = by_config[config]
-        successes = sum(1 for r in config_results if r.get('success'))
-        config_stats.append({
-            'name': config,
-            'successes': successes,
-            'total': len(config_results),
-            'rate': successes / len(config_results) * 100 if config_results else 0,
-        })
+        successes = sum(1 for r in config_results if r.get("success"))
+        config_stats.append(
+            {
+                "name": config,
+                "successes": successes,
+                "total": len(config_results),
+                "rate": (
+                    successes / len(config_results) * 100
+                    if config_results
+                    else 0
+                ),
+            }
+        )
 
     # Sort by success rate descending
-    config_stats.sort(key=lambda x: x['rate'], reverse=True)
+    config_stats.sort(key=lambda x: x["rate"], reverse=True)
 
     # Generate result cards HTML
     result_cards = []
-    for r in sorted(results, key=lambda x: (x.get('prompt_id', ''), x.get('config_name', ''))):
-        prompt_id = r.get('prompt_id', 'unknown')
-        config_name = r.get('config_name', 'unknown')
-        success = r.get('success', False)
-        goal = r.get('goal', '')[:80] + '...' if len(r.get('goal', '')) > 80 else r.get('goal', '')
-        duration = r.get('duration_seconds', 0)
-        eval_data = r.get('evaluation', {})
+    for r in sorted(
+        results,
+        key=lambda x: (x.get("prompt_id", ""), x.get("config_name", "")),
+    ):
+        prompt_id = r.get("prompt_id", "unknown")
+        config_name = r.get("config_name", "unknown")
+        success = r.get("success", False)
+        goal = (
+            r.get("goal", "")[:80] + "..."
+            if len(r.get("goal", "")) > 80
+            else r.get("goal", "")
+        )
+        duration = r.get("duration_seconds", 0)
+        eval_data = r.get("evaluation", {})
 
         filename = f"{prompt_id}_{config_name}.html"
         card_class = "success-card" if success else "error-card"
@@ -656,7 +683,7 @@ def generate_index_html(results: list[dict], output_dir: Path, charts_dir: Optio
 </html>
 """
 
-    with open(output_dir / 'index.html', 'w') as f:
+    with open(output_dir / "index.html", "w") as f:
         f.write(html_content)
 
 
@@ -669,7 +696,7 @@ def load_results(results_dir: Path) -> list[dict]:
         try:
             with open(f) as fp:
                 data = json.load(fp)
-                data['filename'] = f.name
+                data["filename"] = f.name
                 results.append(data)
         except Exception as e:
             print(f"Error loading {f}: {e}")
@@ -686,10 +713,16 @@ def get_latest_results_dir(base_dir: str = "experiments/results") -> Path:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate HTML reports for ablation results")
+    parser = argparse.ArgumentParser(
+        description="Generate HTML reports for ablation results"
+    )
     parser.add_argument("results_dir", nargs="?", help="Results directory")
-    parser.add_argument("--latest", action="store_true", help="Use latest results")
-    parser.add_argument("--output", "-o", default=None, help="Output directory for HTML files")
+    parser.add_argument(
+        "--latest", action="store_true", help="Use latest results"
+    )
+    parser.add_argument(
+        "--output", "-o", default=None, help="Output directory for HTML files"
+    )
 
     args = parser.parse_args()
 
@@ -718,8 +751,8 @@ def main():
     # Generate individual HTML files
     print("Generating individual HTML reports...")
     for result in results:
-        prompt_id = result.get('prompt_id', 'unknown')
-        config_name = result.get('config_name', 'unknown')
+        prompt_id = result.get("prompt_id", "unknown")
+        config_name = result.get("config_name", "unknown")
         filename = f"{prompt_id}_{config_name}.html"
         output_path = output_dir / filename
         generate_individual_html(result, output_path)

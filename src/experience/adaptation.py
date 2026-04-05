@@ -13,7 +13,12 @@ import logging
 from typing import Optional
 
 from ..config import ModelConfig, get_model_kwargs
-from ..discovery.base import Artifact, CapabilityModel, DiscoveryResult, EnvironmentState
+from ..discovery.base import (
+    Artifact,
+    CapabilityModel,
+    DiscoveryResult,
+    EnvironmentState,
+)
 from .engine import ExperienceEntry
 from .intent import StructuredIntent
 
@@ -52,7 +57,11 @@ ADAPTATION_OUTPUT_SCHEMA = {
                             "description": "Brief explanation for this parameter update.",
                         },
                     },
-                    "required": ["parameter_name", "parameter_value", "explanation"],
+                    "required": [
+                        "parameter_name",
+                        "parameter_value",
+                        "explanation",
+                    ],
                     "additionalProperties": False,
                 },
             },
@@ -259,9 +268,7 @@ class ExperienceAdapter:
                     if action_sem != aff_type_lower:
                         continue
 
-                    state_lines = self._build_device_state(
-                        artifact, env_state
-                    )
+                    state_lines = self._build_device_state(artifact, env_state)
 
                     return {
                         "action_url": action.uri,
@@ -338,14 +345,18 @@ class ExperienceAdapter:
             {"role": "user", "content": user_message},
         ]
 
-        api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
-        api_kwargs.update({
-            "messages": messages,
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": ADAPTATION_OUTPUT_SCHEMA,
-            },
-        })
+        api_kwargs = get_model_kwargs(
+            model_config.name, model_config=model_config
+        )
+        api_kwargs.update(
+            {
+                "messages": messages,
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": ADAPTATION_OUTPUT_SCHEMA,
+                },
+            }
+        )
 
         trace = {
             "system_prompt": system_prompt,
@@ -378,7 +389,10 @@ class ExperienceAdapter:
             if not isinstance(entry, dict):
                 continue
             parameter_name = entry.get("parameter_name")
-            if not isinstance(parameter_name, str) or not parameter_name.strip():
+            if (
+                not isinstance(parameter_name, str)
+                or not parameter_name.strip()
+            ):
                 continue
             params[parameter_name] = entry.get("parameter_value")
 

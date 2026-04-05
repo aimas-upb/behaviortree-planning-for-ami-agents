@@ -2,15 +2,15 @@
 Discovery pipeline that combines affordance discovery and state gathering.
 """
 
-from typing import Optional
 import logging
+from typing import Optional
 
 from openai import OpenAI
 
-from .base import DiscoveryResult, CapabilityModel, EnvironmentState
-from .affordances import create_affordance_strategy
-from .state import create_state_strategy
 from ..config import DiscoveryConfig, ModelConfig
+from .affordances import create_affordance_strategy
+from .base import CapabilityModel, DiscoveryResult, EnvironmentState
+from .state import create_state_strategy
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class DiscoveryPipeline:
 
         # Capture exploration trace if available (for agentic discovery)
         exploration_trace = []
-        if hasattr(self.affordance_strategy, 'get_exploration_trace'):
+        if hasattr(self.affordance_strategy, "get_exploration_trace"):
             exploration_trace = self.affordance_strategy.get_exploration_trace()
 
         # Phase 2: Gather state
@@ -68,7 +68,7 @@ class DiscoveryPipeline:
 
         # Capture state trace if available (for agentic state discovery)
         state_trace = []
-        if hasattr(self.state_strategy, 'get_state_trace'):
+        if hasattr(self.state_strategy, "get_state_trace"):
             state_trace = self.state_strategy.get_state_trace()
 
         return DiscoveryResult(

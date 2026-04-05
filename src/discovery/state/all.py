@@ -4,12 +4,12 @@ All state gathering strategy.
 Reads all property values from discovered artifacts.
 """
 
-from typing import Optional
 import logging
 from datetime import datetime
+from typing import Optional
 
+from ...hmas_client import GetPropertyError, get_property_by_uri
 from ..base import CapabilityModel, EnvironmentState
-from ...hmas_client import get_property_by_uri, GetPropertyError
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,9 @@ class AllStateGathering:
                 logger.warning(f"Failed to read property {prop_uri}: {e}")
             except Exception as e:
                 state.errors[prop_uri] = str(e)
-                logger.warning(f"Unexpected error reading property {prop_uri}: {e}")
+                logger.warning(
+                    f"Unexpected error reading property {prop_uri}: {e}"
+                )
 
         logger.info(
             f"State gathered: {len(state.property_values)} values, "

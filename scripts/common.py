@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DOCKERFILE = PROJECT_ROOT / "docker" / "Dockerfile"
 

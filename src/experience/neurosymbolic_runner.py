@@ -31,15 +31,14 @@ from urllib.parse import urlparse
 
 import py_trees
 import requests
+from behavior_trees.affordance_nodes import ActionAffordanceNode
 
 from ..config import ExperimentConfig
-from ..execution import ExecutionResult, CodeExecutor, create_executor
+from ..execution import CodeExecutor, ExecutionResult, create_executor
 from ..planning import create_planner
 from .bt_serialization import py_tree_to_json_ir
 from .engine import ExperienceEngine, ExperienceEntry
 from .intent import IntentExtractor, StructuredIntent
-
-from behavior_trees.affordance_nodes import ActionAffordanceNode
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +67,9 @@ class _AnySuccessElseAllFailureParallel(py_trees.composites.Parallel):
         self.validate_policy_configuration()
 
         if self.status != py_trees.common.Status.RUNNING:
-            self.logger.debug("%s.tick(): re-initialising" % self.__class__.__name__)
+            self.logger.debug(
+                "%s.tick(): re-initialising" % self.__class__.__name__
+            )
             for child in self.children:
                 if child.status != py_trees.common.Status.INVALID:
                     child.stop(py_trees.common.Status.INVALID)
@@ -82,20 +83,31 @@ class _AnySuccessElseAllFailureParallel(py_trees.composites.Parallel):
             return
 
         for child in self.children:
-            if self.policy.synchronise and child.status == py_trees.common.Status.SUCCESS:
+            if (
+                self.policy.synchronise
+                and child.status == py_trees.common.Status.SUCCESS
+            ):
                 continue
             for node in child.tick():
                 yield node
 
         statuses = [child.status for child in self.children]
 
-        if any(s in (py_trees.common.Status.RUNNING, py_trees.common.Status.INVALID) for s in statuses):
+        if any(
+            s
+            in (py_trees.common.Status.RUNNING, py_trees.common.Status.INVALID)
+            for s in statuses
+        ):
             new_status = py_trees.common.Status.RUNNING
             self.current_child = self.children[-1]
         elif any(s == py_trees.common.Status.SUCCESS for s in statuses):
             new_status = py_trees.common.Status.SUCCESS
             self.current_child = next(
-                (child for child in reversed(self.children) if child.status == py_trees.common.Status.SUCCESS),
+                (
+                    child
+                    for child in reversed(self.children)
+                    if child.status == py_trees.common.Status.SUCCESS
+                ),
                 self.children[-1],
             )
         else:
@@ -112,6 +124,7 @@ class _AnySuccessElseAllFailureParallel(py_trees.composites.Parallel):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _extract_home_id(entry_point: str) -> str:
     """Extract home ID number from entry point URI.
 
@@ -119,7 +132,9 @@ def _extract_home_id(entry_point: str) -> str:
     """
     match = re.search(r"/workspaces/home(\d+)", entry_point)
     if not match:
-        raise ValueError(f"Cannot extract home_id from entry point: {entry_point}")
+        raise ValueError(
+            f"Cannot extract home_id from entry point: {entry_point}"
+        )
     return match.group(1)
 
 
@@ -203,6 +218,7 @@ _PARAMETER_EMPTY_BLOCK = ""
 # Result data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SparqlResolutionResult:
     """Result of running the SPARQL query for a single intent."""
@@ -245,7 +261,9 @@ class NeuroSymbolicRunResult:
     intent_extraction_trace: Optional[dict] = None
 
     # SPARQL resolution
-    resolution_results: list[SparqlResolutionResult] = field(default_factory=list)
+    resolution_results: list[SparqlResolutionResult] = field(
+        default_factory=list
+    )
 
     # Routing
     impossible_intents: list[StructuredIntent] = field(default_factory=list)
@@ -255,8 +273,8 @@ class NeuroSymbolicRunResult:
     set_intents: list[tuple[StructuredIntent, SparqlResolutionResult]] = field(
         default_factory=list
     )
-    modify_intents: list[tuple[StructuredIntent, SparqlResolutionResult]] = field(
-        default_factory=list
+    modify_intents: list[tuple[StructuredIntent, SparqlResolutionResult]] = (
+        field(default_factory=list)
     )
 
     # Set-action subtree (built programmatically)
@@ -285,18 +303,32 @@ class NeuroSymbolicRunResult:
         impossible_details = []
         for intent, match in zip(
             self.impossible_intents,
-            self.impossible_matches + [None] * max(0, len(self.impossible_intents) - len(self.impossible_matches)),
+            self.impossible_matches
+            + [None]
+            * max(
+                0, len(self.impossible_intents) - len(self.impossible_matches)
+            ),
         ):
-            impossible_details.append({
-                "intent": intent.to_dict(),
-                "reason": "experience_match" if match is not None else "sparql_no_result",
-                "matched_experience": match.to_dict() if match is not None else None,
-            })
+            impossible_details.append(
+                {
+                    "intent": intent.to_dict(),
+                    "reason": (
+                        "experience_match"
+                        if match is not None
+                        else "sparql_no_result"
+                    ),
+                    "matched_experience": (
+                        match.to_dict() if match is not None else None
+                    ),
+                }
+            )
 
         return {
             "intents": [i.to_dict() for i in self.intents],
             "intent_extraction_trace": self.intent_extraction_trace,
-            "resolution_results": [r.to_dict() for r in self.resolution_results],
+            "resolution_results": [
+                r.to_dict() for r in self.resolution_results
+            ],
             "impossible_count": len(self.impossible_intents),
             "impossible_details": impossible_details,
             "set_count": len(self.set_intents),
@@ -308,7 +340,9 @@ class NeuroSymbolicRunResult:
             "combined_plan_ir": self.combined_plan_ir,
             "execution_backend": self.execution_backend,
             "execution": (
-                self.execution_result.to_dict() if self.execution_result else None
+                self.execution_result.to_dict()
+                if self.execution_result
+                else None
             ),
             "detected_impossible": self.detected_impossible,
             "success": self.success,
@@ -320,6 +354,7 @@ class NeuroSymbolicRunResult:
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
+
 
 class NeuroSymbolicRunner:
     """
@@ -451,9 +486,13 @@ class NeuroSymbolicRunner:
 
             for intent, res in zip(active_intents, resolution_results):
                 if not res.success:
-                    logger.info(f"IMPOSSIBLE (no SPARQL result): {intent.text_intent!r}")
+                    logger.info(
+                        f"IMPOSSIBLE (no SPARQL result): {intent.text_intent!r}"
+                    )
                     result.impossible_intents.append(intent)
-                    result.impossible_matches.append(None)  # SPARQL-based, no experience entry
+                    result.impossible_matches.append(
+                        None
+                    )  # SPARQL-based, no experience entry
                     result.detected_impossible.append(intent.text_intent)
                 elif intent.verb == "set":
                     result.set_intents.append((intent, res))
@@ -505,7 +544,9 @@ class NeuroSymbolicRunner:
                 result.modify_plan_time_seconds = time.time() - modify_t0
 
                 if modify_tree is not None:
-                    result.modify_actions_tree_ir = py_tree_to_json_ir(modify_tree)
+                    result.modify_actions_tree_ir = py_tree_to_json_ir(
+                        modify_tree
+                    )
                     logger.info("Modify-actions BT built successfully")
 
                 # Collect impossible sub-goals reported by LLM
@@ -521,11 +562,15 @@ class NeuroSymbolicRunner:
             logger.info("STEP 7: Combine & Execute")
             logger.info("=" * 60)
 
-            trace_subtrees = [t for t in [set_tree, modify_tree] if t is not None]
+            trace_subtrees = [
+                t for t in [set_tree, modify_tree] if t is not None
+            ]
 
             if not trace_subtrees:
                 modify_error = None
-                if result.modify_plan_trace and isinstance(result.modify_plan_trace, dict):
+                if result.modify_plan_trace and isinstance(
+                    result.modify_plan_trace, dict
+                ):
                     modify_error = result.modify_plan_trace.get("error")
 
                 if modify_error:
@@ -569,7 +614,9 @@ class NeuroSymbolicRunner:
             # Build execution tree from the in-memory subtrees.
             # Then recursively retune every Parallel(SuccessOnOne) to deterministic
             # wait-all semantics, without re-parenting nodes.
-            exec_subtrees = [t for t in [set_tree, modify_tree] if t is not None]
+            exec_subtrees = [
+                t for t in [set_tree, modify_tree] if t is not None
+            ]
             if len(exec_subtrees) > 1:
                 exec_tree = py_trees.composites.Parallel(
                     name="CombinedPlan",
@@ -672,7 +719,9 @@ class NeuroSymbolicRunner:
 
         if (
             isinstance(tree, py_trees.composites.Parallel)
-            and isinstance(tree.policy, py_trees.common.ParallelPolicy.SuccessOnOne)
+            and isinstance(
+                tree.policy, py_trees.common.ParallelPolicy.SuccessOnOne
+            )
             and not isinstance(tree, _AnySuccessElseAllFailureParallel)
         ):
             tree.__class__ = _AnySuccessElseAllFailureParallel
@@ -786,7 +835,9 @@ class NeuroSymbolicRunner:
         res.raw_bindings = bindings
 
         if not bindings:
-            logger.info(f"No SPARQL bindings for intent: {intent.text_intent!r}")
+            logger.info(
+                f"No SPARQL bindings for intent: {intent.text_intent!r}"
+            )
             return res
 
         # Use the first binding
@@ -797,7 +848,9 @@ class NeuroSymbolicRunner:
         res.affordance_name = b.get("affordance_name", {}).get("value")
         res.target_uri = b.get("target_uri", {}).get("value")
         res.parameter_name = b.get("parameter_name", {}).get("value")
-        res.parameter_schema_type = b.get("parameter_schema_type", {}).get("value")
+        res.parameter_schema_type = b.get("parameter_schema_type", {}).get(
+            "value"
+        )
 
         return res
 
@@ -845,7 +898,9 @@ class NeuroSymbolicRunner:
                     name=node_name,
                     action_url=target_uri,
                 )
-                logger.info(f"Set node (parameterless): {node_name} @ {target_uri}")
+                logger.info(
+                    f"Set node (parameterless): {node_name} @ {target_uri}"
+                )
 
             nodes.append(node)
 
@@ -891,7 +946,9 @@ class NeuroSymbolicRunner:
         for idx, (intent, res) in enumerate(modify_intents, start=1):
             goal_lines.append(f"**Intent {idx}**")
             goal_lines.append(f"text_intent: {intent.text_intent}")
-            goal_lines.append(f"action.affordance_type: {intent.affordance_type}")
+            goal_lines.append(
+                f"action.affordance_type: {intent.affordance_type}"
+            )
             goal_lines.append(f"action.verb: {intent.verb}")
             goal_lines.append(f"action.parameter: {intent.parameter}")
             goal_lines.append(f"action.value: {intent.value}")
@@ -910,12 +967,14 @@ class NeuroSymbolicRunner:
                 modify_intents, entry_point
             )
         except Exception as exc:
-            logger.error(f"Failed to build discovery result from SPARQL bindings: {exc}")
+            logger.error(
+                f"Failed to build discovery result from SPARQL bindings: {exc}"
+            )
             trace["error"] = str(exc)
             return None, trace
 
         # Plan using modify-only prompt
-        from ..config import PlanningConfig, ReasoningConfig, OutputConfig
+        from ..config import OutputConfig, PlanningConfig, ReasoningConfig
 
         planning_config = PlanningConfig(
             reasoning=ReasoningConfig(enabled=False),
@@ -950,7 +1009,9 @@ class NeuroSymbolicRunner:
         # formatting glitch where top-level `tree = ...` is emitted with
         # accidental leading indentation.
         if plan.is_python_code and isinstance(plan.content, str):
-            normalized_code = self._normalize_top_level_tree_assignment(plan.content)
+            normalized_code = self._normalize_top_level_tree_assignment(
+                plan.content
+            )
             if normalized_code != plan.content:
                 logger.info(
                     "Normalized generated modify code by de-indenting top-level tree assignment"
@@ -968,9 +1029,8 @@ class NeuroSymbolicRunner:
             return None, trace
 
         # Skip if only impossible comments, no executable tree
-        if (
-            plan.detected_impossible
-            and not self._code_defines_tree_or_builder(plan.content)
+        if plan.detected_impossible and not self._code_defines_tree_or_builder(
+            plan.content
         ):
             logger.info(
                 "Modify plan contains only impossible sub-goals — no executable tree"
@@ -1002,7 +1062,9 @@ class NeuroSymbolicRunner:
 
     @staticmethod
     def _build_discovery_result_from_resolutions(
-        intents_with_results: list[tuple[StructuredIntent, SparqlResolutionResult]],
+        intents_with_results: list[
+            tuple[StructuredIntent, SparqlResolutionResult]
+        ],
         entry_point: str,
     ):
         """
@@ -1022,16 +1084,16 @@ class NeuroSymbolicRunner:
             Affordance,
             Artifact,
             CapabilityModel,
-            EnvironmentState,
             DiscoveryResult,
+            EnvironmentState,
         )
         from ..hmas_client import (
+            GetPropertyError,
+            get_artifact_semantic_type,
+            get_property_by_uri,
+            get_workspace_semantic_type,
             list_actions,
             list_properties,
-            get_artifact_semantic_type,
-            get_workspace_semantic_type,
-            get_property_by_uri,
-            GetPropertyError,
         )
 
         capability_model = CapabilityModel(entry_point=entry_point)
@@ -1062,12 +1124,14 @@ class NeuroSymbolicRunner:
             # Add the resolved action affordance
             existing_uris = {a.uri for a in artifact.actions}
             if res.target_uri and res.target_uri not in existing_uris:
-                artifact.actions.append(Affordance(
-                    name=res.affordance_name or "",
-                    uri=res.target_uri,
-                    command=intent.text_intent,
-                    semantic_type=intent.affordance_type,
-                ))
+                artifact.actions.append(
+                    Affordance(
+                        name=res.affordance_name or "",
+                        uri=res.target_uri,
+                        command=intent.text_intent,
+                        semantic_type=intent.affordance_type,
+                    )
+                )
 
         # Enrich each artifact with semantic type, full action schemas, and properties
         for art_uri, artifact in capability_model.artifacts.items():
@@ -1075,16 +1139,22 @@ class NeuroSymbolicRunner:
             ws = capability_model.workspaces.get(artifact.workspace)
             if ws and not ws.semantic_type:
                 try:
-                    ws.semantic_type = get_workspace_semantic_type(artifact.workspace)
+                    ws.semantic_type = get_workspace_semantic_type(
+                        artifact.workspace
+                    )
                 except Exception as exc:
-                    logger.warning(f"Could not fetch workspace type for {artifact.workspace}: {exc}")
+                    logger.warning(
+                        f"Could not fetch workspace type for {artifact.workspace}: {exc}"
+                    )
 
             # Artifact semantic type
             if not artifact.semantic_type:
                 try:
                     artifact.semantic_type = get_artifact_semantic_type(art_uri)
                 except Exception as exc:
-                    logger.warning(f"Could not fetch artifact type for {art_uri}: {exc}")
+                    logger.warning(
+                        f"Could not fetch artifact type for {art_uri}: {exc}"
+                    )
 
             # Property affordances (needed so LLM can read current values)
             try:
@@ -1099,12 +1169,16 @@ class NeuroSymbolicRunner:
                     for p in props
                 ]
             except Exception as exc:
-                logger.warning(f"Could not fetch properties for {art_uri}: {exc}")
+                logger.warning(
+                    f"Could not fetch properties for {art_uri}: {exc}"
+                )
 
             # Enrich action schemas
             try:
                 all_actions = list_actions(art_uri)
-                schema_map = {a["uri"]: a.get("input_schema", {}) for a in all_actions}
+                schema_map = {
+                    a["uri"]: a.get("input_schema", {}) for a in all_actions
+                }
                 name_map = {a["uri"]: a["name"] for a in all_actions}
                 for action in artifact.actions:
                     if action.uri in schema_map:
@@ -1112,14 +1186,18 @@ class NeuroSymbolicRunner:
                     if action.uri in name_map:
                         action.name = name_map[action.uri]
             except Exception as exc:
-                logger.warning(f"Could not fetch action schemas for {art_uri}: {exc}")
+                logger.warning(
+                    f"Could not fetch action schemas for {art_uri}: {exc}"
+                )
 
         # Read current property values for all discovered properties
         state = EnvironmentState(timestamp=datetime.now().isoformat())
         for artifact in capability_model.artifacts.values():
             for prop in artifact.properties:
                 try:
-                    state.property_values[prop.uri] = get_property_by_uri(prop.uri)
+                    state.property_values[prop.uri] = get_property_by_uri(
+                        prop.uri
+                    )
                 except GetPropertyError as exc:
                     state.errors[prop.uri] = str(exc)
                 except Exception as exc:
@@ -1191,9 +1269,14 @@ class NeuroSymbolicRunner:
                     if isinstance(target, ast.Name) and target.id == "tree":
                         return True
             elif isinstance(node, ast.AnnAssign):
-                if isinstance(node.target, ast.Name) and node.target.id == "tree":
+                if (
+                    isinstance(node.target, ast.Name)
+                    and node.target.id == "tree"
+                ):
                     return True
-            elif isinstance(node, ast.FunctionDef) and node.name == "build_tree":
+            elif (
+                isinstance(node, ast.FunctionDef) and node.name == "build_tree"
+            ):
                 return True
 
         return False

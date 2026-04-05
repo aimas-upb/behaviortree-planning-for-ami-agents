@@ -15,7 +15,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from rdflib import Graph, Namespace, RDF, URIRef
+from rdflib import RDF, Graph, Namespace, URIRef
+
 from scripts.common import PROJECT_ROOT
 
 TD = Namespace("https://www.w3.org/2019/wot/td#")
@@ -24,7 +25,9 @@ HCTL = Namespace("https://www.w3.org/2019/wot/hypermedia#")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Extract output schema for a test entry property.")
+    parser = argparse.ArgumentParser(
+        description="Extract output schema for a test entry property."
+    )
     parser.add_argument(
         "--test-file",
         default="data/homebench/converted/test_data.json",
@@ -56,7 +59,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_property_url_from_test(test_file: Path, test_id: str, output_index: int) -> str:
+def load_property_url_from_test(
+    test_file: Path, test_id: str, output_index: int
+) -> str:
     with test_file.open("r") as f:
         tests: List[Dict[str, Any]] = json.load(f)
 
@@ -65,10 +70,14 @@ def load_property_url_from_test(test_file: Path, test_id: str, output_index: int
             continue
         outputs = entry.get("output", [])
         if output_index >= len(outputs):
-            raise IndexError(f"output-index {output_index} out of range for test {test_id}")
+            raise IndexError(
+                f"output-index {output_index} out of range for test {test_id}"
+            )
         test_obj = outputs[output_index].get("test")
         if not test_obj or "property" not in test_obj:
-            raise ValueError(f"No property test found at index {output_index} for test {test_id}")
+            raise ValueError(
+                f"No property test found at index {output_index} for test {test_id}"
+            )
         return test_obj["property"]
 
     raise ValueError(f"Test id {test_id} not found in {test_file}")
@@ -81,7 +90,9 @@ def extract_home_id_from_url(property_url: str) -> str:
     return match.group(1)
 
 
-def load_home_graph(home_id: str, description_dir: Path, graph_cache: Dict[str, Graph]) -> Graph:
+def load_home_graph(
+    home_id: str, description_dir: Path, graph_cache: Dict[str, Graph]
+) -> Graph:
     if home_id in graph_cache:
         return graph_cache[home_id]
     ttl_path = description_dir / f"home_{home_id}.ttl"
@@ -112,19 +123,33 @@ def load_output_schema(
     schema_info: Dict[str, Any] = {}
     for form in g.subjects(predicate=HCTL.hasTarget, object=target):
         for affordance in g.subjects(predicate=TD.hasForm, object=form):
-            schema_nodes = list(g.objects(subject=affordance, predicate=TD.hasOutputSchema))
+            schema_nodes = list(
+                g.objects(subject=affordance, predicate=TD.hasOutputSchema)
+            )
             if not schema_nodes:
                 continue
             # Use the first matching schema node (should be unique per affordance).
             schema = schema_nodes[0]
-            types = [str(t).split("#")[-1] for t in g.objects(subject=schema, predicate=RDF.type)]
+            types = [
+                str(t).split("#")[-1]
+                for t in g.objects(subject=schema, predicate=RDF.type)
+            ]
             if types:
                 schema_info["types"] = types
-            enums = [str(e) for e in g.objects(subject=schema, predicate=JSONSCHEMA.enum)]
+            enums = [
+                str(e)
+                for e in g.objects(subject=schema, predicate=JSONSCHEMA.enum)
+            ]
             if enums:
                 schema_info["enum"] = enums
-            minimums = [float(m) for m in g.objects(subject=schema, predicate=JSONSCHEMA.minimum)]
-            maximums = [float(m) for m in g.objects(subject=schema, predicate=JSONSCHEMA.maximum)]
+            minimums = [
+                float(m)
+                for m in g.objects(subject=schema, predicate=JSONSCHEMA.minimum)
+            ]
+            maximums = [
+                float(m)
+                for m in g.objects(subject=schema, predicate=JSONSCHEMA.maximum)
+            ]
             if minimums:
                 schema_info["minimum"] = min(minimums)
             if maximums:
@@ -148,7 +173,12 @@ def classify_schema(schema: Dict[str, Any]) -> str:
     if "IntegerSchema" in types or "NumberSchema" in types:
         min_val = schema.get("minimum")
         max_val = schema.get("maximum")
-        if min_val is not None and max_val is not None and 0 <= min_val <= 1 and max_val <= 100:
+        if (
+            min_val is not None
+            and max_val is not None
+            and 0 <= min_val <= 1
+            and max_val <= 100
+        ):
             return "percentage"
         return "numeric"
     if "ArraySchema" in types:
@@ -191,7 +221,10 @@ def generate_stats(
                     label = classify_schema(schema)
                     counts[label] += 1
                 except Exception as exc:
-                    print(f"[warn] {path.name} {entry.get('id')}: {exc}", file=sys.stderr)
+                    print(
+                        f"[warn] {path.name} {entry.get('id')}: {exc}",
+                        file=sys.stderr,
+                    )
                     counts["error"] += 1
         per_file_counts[path.name] = counts
     return {name: dict(counter) for name, counter in per_file_counts.items()}
@@ -199,7 +232,9 @@ def generate_stats(
 
 def main() -> None:
     args = parse_args()
-    description_dir = PROJECT_ROOT / "data" / "homebench" / "hmas" / "home_description"
+    description_dir = (
+        PROJECT_ROOT / "data" / "homebench" / "hmas" / "home_description"
+    )
 
     if args.stats:
         tests_dir = Path(args.tests_dir)
@@ -207,7 +242,9 @@ def main() -> None:
             tests_dir = PROJECT_ROOT / tests_dir
         test_files = sorted(tests_dir.glob(args.tests_glob))
         if not test_files:
-            raise SystemExit(f"No test files matching {args.tests_glob} in {tests_dir}")
+            raise SystemExit(
+                f"No test files matching {args.tests_glob} in {tests_dir}"
+            )
         stats = generate_stats(test_files, description_dir)
         print(json.dumps(stats, indent=2))
         return
@@ -218,12 +255,18 @@ def main() -> None:
         test_file = Path(args.test_file)
         if not test_file.is_absolute():
             test_file = PROJECT_ROOT / test_file
-        property_url = load_property_url_from_test(test_file, args.test_id, args.output_index)
+        property_url = load_property_url_from_test(
+            test_file, args.test_id, args.output_index
+        )
     else:
         raise SystemExit("Provide either --property-url or --test-id.")
 
     schema = load_output_schema(property_url, description_dir)
-    print(json.dumps({"property": property_url, "output_schema": schema}, indent=2))
+    print(
+        json.dumps(
+            {"property": property_url, "output_schema": schema}, indent=2
+        )
+    )
 
 
 if __name__ == "__main__":

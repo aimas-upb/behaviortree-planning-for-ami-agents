@@ -4,28 +4,36 @@ Base classes and dataclasses for discovery.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Protocol, Optional
+from typing import Any, Optional, Protocol
 
 
 @dataclass
 class Affordance:
     """Represents an action or property affordance."""
+
     name: str
     uri: str
     schema: dict = field(default_factory=dict)
-    command: Optional[str] = None  # The user command this affordance was discovered for
-    semantic_type: Optional[str] = None  # Ontology class local name, e.g. "SetBrightnessCommand"
+    command: Optional[str] = (
+        None  # The user command this affordance was discovered for
+    )
+    semantic_type: Optional[str] = (
+        None  # Ontology class local name, e.g. "SetBrightnessCommand"
+    )
 
 
 @dataclass
 class Artifact:
     """Represents a discovered artifact with its affordances."""
+
     name: str
     uri: str
     workspace: str
     actions: list[Affordance] = field(default_factory=list)
     properties: list[Affordance] = field(default_factory=list)
-    semantic_type: Optional[str] = None  # Ontology class local name, e.g. "Light", "Humidifier"
+    semantic_type: Optional[str] = (
+        None  # Ontology class local name, e.g. "Light", "Humidifier"
+    )
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
@@ -34,10 +42,23 @@ class Artifact:
             "uri": self.uri,
             "workspace": self.workspace,
             "actions": [
-                {k: v for k, v in [("name", a.name), ("uri", a.uri), ("schema", a.schema), ("command", a.command), ("semantic_type", a.semantic_type)] if v is not None}
+                {
+                    k: v
+                    for k, v in [
+                        ("name", a.name),
+                        ("uri", a.uri),
+                        ("schema", a.schema),
+                        ("command", a.command),
+                        ("semantic_type", a.semantic_type),
+                    ]
+                    if v is not None
+                }
                 for a in self.actions
             ],
-            "properties": [{"name": p.name, "uri": p.uri, "schema": p.schema} for p in self.properties],
+            "properties": [
+                {"name": p.name, "uri": p.uri, "schema": p.schema}
+                for p in self.properties
+            ],
         }
         if self.semantic_type:
             result["semantic_type"] = self.semantic_type
@@ -47,9 +68,12 @@ class Artifact:
 @dataclass
 class Workspace:
     """Represents a discovered workspace (room)."""
+
     uri: str
     artifact_uris: list[str] = field(default_factory=list)
-    semantic_type: Optional[str] = None  # Ontology class local name, e.g. "StudyRoom", "Kitchen"
+    semantic_type: Optional[str] = (
+        None  # Ontology class local name, e.g. "StudyRoom", "Kitchen"
+    )
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
@@ -72,7 +96,9 @@ def _format_param_constraints(param_schema: dict) -> str:
 
     # Min/Max constraints
     if "minimum" in param_schema and "maximum" in param_schema:
-        parts.append(f"range: {param_schema['minimum']}-{param_schema['maximum']}")
+        parts.append(
+            f"range: {param_schema['minimum']}-{param_schema['maximum']}"
+        )
     elif "minimum" in param_schema:
         parts.append(f"min: {param_schema['minimum']}")
     elif "maximum" in param_schema:
@@ -84,7 +110,9 @@ def _format_param_constraints(param_schema: dict) -> str:
         if len(enum_vals) <= 5:
             parts.append(f"values: {enum_vals}")
         else:
-            parts.append(f"values: {enum_vals[:3]}... ({len(enum_vals)} options)")
+            parts.append(
+                f"values: {enum_vals[:3]}... ({len(enum_vals)} options)"
+            )
 
     return ", ".join(parts)
 
@@ -137,27 +165,42 @@ def _format_property_type(schema: dict) -> str:
 @dataclass
 class CapabilityModel:
     """Complete model of discovered environment capabilities."""
-    entry_point: str
-    workspaces: dict[str, Workspace] = field(default_factory=dict)  # workspace_uri -> Workspace
-    artifacts: dict[str, Artifact] = field(default_factory=dict)  # artifact_uri -> Artifact
-    infeasible_commands: list[dict] = field(default_factory=list)  # commands with zero SPARQL bindings
 
-    def get_or_create_workspace(self, ws_uri: str, semantic_type: Optional[str] = None) -> Workspace:
+    entry_point: str
+    workspaces: dict[str, Workspace] = field(
+        default_factory=dict
+    )  # workspace_uri -> Workspace
+    artifacts: dict[str, Artifact] = field(
+        default_factory=dict
+    )  # artifact_uri -> Artifact
+    infeasible_commands: list[dict] = field(
+        default_factory=list
+    )  # commands with zero SPARQL bindings
+
+    def get_or_create_workspace(
+        self, ws_uri: str, semantic_type: Optional[str] = None
+    ) -> Workspace:
         """Get existing workspace or create a new one."""
         if ws_uri not in self.workspaces:
-            self.workspaces[ws_uri] = Workspace(uri=ws_uri, semantic_type=semantic_type)
+            self.workspaces[ws_uri] = Workspace(
+                uri=ws_uri, semantic_type=semantic_type
+            )
         ws = self.workspaces[ws_uri]
         if semantic_type and not ws.semantic_type:
             ws.semantic_type = semantic_type
         return ws
 
-    def mark_infeasible(self, command: str, query: str, reason: str = "zero bindings") -> None:
+    def mark_infeasible(
+        self, command: str, query: str, reason: str = "zero bindings"
+    ) -> None:
         """Mark a command as possibly infeasible (SPARQL query returned no results)."""
-        self.infeasible_commands.append({
-            "command": command,
-            "query": query,
-            "reason": reason,
-        })
+        self.infeasible_commands.append(
+            {
+                "command": command,
+                "query": query,
+                "reason": reason,
+            }
+        )
 
     def check_infeasible_against_ground_truth(
         self, ground_truth_actions: list[dict]
@@ -187,12 +230,18 @@ class CapabilityModel:
                 gt_term in cmd_lower or cmd_lower in gt_term
                 for gt_term in gt_descriptions
             )
-            verdicts.append({
-                "command": entry["command"],
-                "query": entry["query"],
-                "expected_feasible": expected_feasible,
-                "verdict": "query_error" if expected_feasible else "correct_infeasible",
-            })
+            verdicts.append(
+                {
+                    "command": entry["command"],
+                    "query": entry["query"],
+                    "expected_feasible": expected_feasible,
+                    "verdict": (
+                        "query_error"
+                        if expected_feasible
+                        else "correct_infeasible"
+                    ),
+                }
+            )
         return verdicts
 
     def to_summary(self) -> str:
@@ -215,14 +264,22 @@ class CapabilityModel:
                     lines.append("**Actions:**")
                     for action in art.actions:
                         schema_info = _format_action_schema(action.schema)
-                        cmd_tag = f" [command: {action.command}]" if action.command else ""
-                        lines.append(f"  - `{action.name}`: `{action.uri}`{schema_info}{cmd_tag}")
+                        cmd_tag = (
+                            f" [command: {action.command}]"
+                            if action.command
+                            else ""
+                        )
+                        lines.append(
+                            f"  - `{action.name}`: `{action.uri}`{schema_info}{cmd_tag}"
+                        )
 
                 if art.properties:
                     lines.append("**Properties:**")
                     for prop in art.properties:
                         type_info = _format_property_type(prop.schema)
-                        lines.append(f"  - `{prop.name}`: `{prop.uri}`{type_info}")
+                        lines.append(
+                            f"  - `{prop.name}`: `{prop.uri}`{type_info}"
+                        )
 
         if self.infeasible_commands:
             lines.append("\n# Possibly Infeasible Commands\n")
@@ -237,8 +294,12 @@ class CapabilityModel:
             "entry_point": self.entry_point,
             "workspace_count": len(self.workspaces),
             "artifact_count": len(self.artifacts),
-            "action_count": sum(len(a.actions) for a in self.artifacts.values()),
-            "property_count": sum(len(a.properties) for a in self.artifacts.values()),
+            "action_count": sum(
+                len(a.actions) for a in self.artifacts.values()
+            ),
+            "property_count": sum(
+                len(a.properties) for a in self.artifacts.values()
+            ),
         }
         if self.infeasible_commands:
             result["infeasible_commands"] = self.infeasible_commands
@@ -287,9 +348,14 @@ class CapabilityModel:
 @dataclass
 class EnvironmentState:
     """Snapshot of property values from the environment."""
-    property_values: dict[str, Any] = field(default_factory=dict)  # property_uri -> value
+
+    property_values: dict[str, Any] = field(
+        default_factory=dict
+    )  # property_uri -> value
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    errors: dict[str, str] = field(default_factory=dict)  # property_uri -> error message
+    errors: dict[str, str] = field(
+        default_factory=dict
+    )  # property_uri -> error message
 
     def get(self, property_uri: str) -> Any:
         """Get value for a property URI."""
@@ -327,10 +393,15 @@ class EnvironmentState:
 @dataclass
 class DiscoveryResult:
     """Complete discovery output combining affordances and state."""
+
     affordances: CapabilityModel
     state: EnvironmentState
-    exploration_trace: list[dict] = field(default_factory=list)  # For agentic affordance discovery
-    state_trace: list[dict] = field(default_factory=list)  # For agentic state discovery
+    exploration_trace: list[dict] = field(
+        default_factory=list
+    )  # For agentic affordance discovery
+    state_trace: list[dict] = field(
+        default_factory=list
+    )  # For agentic state discovery
 
     def to_prompt_context(self) -> str:
         """Format for injection into LLM prompt."""

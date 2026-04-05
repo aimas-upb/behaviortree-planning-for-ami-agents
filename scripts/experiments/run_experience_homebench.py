@@ -24,29 +24,33 @@ from tqdm import tqdm
 load_dotenv()
 
 from scripts.common import resolve_repo_path
-from src.config import (
-    ExperimentConfig,
-    ExperimentMeta,
-    DiscoveryConfig,
-    PlanningConfig,
-    ExecutionConfig,
-    ModelConfig,
-    TracingConfig,
-    AffordanceConfig,
-    StateConfig,
-    ReasoningConfig,
-    OutputConfig,
-    ExperienceConfig,
-)
-from src.experience.intent import IntentExtractor
-from src.experience.engine import ExperienceEngine
-from src.experience.matching import ExperienceMatcher
-from src.experience.adaptation import ExperienceAdapter
-from src.experience.runner import ExperiencePipelineRunner, ExperienceRunResult
-from src.experience.bt_serialization import extract_action_urls
 
 # Reuse TestCase, TestResult, EvaluationMetrics from run_homebench
-from scripts.experiments.run_homebench import TestCase, TestResult, EvaluationMetrics
+from scripts.experiments.run_homebench import (
+    EvaluationMetrics,
+    TestCase,
+    TestResult,
+)
+from src.config import (
+    AffordanceConfig,
+    DiscoveryConfig,
+    ExecutionConfig,
+    ExperienceConfig,
+    ExperimentConfig,
+    ExperimentMeta,
+    ModelConfig,
+    OutputConfig,
+    PlanningConfig,
+    ReasoningConfig,
+    StateConfig,
+    TracingConfig,
+)
+from src.experience.adaptation import ExperienceAdapter
+from src.experience.bt_serialization import extract_action_urls
+from src.experience.engine import ExperienceEngine
+from src.experience.intent import IntentExtractor
+from src.experience.matching import ExperienceMatcher
+from src.experience.runner import ExperiencePipelineRunner, ExperienceRunResult
 
 logging.basicConfig(
     level=logging.WARNING,
@@ -86,15 +90,20 @@ class ExperienceMetrics:
             "total_new_experiences_stored": self.total_new_experiences_stored,
             "avg_match_count": (
                 sum(self.match_count_per_test) / len(self.match_count_per_test)
-                if self.match_count_per_test else 0.0
+                if self.match_count_per_test
+                else 0.0
             ),
             "avg_matched_planning_time": (
-                sum(self.matched_planning_times) / len(self.matched_planning_times)
-                if self.matched_planning_times else 0.0
+                sum(self.matched_planning_times)
+                / len(self.matched_planning_times)
+                if self.matched_planning_times
+                else 0.0
             ),
             "avg_unmatched_planning_time": (
-                sum(self.unmatched_planning_times) / len(self.unmatched_planning_times)
-                if self.unmatched_planning_times else 0.0
+                sum(self.unmatched_planning_times)
+                / len(self.unmatched_planning_times)
+                if self.unmatched_planning_times
+                else 0.0
             ),
         }
 
@@ -133,7 +142,9 @@ class ExperienceHomeBenchEvaluator:
             store_path = Path(experience_store_path)
             if store_path.exists():
                 store_path.unlink()
-                logger.info(f"Cleared experience store: {experience_store_path}")
+                logger.info(
+                    f"Cleared experience store: {experience_store_path}"
+                )
 
         self.engine = ExperienceEngine(persistence_path=experience_store_path)
         self.matcher = ExperienceMatcher(
@@ -185,7 +196,9 @@ class ExperienceHomeBenchEvaluator:
                 json={"home": numeric_id},
             )
             if response.status_code == 404:
-                logger.warning("Reset endpoint not available, continuing without reset")
+                logger.warning(
+                    "Reset endpoint not available, continuing without reset"
+                )
                 self.reset_enabled = False
                 return True
             return response.status_code == 200
@@ -193,7 +206,9 @@ class ExperienceHomeBenchEvaluator:
             logger.error(f"Failed to reset home {home_id}: {e}")
             return True
 
-    def verify_property(self, property_url: str, expected_value) -> tuple[bool, any]:
+    def verify_property(
+        self, property_url: str, expected_value
+    ) -> tuple[bool, any]:
         """Verify a property matches expected value."""
         try:
             response = self.http_client.get(property_url)
@@ -217,14 +232,18 @@ class ExperienceHomeBenchEvaluator:
                     result.properties_checked += 1
                     if matched:
                         result.properties_matched += 1
-                    result.property_results.append({
-                        "property": prop_url,
-                        "expected": exp_val,
-                        "actual": actual,
-                        "matched": matched,
-                    })
+                    result.property_results.append(
+                        {
+                            "property": prop_url,
+                            "expected": exp_val,
+                            "actual": actual,
+                            "matched": matched,
+                        }
+                    )
 
-    def run_test(self, test: TestCase) -> tuple[TestResult, ExperienceRunResult]:
+    def run_test(
+        self, test: TestCase
+    ) -> tuple[TestResult, ExperienceRunResult]:
         """
         Run a single test case using the experience pipeline.
 
@@ -233,11 +252,14 @@ class ExperienceHomeBenchEvaluator:
         """
         result = TestResult(test_id=test.id, success="False")
         result.expected_actions = [
-            o.get("affordance", "") for o in test.expected_successes if o.get("affordance")
+            o.get("affordance", "")
+            for o in test.expected_successes
+            if o.get("affordance")
         ]
         result.expected_params = {
             o.get("affordance"): o.get("params", {})
-            for o in test.expected_successes if o.get("affordance")
+            for o in test.expected_successes
+            if o.get("affordance")
         }
         result.expected_impossible = len(test.expected_errors)
         result.is_error_input_only = (
@@ -251,7 +273,9 @@ class ExperienceHomeBenchEvaluator:
             self.reset_home(test.home_id)
 
             # Build entry point
-            entry_point = f"{self.simulator_url}/workspaces/{test.home_id}#workspace"
+            entry_point = (
+                f"{self.simulator_url}/workspaces/{test.home_id}#workspace"
+            )
 
             # Run experience pipeline
             exp_result = self.pipeline_runner.run(
@@ -276,7 +300,10 @@ class ExperienceHomeBenchEvaluator:
                 result.params_in_plan = self._extract_params_from_ir(
                     exp_result.combined_plan_ir
                 )
-            elif exp_result.matched_infeasible_intents and not exp_result.matched_plans:
+            elif (
+                exp_result.matched_infeasible_intents
+                and not exp_result.matched_plans
+            ):
                 # All intents were infeasible — no plan generated is expected
                 result.plan_generated = False
 
@@ -308,7 +335,9 @@ class ExperienceHomeBenchEvaluator:
                 )
                 result.success = "True" if detected_as_impossible else "False"
             else:
-                is_plan_executed = result.plan_generated and result.execution_success
+                is_plan_executed = (
+                    result.plan_generated and result.execution_success
+                )
 
                 if not is_plan_executed:
                     # Check if all intents were matched as infeasible
@@ -331,7 +360,9 @@ class ExperienceHomeBenchEvaluator:
                         result.properties_matched == result.properties_checked
                     )
 
-                    result.handled_correctly = no_extra_actions and all_properties_matched
+                    result.handled_correctly = (
+                        no_extra_actions and all_properties_matched
+                    )
 
                     if result.handled_correctly:
                         result.success = "True"
@@ -345,7 +376,9 @@ class ExperienceHomeBenchEvaluator:
                 if result.is_error_input_only:
                     result.failure_type = "error_input_not_detected"
                 else:
-                    result.failure_type = self._classify_failure(result, exp_result)
+                    result.failure_type = self._classify_failure(
+                        result, exp_result
+                    )
 
             # Learning: store experiences on success
             if result.success == "True" and exp_result.intents:
@@ -358,9 +391,7 @@ class ExperienceHomeBenchEvaluator:
                 exp_result.new_experiences_stored = stored
 
                 # Store confirmed infeasible intents
-                self._store_infeasible_from_ground_truth(
-                    test, exp_result
-                )
+                self._store_infeasible_from_ground_truth(test, exp_result)
 
         except Exception as e:
             result.error = str(e)
@@ -401,7 +432,9 @@ class ExperienceHomeBenchEvaluator:
         # corresponds to an error_input position
         for intent in exp_result.intents:
             if intent.original_index in error_positions:
-                self.pipeline_runner.store_infeasible(intent, test.id, home_id=test.home_id)
+                self.pipeline_runner.store_infeasible(
+                    intent, test.id, home_id=test.home_id
+                )
 
     def _classify_failure(
         self,
@@ -491,7 +524,10 @@ class ExperienceHomeBenchEvaluator:
             metrics.total_expected_impossible += result.expected_impossible
             metrics.total_detected_impossible += len(result.detected_impossible)
 
-            if result.failure_type and result.failure_type in metrics.failures_by_type:
+            if (
+                result.failure_type
+                and result.failure_type in metrics.failures_by_type
+            ):
                 metrics.failures_by_type[result.failure_type] += 1
 
             metrics.total_duration += result.duration_seconds
@@ -499,7 +535,9 @@ class ExperienceHomeBenchEvaluator:
             # Experience-specific metrics
             n_intents = len(exp_result.intents)
             n_matched = sum(
-                1 for m in exp_result.match_results if m.matched and not m.is_infeasible
+                1
+                for m in exp_result.match_results
+                if m.matched and not m.is_infeasible
             )
             n_infeasible = len(exp_result.matched_infeasible_intents)
             n_unmatched = n_intents - n_matched - n_infeasible
@@ -538,11 +576,13 @@ class ExperienceHomeBenchEvaluator:
             )
 
             if progress:
-                iterator.set_postfix({
-                    "success": f"{metrics.success_rate:.1%}",
-                    "exp_size": self.engine.size(),
-                    "matched": n_matched,
-                })
+                iterator.set_postfix(
+                    {
+                        "success": f"{metrics.success_rate:.1%}",
+                        "exp_size": self.engine.size(),
+                        "matched": n_matched,
+                    }
+                )
 
         return results, metrics, exp_metrics
 
@@ -573,8 +613,12 @@ def _reshape_trace_for_viewer(
         "intents": raw_result.get("intents"),
         "match_results": raw_result.get("match_results"),
         "matched_plan_traces": raw_result.get("matched_plan_traces"),
-        "matched_plan_time_seconds": raw_result.get("matched_plan_time_seconds"),
-        "unmatched_plan_time_seconds": raw_result.get("unmatched_plan_time_seconds"),
+        "matched_plan_time_seconds": raw_result.get(
+            "matched_plan_time_seconds"
+        ),
+        "unmatched_plan_time_seconds": raw_result.get(
+            "unmatched_plan_time_seconds"
+        ),
         "detected_impossible": raw_result.get("detected_impossible"),
     }
 
@@ -659,8 +703,12 @@ def main():
         default="data/homebench/benchmarks/repeated_query/selected_test_single_feasible.json",
         help="Path to test data JSON",
     )
-    parser.add_argument("--home", type=str, help="Filter by home ID (e.g., 'home96')")
-    parser.add_argument("--type", choices=["one", "multi"], help="Filter by test type")
+    parser.add_argument(
+        "--home", type=str, help="Filter by home ID (e.g., 'home96')"
+    )
+    parser.add_argument(
+        "--type", choices=["one", "multi"], help="Filter by test type"
+    )
     parser.add_argument("--limit", type=int, help="Limit number of tests")
 
     # Config
@@ -717,12 +765,28 @@ def main():
     )
 
     # Output
-    parser.add_argument("--output", type=str, help="Output directory for results")
+    parser.add_argument(
+        "--output", type=str, help="Output directory for results"
+    )
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
-    parser.add_argument("--no-progress", action="store_true", help="Disable progress bar")
-    parser.add_argument("--generate-traces", action="store_true", help="Generate individual HTML trace files for each test")
-    parser.add_argument("--generate-report", action="store_true", help="Generate HTML evaluation report after running")
-    parser.add_argument("--open-report", action="store_true", help="Open the generated report in browser")
+    parser.add_argument(
+        "--no-progress", action="store_true", help="Disable progress bar"
+    )
+    parser.add_argument(
+        "--generate-traces",
+        action="store_true",
+        help="Generate individual HTML trace files for each test",
+    )
+    parser.add_argument(
+        "--generate-report",
+        action="store_true",
+        help="Generate HTML evaluation report after running",
+    )
+    parser.add_argument(
+        "--open-report",
+        action="store_true",
+        help="Open the generated report in browser",
+    )
 
     args = parser.parse_args()
 
@@ -732,7 +796,9 @@ def main():
     data_path = resolve_repo_path(args.data)
     config_path = resolve_repo_path(args.config) if args.config else None
     ontology_path = resolve_repo_path(args.ontology)
-    resolved_output_dir = resolve_repo_path(args.output) if args.output else None
+    resolved_output_dir = (
+        resolve_repo_path(args.output) if args.output else None
+    )
 
     # Determine experience store path (auto-scope by data file)
     if args.experience_store:
@@ -747,6 +813,7 @@ def main():
     # Load or create config
     if config_path:
         from src.config import load_config
+
         config = load_config(str(config_path))
     else:
         reasoning_enabled = args.planning_reasoning != "none"
@@ -756,7 +823,9 @@ def main():
             state_strategy=args.discovery_state,
             reasoning_enabled=reasoning_enabled,
             reasoning_strategy=(
-                args.planning_reasoning if reasoning_enabled else "chain_of_thought"
+                args.planning_reasoning
+                if reasoning_enabled
+                else "chain_of_thought"
             ),
             output_format=args.planning_output,
             prompt_strategy=args.prompt_strategy,
@@ -827,8 +896,12 @@ def main():
     print("EVALUATION RESULTS")
     print("=" * 60)
     print(f"Total tests: {metrics.total_tests}")
-    print(f"Successful: {metrics.successful_tests} ({metrics.success_rate:.1%})")
-    print(f"Quantifiable: {metrics.quantifiable_tests} ({metrics.quantifiable_rate:.1%})")
+    print(
+        f"Successful: {metrics.successful_tests} ({metrics.success_rate:.1%})"
+    )
+    print(
+        f"Quantifiable: {metrics.quantifiable_tests} ({metrics.quantifiable_rate:.1%})"
+    )
     print(
         f"Success + Quantifiable: "
         f"{metrics.successful_tests + metrics.quantifiable_tests} "
@@ -872,7 +945,9 @@ def main():
 
     print(f"Total duration: {metrics.total_duration:.1f}s")
     if metrics.total_tests > 0:
-        print(f"Avg per test: {metrics.total_duration / metrics.total_tests:.1f}s")
+        print(
+            f"Avg per test: {metrics.total_duration / metrics.total_tests:.1f}s"
+        )
 
     # Print experience summary
     print("\n" + "=" * 60)
@@ -990,6 +1065,7 @@ def main():
         if args.generate_traces:
             print("\nGenerating HTML traces...")
             from viewers.experience_trace_viewer import export_experience_html
+
             for r in results:
                 if r.raw_result:
                     trace = _reshape_trace_for_viewer(
@@ -999,13 +1075,16 @@ def main():
                     try:
                         export_experience_html(trace, str(html_file))
                     except Exception as e:
-                        logger.warning(f"Failed to generate HTML trace for {r.test_id}: {e}")
+                        logger.warning(
+                            f"Failed to generate HTML trace for {r.test_id}: {e}"
+                        )
             print(f"HTML traces saved to {traces_dir}/")
 
         # Generate eval report if requested
         if args.generate_report:
             print("\nGenerating evaluation report...")
             import subprocess
+
             subprocess.run(
                 [sys.executable, "-m", "viewers.eval_viewer", str(output_dir)],
                 check=True,
@@ -1015,6 +1094,7 @@ def main():
                 print(f"Report generated: {report_file}")
                 if args.open_report:
                     import webbrowser
+
                     webbrowser.open(f"file://{report_file.absolute()}")
 
     sys.exit(0 if metrics.success_rate > 0.5 else 1)

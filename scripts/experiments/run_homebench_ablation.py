@@ -7,8 +7,8 @@ with expected outputs for proper evaluation.
 
 import json
 import os
-import sys
 import random
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -20,9 +20,17 @@ load_dotenv()
 
 from scripts.common import resolve_repo_path
 from src.config import (
-    ExperimentConfig, ExperimentMeta, DiscoveryConfig, PlanningConfig,
-    ExecutionConfig, ModelConfig, TracingConfig, AffordanceConfig,
-    StateConfig, ReasoningConfig, OutputConfig
+    AffordanceConfig,
+    DiscoveryConfig,
+    ExecutionConfig,
+    ExperimentConfig,
+    ExperimentMeta,
+    ModelConfig,
+    OutputConfig,
+    PlanningConfig,
+    ReasoningConfig,
+    StateConfig,
+    TracingConfig,
 )
 from src.runner import run_experiment
 
@@ -51,21 +59,22 @@ def load_homebench_prompts(
         raw_data = json.load(f)
 
     # Handle benchmark format (has 'samples' key) vs raw format (list)
-    if isinstance(raw_data, dict) and 'samples' in raw_data:
-        data = raw_data['samples']
+    if isinstance(raw_data, dict) and "samples" in raw_data:
+        data = raw_data["samples"]
     else:
         data = raw_data
 
     # Filter by home_id if specified
     if home_id is not None:
         home_prefix = f"home{home_id}_"
-        data = [d for d in data if d['id'].startswith(home_prefix)]
+        data = [d for d in data if d["id"].startswith(home_prefix)]
 
     # Filter to only include prompts with successful actions
     if filter_success_only:
         data = [
-            d for d in data
-            if any(o.get('execution') == 'success' for o in d['output'])
+            d
+            for d in data
+            if any(o.get("execution") == "success" for o in d["output"])
         ]
 
     # Sample
@@ -75,7 +84,7 @@ def load_homebench_prompts(
 
     # Extract home_id from each prompt
     for item in data:
-        item['home_id'] = int(item['id'].split('_')[0].replace('home', ''))
+        item["home_id"] = int(item["id"].split("_")[0].replace("home", ""))
 
     return data
 
@@ -92,7 +101,9 @@ def create_config(
 ) -> ExperimentConfig:
     """Create an experiment config programmatically."""
     return ExperimentConfig(
-        experiment=ExperimentMeta(name=name, description=f"HomeBench Ablation: {name}"),
+        experiment=ExperimentMeta(
+            name=name, description=f"HomeBench Ablation: {name}"
+        ),
         discovery=DiscoveryConfig(
             affordances=AffordanceConfig(strategy=affordance_strategy),
             state=StateConfig(strategy=state_strategy),
@@ -108,14 +119,15 @@ def create_config(
         ),
         execution=ExecutionConfig(max_ticks=10),
         model=ModelConfig(name=model, temperature=0.0),
-        tracing=TracingConfig(enabled=True, output_dir="traces/", verbose=False),
+        tracing=TracingConfig(
+            enabled=True, output_dir="traces/", verbose=False
+        ),
     )
 
 
 # Ablation configurations to test (all 13 configs)
 ABLATION_CONFIGS = {
     # === JSON IR Output Configs (7 configs) ===
-
     # Baseline configurations
     "baseline": {
         "reasoning_enabled": False,
@@ -127,7 +139,6 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "all",
     },
-
     # Reasoning variants
     "cot": {
         "reasoning_enabled": True,
@@ -147,7 +158,6 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "all",
     },
-
     # Agentic variants
     "agentic": {
         "affordance_strategy": "agentic",
@@ -162,7 +172,6 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "relevant",
     },
-
     # === Fully Agentic Configs (2 configs) ===
     "fully_agentic": {
         "affordance_strategy": "agentic",
@@ -177,7 +186,6 @@ ABLATION_CONFIGS = {
         "output_format": "json_ir",
         "state_strategy": "agentic",
     },
-
     # === Python Code Configs (4 configs) ===
     "python_direct": {
         "reasoning_enabled": False,
@@ -219,30 +227,34 @@ def evaluate_result(result: dict, expected_output: list[dict]) -> dict:
     # Extract expected successful actions
     expected_actions = []
     for out in expected_output:
-        if out.get('execution') == 'success':
-            expected_actions.append({
-                'affordance': out['affordance'],
-                'params': out.get('params', {}),
-                'test': out.get('test', {}),
-            })
+        if out.get("execution") == "success":
+            expected_actions.append(
+                {
+                    "affordance": out["affordance"],
+                    "params": out.get("params", {}),
+                    "test": out.get("test", {}),
+                }
+            )
 
     # Extract executed actions from result
     executed_actions = []
-    if result.get('execution') and result['execution'].get('action_history'):
-        for action in result['execution']['action_history']:
-            executed_actions.append({
-                'affordance': action.get('affordance', ''),
-                'params': action.get('params', {}),
-            })
+    if result.get("execution") and result["execution"].get("action_history"):
+        for action in result["execution"]["action_history"]:
+            executed_actions.append(
+                {
+                    "affordance": action.get("affordance", ""),
+                    "params": action.get("params", {}),
+                }
+            )
 
     # Calculate metrics
     correct = 0
     for expected in expected_actions:
         for executed in executed_actions:
             # Check if affordance matches (URL comparison)
-            if expected['affordance'] == executed['affordance']:
+            if expected["affordance"] == executed["affordance"]:
                 # Check if params match
-                if expected['params'] == executed['params']:
+                if expected["params"] == executed["params"]:
                     correct += 1
                     break
 
@@ -250,13 +262,13 @@ def evaluate_result(result: dict, expected_output: list[dict]) -> dict:
     total_executed = len(executed_actions)
 
     return {
-        'expected_actions': expected_actions,
-        'executed_actions': executed_actions,
-        'correct': correct,
-        'total_expected': total_expected,
-        'total_executed': total_executed,
-        'precision': correct / total_executed if total_executed > 0 else 0.0,
-        'recall': correct / total_expected if total_expected > 0 else 0.0,
+        "expected_actions": expected_actions,
+        "executed_actions": executed_actions,
+        "correct": correct,
+        "total_expected": total_expected,
+        "total_executed": total_executed,
+        "precision": correct / total_executed if total_executed > 0 else 0.0,
+        "recall": correct / total_expected if total_expected > 0 else 0.0,
     }
 
 
@@ -292,7 +304,9 @@ def run_homebench_ablation(
 
     # Create output directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = resolve_repo_path(f"experiments/results/homebench_ablation_{timestamp}")
+    output_dir = resolve_repo_path(
+        f"experiments/results/homebench_ablation_{timestamp}"
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"\n{'=' * 70}")
@@ -313,11 +327,13 @@ def run_homebench_ablation(
     all_results = []
 
     for prompt_data in prompts:
-        prompt_id = prompt_data['id']
-        goal = prompt_data['input']
-        expected = prompt_data['output']
-        prompt_home_id = prompt_data['home_id']
-        entry_point = f"http://localhost:8080/workspaces/home{prompt_home_id}#workspace"
+        prompt_id = prompt_data["id"]
+        goal = prompt_data["input"]
+        expected = prompt_data["output"]
+        prompt_home_id = prompt_data["home_id"]
+        entry_point = (
+            f"http://localhost:8080/workspaces/home{prompt_home_id}#workspace"
+        )
 
         print(f"\n{'=' * 70}")
         print(f"PROMPT: {prompt_id}")
@@ -350,37 +366,46 @@ def run_homebench_ablation(
                 evaluation = evaluate_result(result, expected)
 
                 # Add metadata
-                result['prompt_id'] = prompt_id
-                result['config_name'] = config_name
-                result['goal'] = goal
-                result['expected_output'] = expected
-                result['evaluation'] = evaluation
+                result["prompt_id"] = prompt_id
+                result["config_name"] = config_name
+                result["goal"] = goal
+                result["expected_output"] = expected
+                result["evaluation"] = evaluation
 
                 # Print summary
-                status = "✓" if result.get('success') else "✗"
+                status = "✓" if result.get("success") else "✗"
                 print(f"  {status} Success: {result.get('success')}")
-                print(f"    Correct: {evaluation['correct']}/{evaluation['total_expected']}")
-                print(f"    Precision: {evaluation['precision']:.2f}, Recall: {evaluation['recall']:.2f}")
+                print(
+                    f"    Correct: {evaluation['correct']}/{evaluation['total_expected']}"
+                )
+                print(
+                    f"    Precision: {evaluation['precision']:.2f}, Recall: {evaluation['recall']:.2f}"
+                )
 
                 all_results.append(result)
 
                 # Save individual result
-                safe_prompt_id = prompt_id.replace('/', '_')
-                result_file = output_dir / f"{safe_prompt_id}_{config_name}.json"
+                safe_prompt_id = prompt_id.replace("/", "_")
+                result_file = (
+                    output_dir / f"{safe_prompt_id}_{config_name}.json"
+                )
                 with open(result_file, "w") as f:
                     json.dump(result, f, indent=2, default=str)
 
             except Exception as e:
                 print(f"  ✗ ERROR: {e}")
                 import traceback
+
                 traceback.print_exc()
-                all_results.append({
-                    'prompt_id': prompt_id,
-                    'config_name': config_name,
-                    'goal': goal,
-                    'success': False,
-                    'error': str(e),
-                })
+                all_results.append(
+                    {
+                        "prompt_id": prompt_id,
+                        "config_name": config_name,
+                        "goal": goal,
+                        "success": False,
+                        "error": str(e),
+                    }
+                )
 
     # Generate summary
     print(f"\n{'=' * 70}")
@@ -390,23 +415,37 @@ def run_homebench_ablation(
     # Aggregate by config
     config_stats = {}
     for config_name in configs_to_run:
-        config_results = [r for r in all_results if r.get('config_name') == config_name]
-        successes = sum(1 for r in config_results if r.get('success'))
+        config_results = [
+            r for r in all_results if r.get("config_name") == config_name
+        ]
+        successes = sum(1 for r in config_results if r.get("success"))
 
         # Average evaluation metrics
-        evaluations = [r.get('evaluation', {}) for r in config_results if r.get('evaluation')]
-        avg_precision = sum(e.get('precision', 0) for e in evaluations) / len(evaluations) if evaluations else 0
-        avg_recall = sum(e.get('recall', 0) for e in evaluations) / len(evaluations) if evaluations else 0
-        total_correct = sum(e.get('correct', 0) for e in evaluations)
-        total_expected = sum(e.get('total_expected', 0) for e in evaluations)
+        evaluations = [
+            r.get("evaluation", {})
+            for r in config_results
+            if r.get("evaluation")
+        ]
+        avg_precision = (
+            sum(e.get("precision", 0) for e in evaluations) / len(evaluations)
+            if evaluations
+            else 0
+        )
+        avg_recall = (
+            sum(e.get("recall", 0) for e in evaluations) / len(evaluations)
+            if evaluations
+            else 0
+        )
+        total_correct = sum(e.get("correct", 0) for e in evaluations)
+        total_expected = sum(e.get("total_expected", 0) for e in evaluations)
 
         config_stats[config_name] = {
-            'successes': successes,
-            'total': len(config_results),
-            'avg_precision': avg_precision,
-            'avg_recall': avg_recall,
-            'total_correct': total_correct,
-            'total_expected': total_expected,
+            "successes": successes,
+            "total": len(config_results),
+            "avg_precision": avg_precision,
+            "avg_recall": avg_recall,
+            "total_correct": total_correct,
+            "total_expected": total_expected,
         }
 
         print(f"\n{config_name}:")
@@ -417,13 +456,15 @@ def run_homebench_ablation(
 
     # Save summary
     summary = {
-        'timestamp': timestamp,
-        'home_id': home_id,
-        'num_prompts': len(prompts),
-        'configs': configs_to_run,
-        'model': model,
-        'config_stats': config_stats,
-        'prompts': [{'id': p['id'], 'input': p['input'][:100]} for p in prompts],
+        "timestamp": timestamp,
+        "home_id": home_id,
+        "num_prompts": len(prompts),
+        "configs": configs_to_run,
+        "model": model,
+        "config_stats": config_stats,
+        "prompts": [
+            {"id": p["id"], "input": p["input"][:100]} for p in prompts
+        ],
     }
 
     with open(output_dir / "summary.json", "w") as f:
@@ -448,7 +489,9 @@ def list_sample_prompts(
 
     print(f"Sample prompts (home={home_id if home_id else 'all'}):\n")
     for p in prompts:
-        num_actions = len([o for o in p['output'] if o.get('execution') == 'success'])
+        num_actions = len(
+            [o for o in p["output"] if o.get("execution") == "success"]
+        )
         print(f"[{p['id']}] ({num_actions} actions)")
         print(f"  {p['input'][:100]}...")
         print()
@@ -457,16 +500,37 @@ def list_sample_prompts(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Run HomeBench ablation experiments")
-    parser.add_argument("--configs", nargs="+", help="Configs to run (default: all)")
-    parser.add_argument("--home", type=int, default=None, help="Home ID filter (default: all homes)")
-    parser.add_argument("--num-prompts", type=int, default=50, help="Number of prompts (default: 50)")
+    parser = argparse.ArgumentParser(
+        description="Run HomeBench ablation experiments"
+    )
+    parser.add_argument(
+        "--configs", nargs="+", help="Configs to run (default: all)"
+    )
+    parser.add_argument(
+        "--home",
+        type=int,
+        default=None,
+        help="Home ID filter (default: all homes)",
+    )
+    parser.add_argument(
+        "--num-prompts",
+        type=int,
+        default=50,
+        help="Number of prompts (default: 50)",
+    )
     parser.add_argument("--model", default="gpt-4o", help="Model to use")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
-    parser.add_argument("--list-configs", action="store_true", help="List available configs")
-    parser.add_argument("--list-prompts", action="store_true", help="List sample prompts")
-    parser.add_argument("--dataset", default="data/homebench/converted/benchmark_50.json",
-                       help="Path to dataset (default: curated 50-sample benchmark)")
+    parser.add_argument(
+        "--list-configs", action="store_true", help="List available configs"
+    )
+    parser.add_argument(
+        "--list-prompts", action="store_true", help="List sample prompts"
+    )
+    parser.add_argument(
+        "--dataset",
+        default="data/homebench/converted/benchmark_50.json",
+        help="Path to dataset (default: curated 50-sample benchmark)",
+    )
 
     args = parser.parse_args()
 

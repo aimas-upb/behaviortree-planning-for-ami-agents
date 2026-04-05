@@ -9,14 +9,14 @@ Both support multiple strategies for ablation studies.
 """
 
 from .base import (
+    Affordance,
+    Artifact,
+    CapabilityModel,
     DiscoveryResult,
     EnvironmentState,
-    CapabilityModel,
     Workspace,
-    Artifact,
-    Affordance,
 )
-from .pipeline import create_discovery_pipeline, DiscoveryPipeline
+from .pipeline import DiscoveryPipeline, create_discovery_pipeline
 
 __all__ = [
     "DiscoveryResult",

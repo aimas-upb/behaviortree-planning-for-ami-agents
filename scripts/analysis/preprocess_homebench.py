@@ -3,20 +3,22 @@
 Run with: uv run python -m scripts.analysis.preprocess_homebench --test-data data/homebench/converted/test_data.json
 """
 
+import argparse
 import json
 import random
-import argparse
-from pathlib import Path
-
 from enum import Enum
+from pathlib import Path
 from typing import List, Optional
+
 from pydantic import BaseModel
 
 from scripts.common import PROJECT_ROOT, resolve_repo_path
 
 random.seed(42)
 
-OUTPUT_DIR = PROJECT_ROOT / "data" / "homebench" / "benchmarks" / "action_groups"
+OUTPUT_DIR = (
+    PROJECT_ROOT / "data" / "homebench" / "benchmarks" / "action_groups"
+)
 
 
 class TestOutput(BaseModel):
@@ -34,9 +36,15 @@ class TestEntry(BaseModel):
 
 class TestStatistics(BaseModel):
     devices: List[str]
-    device_affordance_counts: dict[str, int] # counts of device/affordance pairs
-    correct_inputs_to_entries_mapping: Optional[dict[int, int]] = None # only for multi feasible actions; maps how many entries are with 2 correct input, 3 correct inputs, etc.
-    error_inputs_to_entries_mapping: Optional[dict[int, int]] = None # only for multi unfeasible actions; maps how many entries are with 0 error inputs, 1 error input, etc.
+    device_affordance_counts: dict[
+        str, int
+    ]  # counts of device/affordance pairs
+    correct_inputs_to_entries_mapping: Optional[dict[int, int]] = (
+        None  # only for multi feasible actions; maps how many entries are with 2 correct input, 3 correct inputs, etc.
+    )
+    error_inputs_to_entries_mapping: Optional[dict[int, int]] = (
+        None  # only for multi unfeasible actions; maps how many entries are with 0 error inputs, 1 error input, etc.
+    )
 
 
 class TestType(str, Enum):
@@ -54,15 +62,21 @@ class DataService:
 
     def _load_test_file(self) -> List[TestEntry]:
         """Load test entries from a JSON file."""
-        with open(self.test_data_path, 'r') as f:
+        with open(self.test_data_path, "r") as f:
             data = json.load(f)
         return [TestEntry(**entry) for entry in data]
 
-    def _save_test_file(self, file_path: Path, test_entries: List[TestEntry]) -> None:
+    def _save_test_file(
+        self, file_path: Path, test_entries: List[TestEntry]
+    ) -> None:
         """Save test entries to a JSON file."""
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(file_path, 'w') as f:
-            json.dump([entry.model_dump(exclude_none=True) for entry in test_entries], f, indent=2)
+        with open(file_path, "w") as f:
+            json.dump(
+                [entry.model_dump(exclude_none=True) for entry in test_entries],
+                f,
+                indent=2,
+            )
 
     def _stats_path(self, test_type: TestType) -> Path:
         return OUTPUT_DIR / f"{test_type.value}_statistics.json"
@@ -70,14 +84,20 @@ class DataService:
     def _classify_test_entry(self, entry: TestEntry) -> TestType:
         """Classify test entry based on its outputs."""
         if "one" in entry.id:
-            return TestType.SINGLE_FEASIBLE_ACTION if entry.output[0].execution != "error_input" else TestType.SINGLE_UNFEASIBLE_ACTION
+            return (
+                TestType.SINGLE_FEASIBLE_ACTION
+                if entry.output[0].execution != "error_input"
+                else TestType.SINGLE_UNFEASIBLE_ACTION
+            )
         else:
             for output in entry.output:
                 if output.execution == "error_input":
                     return TestType.MULTI_UNFEASIBLE_ACTION
             return TestType.MULTI_FEASIBLE_ACTION
 
-    def _split_entries_by_type(self, entries: List[TestEntry]) -> dict[TestType, List[TestEntry]]:
+    def _split_entries_by_type(
+        self, entries: List[TestEntry]
+    ) -> dict[TestType, List[TestEntry]]:
         """Split test entries by their classified type."""
         split_entries = {
             TestType.SINGLE_FEASIBLE_ACTION: [],
@@ -89,59 +109,79 @@ class DataService:
             entry_type = self._classify_test_entry(entry)
             split_entries[entry_type].append(entry)
         return split_entries
-    
-    def _sample_entries(self, entries: List[TestEntry], sample_size: int = 100) -> List[TestEntry]:
+
+    def _sample_entries(
+        self, entries: List[TestEntry], sample_size: int = 100
+    ) -> List[TestEntry]:
         """Randomly sample a specified number of test entries."""
         if len(entries) <= sample_size:
             return entries
         return random.sample(entries, sample_size)
-    
-    def _compute_default_statistics(self, entries: List[TestEntry]) -> TestStatistics:
+
+    def _compute_default_statistics(
+        self, entries: List[TestEntry]
+    ) -> TestStatistics:
         """Compute default statistics for all test types."""
         device_affordance_counter: dict[str, int] = {}
         all_devices = set()
-    
+
         for entry in entries:
             for output in entry.output:
                 if output.execution == "error_input":
                     continue
 
-                device, affordance = output.affordance.split('/')[-2:]
+                device, affordance = output.affordance.split("/")[-2:]
                 all_devices.add(device)
                 key = f"{device}/{affordance}"
-                device_affordance_counter[key] = device_affordance_counter.get(key, 0) + 1
+                device_affordance_counter[key] = (
+                    device_affordance_counter.get(key, 0) + 1
+                )
 
         return TestStatistics(
             devices=list(all_devices),
             device_affordance_counts=device_affordance_counter,
         )
 
-    def _save_statistics(self, test_type: TestType, entries: List[TestEntry]) -> None:
+    def _save_statistics(
+        self, test_type: TestType, entries: List[TestEntry]
+    ) -> None:
         """Display statistics of the split test entries."""
         print(f"{test_type.value}: {len(entries)} entries")
 
         statistic = self._compute_default_statistics(entries)
         if test_type in TestType.SINGLE_FEASIBLE_ACTION:
-            with open(self._stats_path(test_type), 'w') as f:
+            with open(self._stats_path(test_type), "w") as f:
                 json.dump(statistic.model_dump(exclude_none=True), f, indent=2)
         elif test_type in TestType.MULTI_FEASIBLE_ACTION:
             # Compute the entries to correct inputs mapping
             correct_inputs_mapping: dict[int, int] = {}
             for entry in entries:
                 correct_count = len(entry.output)
-                correct_inputs_mapping[correct_count] = correct_inputs_mapping.get(correct_count, 0) + 1
-                statistic.correct_inputs_to_entries_mapping = correct_inputs_mapping
-                with open(self._stats_path(test_type), 'w') as f:
-                    json.dump(statistic.model_dump(exclude_none=True), f, indent=2)
+                correct_inputs_mapping[correct_count] = (
+                    correct_inputs_mapping.get(correct_count, 0) + 1
+                )
+                statistic.correct_inputs_to_entries_mapping = (
+                    correct_inputs_mapping
+                )
+                with open(self._stats_path(test_type), "w") as f:
+                    json.dump(
+                        statistic.model_dump(exclude_none=True), f, indent=2
+                    )
         elif test_type in TestType.MULTI_UNFEASIBLE_ACTION:
             # Compute the entries to error inputs mapping
             error_inputs_mapping: dict[int, int] = {}
             for entry in entries:
-                error_count = sum(1 for output in entry.output if output.execution == "error_input")
-                error_inputs_mapping[error_count] = error_inputs_mapping.get(error_count, 0) + 1
+                error_count = sum(
+                    1
+                    for output in entry.output
+                    if output.execution == "error_input"
+                )
+                error_inputs_mapping[error_count] = (
+                    error_inputs_mapping.get(error_count, 0) + 1
+                )
 
             statistic.error_inputs_to_entries_mapping = error_inputs_mapping
-            with open(self._stats_path(test_type), 'w') as f:
+            with open(self._stats_path(test_type), "w") as f:
                 json.dump(statistic.model_dump(exclude_none=True), f, indent=2)
 
     def pre_process_data(self) -> None:
@@ -157,7 +197,9 @@ class DataService:
 
 
 if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Pre-process test data by splitting and sampling.")
+    argparser = argparse.ArgumentParser(
+        description="Pre-process test data by splitting and sampling."
+    )
     argparser.add_argument(
         "--test-data",
         "--test_data_dir",

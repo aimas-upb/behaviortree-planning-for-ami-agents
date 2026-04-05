@@ -114,11 +114,17 @@ class ReflectionReasoning:
 
         # Phase 1: Initial analysis
         logger.debug("Phase 1: Initial analysis")
-        api_kwargs_1 = get_model_kwargs(model_config.name, model_config=model_config)
-        api_kwargs_1["messages"] = [{
-            "role": "user",
-            "content": INITIAL_ANALYSIS_PROMPT.format(context=context, goal=goal),
-        }]
+        api_kwargs_1 = get_model_kwargs(
+            model_config.name, model_config=model_config
+        )
+        api_kwargs_1["messages"] = [
+            {
+                "role": "user",
+                "content": INITIAL_ANALYSIS_PROMPT.format(
+                    context=context, goal=goal
+                ),
+            }
+        ]
 
         initial_response = client.chat.completions.create(**api_kwargs_1)
         initial_analysis = initial_response.choices[0].message.content
@@ -126,15 +132,19 @@ class ReflectionReasoning:
 
         # Phase 2: Critique
         logger.debug("Phase 2: Critique")
-        api_kwargs_2 = get_model_kwargs(model_config.name, model_config=model_config)
-        api_kwargs_2["messages"] = [{
-            "role": "user",
-            "content": CRITIQUE_PROMPT.format(
-                goal=goal,
-                context=context,
-                initial_analysis=initial_analysis,
-            ),
-        }]
+        api_kwargs_2 = get_model_kwargs(
+            model_config.name, model_config=model_config
+        )
+        api_kwargs_2["messages"] = [
+            {
+                "role": "user",
+                "content": CRITIQUE_PROMPT.format(
+                    goal=goal,
+                    context=context,
+                    initial_analysis=initial_analysis,
+                ),
+            }
+        ]
 
         critique_response = client.chat.completions.create(**api_kwargs_2)
         critique = critique_response.choices[0].message.content
@@ -142,16 +152,20 @@ class ReflectionReasoning:
 
         # Phase 3: Refinement
         logger.debug("Phase 3: Refinement")
-        api_kwargs_3 = get_model_kwargs(model_config.name, model_config=model_config)
-        api_kwargs_3["messages"] = [{
-            "role": "user",
-            "content": REFINEMENT_PROMPT.format(
-                goal=goal,
-                context=context,
-                initial_analysis=initial_analysis,
-                critique=critique,
-            ),
-        }]
+        api_kwargs_3 = get_model_kwargs(
+            model_config.name, model_config=model_config
+        )
+        api_kwargs_3["messages"] = [
+            {
+                "role": "user",
+                "content": REFINEMENT_PROMPT.format(
+                    goal=goal,
+                    context=context,
+                    initial_analysis=initial_analysis,
+                    critique=critique,
+                ),
+            }
+        ]
 
         refinement_response = client.chat.completions.create(**api_kwargs_3)
         refined_analysis = refinement_response.choices[0].message.content

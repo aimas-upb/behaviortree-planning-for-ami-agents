@@ -5,15 +5,19 @@ Uses LLM to interactively explore and read properties based on the goal.
 """
 
 import json
-from typing import Optional
 import logging
 from datetime import datetime
+from typing import Optional
 
 from openai import OpenAI
 
-from ..base import CapabilityModel, EnvironmentState
 from ...config import ModelConfig, get_model_kwargs
-from ...hmas_client import get_property_by_uri, GetPropertyError, list_properties
+from ...hmas_client import (
+    GetPropertyError,
+    get_property_by_uri,
+    list_properties,
+)
+from ..base import CapabilityModel, EnvironmentState
 
 logger = logging.getLogger(__name__)
 
@@ -143,11 +147,13 @@ class AgenticStateGathering:
         # Build artifacts list for context
         artifacts_list = []
         for artifact in affordances.artifacts.values():
-            artifacts_list.append({
-                "uri": artifact.uri,
-                "name": artifact.name,
-                "workspace": artifact.workspace,
-            })
+            artifacts_list.append(
+                {
+                    "uri": artifact.uri,
+                    "name": artifact.name,
+                    "workspace": artifact.workspace,
+                }
+            )
 
         if not artifacts_list:
             logger.warning("No artifacts discovered, returning empty state")
@@ -170,19 +176,25 @@ class AgenticStateGathering:
         state = EnvironmentState(timestamp=datetime.now().isoformat())
 
         for iteration in range(self.max_iterations):
-            api_kwargs = get_model_kwargs(self.model, model_config=self.model_config)
-            api_kwargs.update({
-                "messages": messages,
-                "tools": STATE_DISCOVERY_TOOLS,
-                "tool_choice": "auto",
-            })
+            api_kwargs = get_model_kwargs(
+                self.model, model_config=self.model_config
+            )
+            api_kwargs.update(
+                {
+                    "messages": messages,
+                    "tools": STATE_DISCOVERY_TOOLS,
+                    "tool_choice": "auto",
+                }
+            )
             response = self.client.chat.completions.create(**api_kwargs)
 
             message = response.choices[0].message
             messages.append(message)
 
             if not message.tool_calls:
-                logger.info(f"State gathering ended after {iteration + 1} iterations (no tool call)")
+                logger.info(
+                    f"State gathering ended after {iteration + 1} iterations (no tool call)"
+                )
                 break
 
             for tool_call in message.tool_calls:
@@ -198,9 +210,13 @@ class AgenticStateGathering:
                 }
 
                 if fn_name == "done_gathering":
-                    trace_entry["result"] = {"summary": fn_args.get("summary", "done")}
+                    trace_entry["result"] = {
+                        "summary": fn_args.get("summary", "done")
+                    }
                     self.state_trace.append(trace_entry)
-                    logger.info(f"State gathering complete: {fn_args.get('summary', 'done')}")
+                    logger.info(
+                        f"State gathering complete: {fn_args.get('summary', 'done')}"
+                    )
                     return state
 
                 elif fn_name == "list_artifact_properties":
@@ -218,19 +234,29 @@ class AgenticStateGathering:
                             ],
                             "success": True,
                         }
-                        logger.debug(f"Listed {len(properties)} properties for {artifact_uri}")
+                        logger.debug(
+                            f"Listed {len(properties)} properties for {artifact_uri}"
+                        )
                     except Exception as e:
-                        result = {"error": str(e), "success": False, "properties": []}
-                        logger.warning(f"Failed to list properties for {artifact_uri}: {e}")
+                        result = {
+                            "error": str(e),
+                            "success": False,
+                            "properties": [],
+                        }
+                        logger.warning(
+                            f"Failed to list properties for {artifact_uri}: {e}"
+                        )
 
                     trace_entry["result"] = result
                     self.state_trace.append(trace_entry)
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(result),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(result),
+                        }
+                    )
 
                 elif fn_name == "read_property":
                     prop_uri = fn_args["property_uri"]
@@ -242,7 +268,9 @@ class AgenticStateGathering:
                     )
                     if not is_known:
                         # Warn but still try to read - might be a valid URI
-                        logger.warning(f"Property {prop_uri} was not discovered via list_artifact_properties")
+                        logger.warning(
+                            f"Property {prop_uri} was not discovered via list_artifact_properties"
+                        )
 
                     try:
                         value = get_property_by_uri(prop_uri)
@@ -252,20 +280,26 @@ class AgenticStateGathering:
                     except GetPropertyError as e:
                         state.errors[prop_uri] = str(e)
                         result = {"error": str(e), "success": False}
-                        logger.warning(f"Failed to read property {prop_uri}: {e}")
+                        logger.warning(
+                            f"Failed to read property {prop_uri}: {e}"
+                        )
                     except Exception as e:
                         state.errors[prop_uri] = str(e)
                         result = {"error": str(e), "success": False}
-                        logger.warning(f"Unexpected error reading property {prop_uri}: {e}")
+                        logger.warning(
+                            f"Unexpected error reading property {prop_uri}: {e}"
+                        )
 
                     trace_entry["result"] = result
                     self.state_trace.append(trace_entry)
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(result),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(result),
+                        }
+                    )
 
         logger.info(
             f"State gathering complete: {len(state.property_values)} values "
@@ -280,4 +314,5 @@ class AgenticStateGathering:
     def _gather_all(self, affordances: CapabilityModel) -> EnvironmentState:
         """Fallback to gather all properties."""
         from .all import AllStateGathering
+
         return AllStateGathering().gather(affordances)

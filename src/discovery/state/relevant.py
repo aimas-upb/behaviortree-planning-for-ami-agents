@@ -5,15 +5,15 @@ Uses LLM to identify goal-relevant properties, then reads only those.
 """
 
 import json
-from typing import Optional
 import logging
 from datetime import datetime
+from typing import Optional
 
 from openai import OpenAI
 
-from ..base import CapabilityModel, EnvironmentState
-from ...hmas_client import get_property_by_uri, GetPropertyError
 from ...config import ModelConfig, get_model_kwargs
+from ...hmas_client import GetPropertyError, get_property_by_uri
+from ..base import CapabilityModel, EnvironmentState
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +59,13 @@ class RelevantStateGathering:
         property_list = []
         for artifact in affordances.artifacts.values():
             for prop in artifact.properties:
-                property_list.append({
-                    "uri": prop.uri,
-                    "name": prop.name,
-                    "artifact": artifact.name,
-                })
+                property_list.append(
+                    {
+                        "uri": prop.uri,
+                        "name": prop.name,
+                        "artifact": artifact.name,
+                    }
+                )
 
         if not property_list:
             return EnvironmentState()
@@ -84,7 +86,9 @@ class RelevantStateGathering:
                 logger.warning(f"Failed to read property {prop_uri}: {e}")
             except Exception as e:
                 state.errors[prop_uri] = str(e)
-                logger.warning(f"Unexpected error reading property {prop_uri}: {e}")
+                logger.warning(
+                    f"Unexpected error reading property {prop_uri}: {e}"
+                )
 
         logger.info(
             f"State gathered: {len(state.property_values)} values "
@@ -108,8 +112,12 @@ Properties:
 Return ONLY a JSON array of relevant URIs, nothing else."""
 
         try:
-            api_kwargs = get_model_kwargs(self.model, model_config=self.model_config)
-            api_kwargs["messages"] = [{"role": "user", "content": filter_prompt}]
+            api_kwargs = get_model_kwargs(
+                self.model, model_config=self.model_config
+            )
+            api_kwargs["messages"] = [
+                {"role": "user", "content": filter_prompt}
+            ]
 
             response = self.client.chat.completions.create(**api_kwargs)
 
@@ -125,10 +133,13 @@ Return ONLY a JSON array of relevant URIs, nothing else."""
             return json.loads(content)
 
         except Exception as e:
-            logger.warning(f"Property filter failed ({e}), returning all properties")
+            logger.warning(
+                f"Property filter failed ({e}), returning all properties"
+            )
             return [p["uri"] for p in property_list]
 
     def _gather_all(self, affordances: CapabilityModel) -> EnvironmentState:
         """Fallback to gather all properties."""
         from .all import AllStateGathering
+
         return AllStateGathering().gather(affordances)

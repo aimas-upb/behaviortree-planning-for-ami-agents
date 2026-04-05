@@ -8,10 +8,10 @@ Strategies:
 - agentic_query: LLM generates SPARQL queries to find relevant affordances
 """
 
-from .exhaustive import ExhaustiveAffordanceDiscovery
 from .agentic import AgenticAffordanceDiscovery
-from .relevant import RelevantAffordanceDiscovery
 from .agentic_query import AgenticQueryAffordanceDiscovery
+from .exhaustive import ExhaustiveAffordanceDiscovery
+from .relevant import RelevantAffordanceDiscovery
 
 __all__ = [
     "ExhaustiveAffordanceDiscovery",
@@ -34,7 +34,9 @@ def create_affordance_strategy(
     elif strategy == "agentic":
         if client is None:
             raise ValueError("Agentic strategy requires an OpenAI client")
-        return AgenticAffordanceDiscovery(client=client, model_config=model_config)
+        return AgenticAffordanceDiscovery(
+            client=client, model_config=model_config
+        )
     elif strategy == "relevant":
         if client is None:
             raise ValueError("Relevant strategy requires an OpenAI client")

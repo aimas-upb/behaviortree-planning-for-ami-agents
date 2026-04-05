@@ -4,19 +4,19 @@ Exhaustive affordance discovery strategy.
 Explores all workspaces and artifacts upfront without any filtering.
 """
 
-from typing import Optional
 import logging
+from typing import Optional
 
-from ..base import CapabilityModel, Artifact, Affordance
 from ...hmas_client import (
-    list_workspaces,
-    list_artifacts,
-    list_properties,
-    list_actions,
     get_artifact_name,
     get_artifact_semantic_type,
     get_workspace_semantic_type,
+    list_actions,
+    list_artifacts,
+    list_properties,
+    list_workspaces,
 )
+from ..base import Affordance, Artifact, CapabilityModel
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class ExhaustiveAffordanceDiscovery:
         model = CapabilityModel(entry_point=entry_point)
 
         try:
-            workspaces = list_workspaces(entry_point)[:self.max_workspaces]
+            workspaces = list_workspaces(entry_point)[: self.max_workspaces]
         except Exception as e:
             logger.error(f"Failed to list workspaces: {e}")
             return model
@@ -63,7 +63,9 @@ class ExhaustiveAffordanceDiscovery:
             try:
                 artifact_uris = list_artifacts(ws_uri)
                 ws_type = get_workspace_semantic_type(ws_uri)
-                ws = model.get_or_create_workspace(ws_uri, semantic_type=ws_type)
+                ws = model.get_or_create_workspace(
+                    ws_uri, semantic_type=ws_type
+                )
                 ws.artifact_uris = artifact_uris
 
                 for art_uri in artifact_uris:
@@ -75,7 +77,9 @@ class ExhaustiveAffordanceDiscovery:
                             f"({len(artifact.actions)} actions, {len(artifact.properties)} properties)"
                         )
                     except Exception as e:
-                        logger.warning(f"Failed to inspect artifact {art_uri}: {e}")
+                        logger.warning(
+                            f"Failed to inspect artifact {art_uri}: {e}"
+                        )
 
             except Exception as e:
                 logger.warning(f"Failed to list artifacts in {ws_name}: {e}")
@@ -86,28 +90,34 @@ class ExhaustiveAffordanceDiscovery:
         )
         return model
 
-    def _discover_artifact(self, artifact_uri: str, workspace_uri: str) -> Artifact:
+    def _discover_artifact(
+        self, artifact_uri: str, workspace_uri: str
+    ) -> Artifact:
         """Discover a single artifact's affordances."""
         name = get_artifact_name(artifact_uri)
         art_type = get_artifact_semantic_type(artifact_uri)
 
         actions = []
         for a in list_actions(artifact_uri):
-            actions.append(Affordance(
-                name=a["name"],
-                uri=a["uri"],
-                schema=a.get("input_schema", {}),
-                semantic_type=a.get("semantic_type"),
-            ))
+            actions.append(
+                Affordance(
+                    name=a["name"],
+                    uri=a["uri"],
+                    schema=a.get("input_schema", {}),
+                    semantic_type=a.get("semantic_type"),
+                )
+            )
 
         properties = []
         for p in list_properties(artifact_uri):
-            properties.append(Affordance(
-                name=p["name"],
-                uri=p["uri"],
-                schema=p.get("output_schema", {}),
-                semantic_type=p.get("semantic_type"),
-            ))
+            properties.append(
+                Affordance(
+                    name=p["name"],
+                    uri=p["uri"],
+                    schema=p.get("output_schema", {}),
+                    semantic_type=p.get("semantic_type"),
+                )
+            )
 
         return Artifact(
             name=name,

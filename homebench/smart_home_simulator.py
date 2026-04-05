@@ -9,15 +9,15 @@ import argparse
 import asyncio
 import json
 import re
-from pathlib import Path
-from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Any, Dict, Optional
 
+import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
-from rdflib import Graph, Namespace, URIRef, RDF, Literal
-import uvicorn
+from rdflib import RDF, Graph, Literal, Namespace, URIRef
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -33,7 +33,12 @@ EX = Namespace("http://example.org/")
 class Device(ABC):
     """Base class for all smart home devices"""
 
-    def __init__(self, artifact_uri: str, initial_state: Dict[str, Any], available_actions: set):
+    def __init__(
+        self,
+        artifact_uri: str,
+        initial_state: Dict[str, Any],
+        available_actions: set,
+    ):
         self.artifact_uri = artifact_uri
         self.state = initial_state.copy()
         self.available_actions = available_actions  # Set of action names that are available on this instance
@@ -69,16 +74,16 @@ class LightDevice(Device):
         return "light"
 
     def turn_on(self):
-        self.state['state'] = 'on'
+        self.state["state"] = "on"
 
     def turn_off(self):
-        self.state['state'] = 'off'
+        self.state["state"] = "off"
 
     def set_brightness(self, brightness: int):
-        self.state['brightness'] = brightness
+        self.state["brightness"] = brightness
 
     def set_color(self, color: str):
-        self.state['color'] = color
+        self.state["color"] = color
 
 
 class HeatingDevice(Device):
@@ -88,19 +93,19 @@ class HeatingDevice(Device):
         return "heating"
 
     def turn_on(self):
-        self.state['state'] = 'on'
+        self.state["state"] = "on"
 
     def turn_off(self):
-        self.state['state'] = 'off'
+        self.state["state"] = "off"
 
     def set_temperature(self, temperature: int):
-        self.state['temperature'] = temperature
+        self.state["temperature"] = temperature
 
     def set_mode(self, mode: str):
-        self.state['mode'] = mode
+        self.state["mode"] = mode
 
     def set_fan_speed(self, fan_speed: str):
-        self.state['fan_speed'] = fan_speed
+        self.state["fan_speed"] = fan_speed
 
 
 class FanDevice(Device):
@@ -110,16 +115,16 @@ class FanDevice(Device):
         return "fan"
 
     def turn_on(self):
-        self.state['state'] = 'on'
+        self.state["state"] = "on"
 
     def turn_off(self):
-        self.state['state'] = 'off'
+        self.state["state"] = "off"
 
     def set_speed(self, speed: str):
-        self.state['speed'] = speed
+        self.state["speed"] = speed
 
     def set_swing(self, swing: str):
-        self.state['swing'] = swing
+        self.state["swing"] = swing
 
 
 class AirConditionerDevice(Device):
@@ -129,22 +134,22 @@ class AirConditionerDevice(Device):
         return "air_conditioner"
 
     def turn_on(self):
-        self.state['state'] = 'on'
+        self.state["state"] = "on"
 
     def turn_off(self):
-        self.state['state'] = 'off'
+        self.state["state"] = "off"
 
     def set_temperature(self, temperature: int):
-        self.state['temperature'] = temperature
+        self.state["temperature"] = temperature
 
     def set_mode(self, mode: str):
-        self.state['mode'] = mode
+        self.state["mode"] = mode
 
     def set_fan_speed(self, fan_speed: str):
-        self.state['fan_speed'] = fan_speed
+        self.state["fan_speed"] = fan_speed
 
     def set_swing(self, swing: str):
-        self.state['swing'] = swing
+        self.state["swing"] = swing
 
 
 class GarageDoorDevice(Device):
@@ -154,10 +159,10 @@ class GarageDoorDevice(Device):
         return "garage_door"
 
     def open(self):
-        self.state['state'] = 'open'
+        self.state["state"] = "open"
 
     def close(self):
-        self.state['state'] = 'closed'
+        self.state["state"] = "closed"
 
 
 class BlindsDevice(Device):
@@ -167,14 +172,14 @@ class BlindsDevice(Device):
         return "blinds"
 
     def open(self):
-        self.state['state'] = 'open'
+        self.state["state"] = "open"
 
     def close(self):
-        self.state['state'] = 'closed'
+        self.state["state"] = "closed"
 
     def set_degree(self, degree: int):
-        if 'degree' in self.state:
-            self.state['degree'] = degree
+        if "degree" in self.state:
+            self.state["degree"] = degree
 
 
 class CurtainDevice(Device):
@@ -184,14 +189,14 @@ class CurtainDevice(Device):
         return "curtain"
 
     def open(self):
-        self.state['state'] = 'open'
+        self.state["state"] = "open"
 
     def close(self):
-        self.state['state'] = 'closed'
+        self.state["state"] = "closed"
 
     def set_degree(self, degree: int):
-        if 'degree' in self.state:
-            self.state['degree'] = degree
+        if "degree" in self.state:
+            self.state["degree"] = degree
 
 
 class MediaPlayerDevice(Device):
@@ -201,25 +206,25 @@ class MediaPlayerDevice(Device):
         return "media_player"
 
     def play(self):
-        self.state['state'] = 'playing'
+        self.state["state"] = "playing"
 
     def pause(self):
-        self.state['state'] = 'paused'
+        self.state["state"] = "paused"
 
     def stop(self):
-        self.state['state'] = 'stopped'
+        self.state["state"] = "stopped"
 
     def set_volume(self, volume: int):
-        self.state['volume'] = volume
+        self.state["volume"] = volume
 
     def set_artist(self, artist: str):
-        self.state['artist'] = artist
+        self.state["artist"] = artist
 
     def set_song(self, song: str):
-        self.state['song'] = song
+        self.state["song"] = song
 
     def set_style(self, style: str):
-        self.state['style'] = style
+        self.state["style"] = style
 
 
 class VacuumRobotDevice(Device):
@@ -229,13 +234,13 @@ class VacuumRobotDevice(Device):
         return "vacuum_robot"
 
     def start(self):
-        self.state['state'] = 'cleaning'
+        self.state["state"] = "cleaning"
 
     def stop(self):
-        self.state['state'] = 'idle'
+        self.state["state"] = "idle"
 
     def return_to_dock(self):
-        self.state['state'] = 'docked'
+        self.state["state"] = "docked"
 
 
 class TrashDevice(Device):
@@ -245,7 +250,7 @@ class TrashDevice(Device):
         return "trash"
 
     def pack(self):
-        self.state['state'] = 'packed'
+        self.state["state"] = "packed"
 
 
 class HumidifierDevice(Device):
@@ -255,16 +260,16 @@ class HumidifierDevice(Device):
         return "humidifier"
 
     def turn_on(self):
-        self.state['state'] = 'on'
+        self.state["state"] = "on"
 
     def turn_off(self):
-        self.state['state'] = 'off'
+        self.state["state"] = "off"
 
     def set_intensity(self, intensity: int):
-        self.state['intensity'] = intensity
+        self.state["intensity"] = intensity
 
     def set_mode(self, mode: str):
-        self.state['mode'] = mode
+        self.state["mode"] = mode
 
 
 class DehumidifierDevice(Device):
@@ -274,16 +279,16 @@ class DehumidifierDevice(Device):
         return "dehumidifiers"
 
     def turn_on(self):
-        self.state['state'] = 'on'
+        self.state["state"] = "on"
 
     def turn_off(self):
-        self.state['state'] = 'off'
+        self.state["state"] = "off"
 
     def set_intensity(self, intensity: int):
-        self.state['intensity'] = intensity
+        self.state["intensity"] = intensity
 
     def set_mode(self, mode: str):
-        self.state['mode'] = mode
+        self.state["mode"] = mode
 
 
 class AromatherapyDevice(Device):
@@ -293,16 +298,16 @@ class AromatherapyDevice(Device):
         return "aromatherapy"
 
     def turn_on(self):
-        self.state['state'] = 'on'
+        self.state["state"] = "on"
 
     def turn_off(self):
-        self.state['state'] = 'off'
+        self.state["state"] = "off"
 
     def set_interval(self, interval: int):
-        self.state['interval'] = interval
+        self.state["interval"] = interval
 
     def set_intensity(self, intensity: int):
-        self.state['intensity'] = intensity
+        self.state["intensity"] = intensity
 
 
 class WaterHeaterDevice(Device):
@@ -312,16 +317,16 @@ class WaterHeaterDevice(Device):
         return "water_heater"
 
     def turn_on(self):
-        self.state['state'] = 'on'
+        self.state["state"] = "on"
 
     def turn_off(self):
-        self.state['state'] = 'off'
+        self.state["state"] = "off"
 
     def set_temperature(self, temperature: int):
-        self.state['temperature'] = temperature
+        self.state["temperature"] = temperature
 
     def set_mode(self, mode: str):
-        self.state['mode'] = mode
+        self.state["mode"] = mode
 
 
 class AirPurifierDevice(Device):
@@ -331,16 +336,16 @@ class AirPurifierDevice(Device):
         return "air_purifiers"
 
     def turn_on(self):
-        self.state['state'] = 'on'
+        self.state["state"] = "on"
 
     def turn_off(self):
-        self.state['state'] = 'off'
+        self.state["state"] = "off"
 
     def set_fan_speed(self, fan_speed: str):
-        self.state['fan_speed'] = fan_speed
+        self.state["fan_speed"] = fan_speed
 
     def set_mode(self, mode: str):
-        self.state['mode'] = mode
+        self.state["mode"] = mode
 
 
 class PetFeederDevice(Device):
@@ -350,13 +355,14 @@ class PetFeederDevice(Device):
         return "pet_feeder"
 
     def feed(self):
-        if 'last_feed_time' in self.state:
+        if "last_feed_time" in self.state:
             from datetime import datetime
-            self.state['last_feed_time'] = datetime.now().isoformat()
+
+            self.state["last_feed_time"] = datetime.now().isoformat()
 
     def set_schedule(self, schedule: str):
-        if 'schedule' in self.state:
-            self.state['schedule'] = schedule
+        if "schedule" in self.state:
+            self.state["schedule"] = schedule
 
 
 # Device mapping
@@ -386,14 +392,26 @@ class SmartHomeSimulator:
     def __init__(self, home_description_dir: Path):
         self.home_description_dir = Path(home_description_dir)
         self.devices: Dict[str, Device] = {}
-        self.property_routes: Dict[str, tuple] = {}  # path -> (artifact_uri, prop_name, output_schema_type)
-        self.action_routes: Dict[str, tuple] = {}  # path -> (artifact_uri, action_name, params, input_schema_data)
+        self.property_routes: Dict[str, tuple] = (
+            {}
+        )  # path -> (artifact_uri, prop_name, output_schema_type)
+        self.action_routes: Dict[str, tuple] = (
+            {}
+        )  # path -> (artifact_uri, action_name, params, input_schema_data)
         self.graphs: Dict[str, Graph] = {}  # home_id -> RDF graph
-        self.home_workspaces: Dict[str, set] = {}  # home_id -> set of workspace URIs
-        self.workspace_contains: Dict[str, set] = {}  # workspace_uri -> set of contained URIs (artifacts or sub-workspaces)
+        self.home_workspaces: Dict[str, set] = (
+            {}
+        )  # home_id -> set of workspace URIs
+        self.workspace_contains: Dict[str, set] = (
+            {}
+        )  # workspace_uri -> set of contained URIs (artifacts or sub-workspaces)
         self.workspace_titles: Dict[str, str] = {}  # workspace_uri -> td:title
-        self.workspace_types: Dict[str, str] = {}  # workspace_uri -> ex: type URI
-        self.artifact_graphs: Dict[str, Graph] = {}  # artifact_uri -> subgraph with TD description
+        self.workspace_types: Dict[str, str] = (
+            {}
+        )  # workspace_uri -> ex: type URI
+        self.artifact_graphs: Dict[str, Graph] = (
+            {}
+        )  # artifact_uri -> subgraph with TD description
 
     def load_homes(self, home_ids: list[int] = None):
         """Load home descriptions from the directory.
@@ -406,20 +424,26 @@ class SmartHomeSimulator:
             # Load specific homes
             for home_id in home_ids:
                 ttl_file = self.home_description_dir / f"home_{home_id}.ttl"
-                state_file = self.home_description_dir / f"home_{home_id}_state.json"
+                state_file = (
+                    self.home_description_dir / f"home_{home_id}_state.json"
+                )
 
                 if ttl_file.exists() and state_file.exists():
                     print(f"Loading home {home_id}...")
                     self.load_home(ttl_file, state_file)
                 else:
-                    print(f"Warning: Home {home_id} files not found (looking for {ttl_file.name})")
+                    print(
+                        f"Warning: Home {home_id} files not found (looking for {ttl_file.name})"
+                    )
         else:
             # Load all homes
             ttl_files = sorted(self.home_description_dir.glob("home_*.ttl"))
 
             for ttl_file in ttl_files:
                 home_id = ttl_file.stem.replace("home_", "")
-                state_file = self.home_description_dir / f"home_{home_id}_state.json"
+                state_file = (
+                    self.home_description_dir / f"home_{home_id}_state.json"
+                )
 
                 if state_file.exists():
                     print(f"Loading home {home_id}...")
@@ -431,12 +455,12 @@ class SmartHomeSimulator:
         home_id = ttl_file.stem.replace("home_", "")
 
         # Load state
-        with open(state_file, 'r') as f:
+        with open(state_file, "r") as f:
             states = json.load(f)
 
         # Parse TTL file
         g = Graph()
-        g.parse(ttl_file, format='turtle')
+        g.parse(ttl_file, format="turtle")
 
         # Store the graph for this home
         self.graphs[home_id] = g
@@ -445,7 +469,9 @@ class SmartHomeSimulator:
         self.home_workspaces[home_id] = set()
 
         # First pass: find all workspaces and their containment relationships
-        for workspace_uri in g.subjects(predicate=RDF.type, object=HMAS.Workspace):
+        for workspace_uri in g.subjects(
+            predicate=RDF.type, object=HMAS.Workspace
+        ):
             workspace_uri_str = str(workspace_uri)
 
             # Track workspace
@@ -467,10 +493,14 @@ class SmartHomeSimulator:
                 self.workspace_contains[workspace_uri_str] = set()
 
             for contained_uri in g.objects(workspace_uri, HMAS.contains):
-                self.workspace_contains[workspace_uri_str].add(str(contained_uri))
+                self.workspace_contains[workspace_uri_str].add(
+                    str(contained_uri)
+                )
 
         # Find all artifacts
-        for artifact_uri in g.subjects(predicate=HMAS.isContainedIn, object=None):
+        for artifact_uri in g.subjects(
+            predicate=HMAS.isContainedIn, object=None
+        ):
             artifact_uri_str = str(artifact_uri)
 
             # Get device type from rdf:type
@@ -487,7 +517,9 @@ class SmartHomeSimulator:
             # Create device instance
             device_class = DEVICE_MAP.get(device_type)
             if device_class:
-                device = device_class(artifact_uri_str, initial_state, available_actions)
+                device = device_class(
+                    artifact_uri_str, initial_state, available_actions
+                )
                 self.devices[artifact_uri_str] = device
 
                 # Register routes
@@ -522,10 +554,13 @@ class SmartHomeSimulator:
         state_file = self.home_description_dir / f"home_{home_id}_state.json"
 
         if not state_file.exists():
-            raise HTTPException(status_code=404, detail=f"State file not found for home: {home_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"State file not found for home: {home_id}",
+            )
 
         # Load the initial state
-        with open(state_file, 'r') as f:
+        with open(state_file, "r") as f:
             states = json.load(f)
 
         # Reset all devices for this home
@@ -540,7 +575,10 @@ class SmartHomeSimulator:
 
     def _get_device_type(self, g: Graph, artifact_uri: URIRef) -> Optional[str]:
         """Extract device type from RDF graph"""
-        for type_uri in g.objects(artifact_uri, predicate=URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")):
+        for type_uri in g.objects(
+            artifact_uri,
+            predicate=URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+        ):
             type_str = str(type_uri)
             if type_str.startswith("http://example.org/"):
                 device_type = type_str.replace("http://example.org/", "")
@@ -559,7 +597,9 @@ class SmartHomeSimulator:
 
         return available_actions
 
-    def _register_routes(self, g: Graph, artifact_uri: URIRef, artifact_uri_str: str):
+    def _register_routes(
+        self, g: Graph, artifact_uri: URIRef, artifact_uri_str: str
+    ):
         """Register property and action routes from RDF graph"""
         # Register property affordances
         for prop_aff in g.objects(artifact_uri, TD.hasPropertyAffordance):
@@ -599,7 +639,11 @@ class SmartHomeSimulator:
             for form in g.objects(prop_aff, TD.hasForm):
                 for target in g.objects(form, HCTL.hasTarget):
                     target_path = self._extract_path(str(target))
-                    self.property_routes[target_path] = (artifact_uri_str, prop_name, output_schema_type)
+                    self.property_routes[target_path] = (
+                        artifact_uri_str,
+                        prop_name,
+                        output_schema_type,
+                    )
 
         # Register action affordances
         for action_aff in g.objects(artifact_uri, TD.hasActionAffordance):
@@ -637,25 +681,25 @@ class SmartHomeSimulator:
                         for schema_type in g.objects(prop, RDF.type):
                             schema_type_str = str(schema_type)
                             if "StringSchema" in schema_type_str:
-                                schema_info['type'] = 'string'
+                                schema_info["type"] = "string"
                             elif "IntegerSchema" in schema_type_str:
-                                schema_info['type'] = 'integer'
+                                schema_info["type"] = "integer"
                             elif "NumberSchema" in schema_type_str:
-                                schema_info['type'] = 'number'
+                                schema_info["type"] = "number"
                             elif "BooleanSchema" in schema_type_str:
-                                schema_info['type'] = 'boolean'
+                                schema_info["type"] = "boolean"
                             elif "ArraySchema" in schema_type_str:
-                                schema_info['type'] = 'array'
+                                schema_info["type"] = "array"
                                 # Get item type if specified
                                 for items in g.objects(prop, JSONSCHEMA.items):
                                     for item_type in g.objects(items, RDF.type):
                                         item_type_str = str(item_type)
                                         if "IntegerSchema" in item_type_str:
-                                            schema_info['item_type'] = 'integer'
+                                            schema_info["item_type"] = "integer"
                                         elif "StringSchema" in item_type_str:
-                                            schema_info['item_type'] = 'string'
+                                            schema_info["item_type"] = "string"
                                         elif "BooleanSchema" in item_type_str:
-                                            schema_info['item_type'] = 'boolean'
+                                            schema_info["item_type"] = "boolean"
                                         break
 
                         # Get enum values
@@ -663,20 +707,20 @@ class SmartHomeSimulator:
                         for enum_val in g.objects(prop, JSONSCHEMA.enum):
                             enum_values.append(str(enum_val))
                         if enum_values:
-                            schema_info['enum'] = enum_values
+                            schema_info["enum"] = enum_values
 
                         # Get min/max for numeric types
                         for min_val in g.objects(prop, JSONSCHEMA.minimum):
                             try:
-                                schema_info['minimum'] = int(str(min_val))
+                                schema_info["minimum"] = int(str(min_val))
                             except ValueError:
-                                schema_info['minimum'] = float(str(min_val))
+                                schema_info["minimum"] = float(str(min_val))
 
                         for max_val in g.objects(prop, JSONSCHEMA.maximum):
                             try:
-                                schema_info['maximum'] = int(str(max_val))
+                                schema_info["maximum"] = int(str(max_val))
                             except ValueError:
-                                schema_info['maximum'] = float(str(max_val))
+                                schema_info["maximum"] = float(str(max_val))
 
                         input_schema_data[param_name] = schema_info
 
@@ -684,7 +728,12 @@ class SmartHomeSimulator:
             for form in g.objects(action_aff, TD.hasForm):
                 for target in g.objects(form, HCTL.hasTarget):
                     target_path = self._extract_path(str(target))
-                    self.action_routes[target_path] = (artifact_uri_str, action_name, params, input_schema_data)
+                    self.action_routes[target_path] = (
+                        artifact_uri_str,
+                        action_name,
+                        params,
+                        input_schema_data,
+                    )
 
     def _extract_path(self, url: str) -> str:
         """Extract path from full URL"""
@@ -696,12 +745,17 @@ class SmartHomeSimulator:
     def get_property(self, path: str) -> Any:
         """Get a property value"""
         if path not in self.property_routes:
-            raise HTTPException(status_code=404, detail=f"Property endpoint not found: {path}")
+            raise HTTPException(
+                status_code=404, detail=f"Property endpoint not found: {path}"
+            )
 
         artifact_uri, prop_name, output_schema_type = self.property_routes[path]
 
         if artifact_uri not in self.devices:
-            raise HTTPException(status_code=500, detail=f"Device not found for artifact: {artifact_uri}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Device not found for artifact: {artifact_uri}",
+            )
 
         device = self.devices[artifact_uri]
 
@@ -718,15 +772,24 @@ class SmartHomeSimulator:
         except KeyError as e:
             raise HTTPException(status_code=404, detail=str(e))
 
-    def invoke_action(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def invoke_action(
+        self, path: str, payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Invoke an action"""
         if path not in self.action_routes:
-            raise HTTPException(status_code=404, detail=f"Action endpoint not found: {path}")
+            raise HTTPException(
+                status_code=404, detail=f"Action endpoint not found: {path}"
+            )
 
-        artifact_uri, action_name, params, input_schema_data = self.action_routes[path]
+        artifact_uri, action_name, params, input_schema_data = (
+            self.action_routes[path]
+        )
 
         if artifact_uri not in self.devices:
-            raise HTTPException(status_code=500, detail=f"Device not found for artifact: {artifact_uri}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Device not found for artifact: {artifact_uri}",
+            )
 
         device = self.devices[artifact_uri]
 
@@ -734,14 +797,17 @@ class SmartHomeSimulator:
         if not device.is_action_available(action_name):
             raise HTTPException(
                 status_code=404,
-                detail=f"Action '{action_name}' is not available on this device instance"
+                detail=f"Action '{action_name}' is not available on this device instance",
             )
 
         # Convert camelCase action name to snake_case method name
         method_name = self._camel_to_snake(action_name)
 
         if not hasattr(device, method_name):
-            raise HTTPException(status_code=500, detail=f"Method '{method_name}' not implemented for device")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Method '{method_name}' not implemented for device",
+            )
 
         method = getattr(device, method_name)
 
@@ -750,11 +816,16 @@ class SmartHomeSimulator:
             if params:
                 for param in params:
                     if param not in payload:
-                        raise HTTPException(status_code=400, detail=f"Missing required parameter: {param}")
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Missing required parameter: {param}",
+                        )
 
                     # Validate parameter value against schema
                     if param in input_schema_data:
-                        self._validate_parameter(param, payload[param], input_schema_data[param])
+                        self._validate_parameter(
+                            param, payload[param], input_schema_data[param]
+                        )
 
                 # Call method with parameters
                 method(**payload)
@@ -762,82 +833,104 @@ class SmartHomeSimulator:
                 # Call method without parameters
                 method()
 
-            return {"status": "success", "message": f"Action '{action_name}' executed successfully"}
+            return {
+                "status": "success",
+                "message": f"Action '{action_name}' executed successfully",
+            }
 
         except HTTPException:
             # Re-raise HTTP exceptions
             raise
         except TypeError as e:
-            raise HTTPException(status_code=400, detail=f"Invalid parameters: {str(e)}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid parameters: {str(e)}"
+            )
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
 
-    def _validate_parameter(self, param_name: str, value: Any, schema_info: Dict[str, Any]):
+    def _validate_parameter(
+        self, param_name: str, value: Any, schema_info: Dict[str, Any]
+    ):
         """Validate a parameter value against its schema constraints"""
         # Check array type
-        if 'type' in schema_info and schema_info['type'] == 'array':
+        if "type" in schema_info and schema_info["type"] == "array":
             if not isinstance(value, list):
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid value for parameter '{param_name}': '{value}'. Expected array"
+                    detail=f"Invalid value for parameter '{param_name}': '{value}'. Expected array",
                 )
 
             # Validate item types if specified
-            if 'item_type' in schema_info:
-                item_type = schema_info['item_type']
+            if "item_type" in schema_info:
+                item_type = schema_info["item_type"]
                 for i, item in enumerate(value):
-                    if item_type == 'integer' and not isinstance(item, int):
+                    if item_type == "integer" and not isinstance(item, int):
                         raise HTTPException(
                             status_code=400,
-                            detail=f"Invalid item type at index {i} in parameter '{param_name}': '{item}'. Expected integer"
+                            detail=f"Invalid item type at index {i} in parameter '{param_name}': '{item}'. Expected integer",
                         )
-                    elif item_type == 'string' and not isinstance(item, str):
+                    elif item_type == "string" and not isinstance(item, str):
                         raise HTTPException(
                             status_code=400,
-                            detail=f"Invalid item type at index {i} in parameter '{param_name}': '{item}'. Expected string"
+                            detail=f"Invalid item type at index {i} in parameter '{param_name}': '{item}'. Expected string",
                         )
-                    elif item_type == 'boolean' and not isinstance(item, bool):
+                    elif item_type == "boolean" and not isinstance(item, bool):
                         raise HTTPException(
                             status_code=400,
-                            detail=f"Invalid item type at index {i} in parameter '{param_name}': '{item}'. Expected boolean"
+                            detail=f"Invalid item type at index {i} in parameter '{param_name}': '{item}'. Expected boolean",
                         )
             return
 
         # Check enum constraint
-        if 'enum' in schema_info:
-            if str(value) not in schema_info['enum']:
+        if "enum" in schema_info:
+            if str(value) not in schema_info["enum"]:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid value for parameter '{param_name}': '{value}'. Must be one of: {', '.join(schema_info['enum'])}"
+                    detail=f"Invalid value for parameter '{param_name}': '{value}'. Must be one of: {', '.join(schema_info['enum'])}",
                 )
 
         # Check numeric range constraints
-        if 'type' in schema_info and schema_info['type'] in ['integer', 'number']:
+        if "type" in schema_info and schema_info["type"] in [
+            "integer",
+            "number",
+        ]:
             try:
-                num_value = float(value) if schema_info['type'] == 'number' else int(value)
+                num_value = (
+                    float(value)
+                    if schema_info["type"] == "number"
+                    else int(value)
+                )
 
-                if 'minimum' in schema_info and num_value < schema_info['minimum']:
+                if (
+                    "minimum" in schema_info
+                    and num_value < schema_info["minimum"]
+                ):
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Invalid value for parameter '{param_name}': {value}. Must be >= {schema_info['minimum']}"
+                        detail=f"Invalid value for parameter '{param_name}': {value}. Must be >= {schema_info['minimum']}",
                     )
 
-                if 'maximum' in schema_info and num_value > schema_info['maximum']:
+                if (
+                    "maximum" in schema_info
+                    and num_value > schema_info["maximum"]
+                ):
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Invalid value for parameter '{param_name}': {value}. Must be <= {schema_info['maximum']}"
+                        detail=f"Invalid value for parameter '{param_name}': {value}. Must be <= {schema_info['maximum']}",
                     )
             except (ValueError, TypeError):
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid value for parameter '{param_name}': '{value}'. Expected {schema_info['type']}"
+                    detail=f"Invalid value for parameter '{param_name}': '{value}'. Expected {schema_info['type']}",
                 )
 
     def _camel_to_snake(self, name: str) -> str:
         """Convert camelCase to snake_case"""
         # Insert underscore before uppercase letters and convert to lowercase
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+        s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
     def get_platform_rdf(self) -> str:
         """Generate RDF for the HypermediaMASPlatform root"""
@@ -862,28 +955,36 @@ class SmartHomeSimulator:
         # Add all home workspaces
         for home_id in self.home_workspaces.keys():
             # Add the home workspace URI
-            home_workspace_uri = URIRef(f"http://localhost:8080/workspaces/home{home_id}#workspace")
+            home_workspace_uri = URIRef(
+                f"http://localhost:8080/workspaces/home{home_id}#workspace"
+            )
             g.add((platform_uri, HMAS.hosts, home_workspace_uri))
 
-        return g.serialize(format='turtle')
+        return g.serialize(format="turtle")
 
     def get_workspace_rdf(self, workspace_path: str) -> str:
         """Generate RDF for a workspace showing contained artifacts or sub-workspaces"""
         # Parse workspace path to get workspace URI
         # Format: home0/balcony or just home0
-        parts = workspace_path.strip('/').split('/')
+        parts = workspace_path.strip("/").split("/")
 
         if len(parts) == 1:
             # Home workspace
-            workspace_uri = URIRef(f"http://localhost:8080/workspaces/{parts[0]}#workspace")
+            workspace_uri = URIRef(
+                f"http://localhost:8080/workspaces/{parts[0]}#workspace"
+            )
         else:
             # Room workspace
-            workspace_uri = URIRef(f"http://localhost:8080/workspaces/{parts[0]}/{parts[1]}#workspace")
+            workspace_uri = URIRef(
+                f"http://localhost:8080/workspaces/{parts[0]}/{parts[1]}#workspace"
+            )
 
         workspace_uri_str = str(workspace_uri)
 
         if workspace_uri_str not in self.workspace_contains:
-            raise HTTPException(status_code=404, detail=f"Workspace not found: {workspace_path}")
+            raise HTTPException(
+                status_code=404, detail=f"Workspace not found: {workspace_path}"
+            )
 
         g = Graph()
         g.bind("hmas", HMAS)
@@ -893,27 +994,43 @@ class SmartHomeSimulator:
 
         # Workspace description
         if workspace_uri_str in self.workspace_types:
-            g.add((workspace_uri, RDF.type, URIRef(self.workspace_types[workspace_uri_str])))
+            g.add(
+                (
+                    workspace_uri,
+                    RDF.type,
+                    URIRef(self.workspace_types[workspace_uri_str]),
+                )
+            )
         g.add((workspace_uri, RDF.type, HMAS.Workspace))
         g.add((workspace_uri, RDF.type, TD.Thing))
         if workspace_uri_str in self.workspace_titles:
-            g.add((workspace_uri, TD.title, Literal(self.workspace_titles[workspace_uri_str])))
+            g.add(
+                (
+                    workspace_uri,
+                    TD.title,
+                    Literal(self.workspace_titles[workspace_uri_str]),
+                )
+            )
 
         # Add contained items (could be artifacts or sub-workspaces)
         for contained_uri_str in self.workspace_contains[workspace_uri_str]:
             contained_uri = URIRef(contained_uri_str)
             g.add((workspace_uri, HMAS.contains, contained_uri))
 
-        return g.serialize(format='turtle')
+        return g.serialize(format="turtle")
 
     def get_artifact_rdf(self, artifact_path: str) -> str:
         """Generate RDF for an artifact showing its TD description"""
         # Parse artifact path to construct artifact URI
         # Format: home0/balcony/artifacts/balconyAromatherapy
-        artifact_uri_str = f"http://localhost:8080/workspaces/{artifact_path}#artifact"
+        artifact_uri_str = (
+            f"http://localhost:8080/workspaces/{artifact_path}#artifact"
+        )
 
         if artifact_uri_str not in self.artifact_graphs:
-            raise HTTPException(status_code=404, detail=f"Artifact not found: {artifact_path}")
+            raise HTTPException(
+                status_code=404, detail=f"Artifact not found: {artifact_path}"
+            )
 
         # Get the stored artifact graph (which is already filtered to just this artifact)
         artifact_graph = self.artifact_graphs[artifact_uri_str]
@@ -924,10 +1041,12 @@ class SmartHomeSimulator:
         artifact_graph.bind("rdf", RDF)
         artifact_graph.bind("hctl", HCTL)
         artifact_graph.bind("http", HTTP)
-        artifact_graph.bind("jsonschema", Namespace("https://www.w3.org/2019/wot/json-schema#"))
+        artifact_graph.bind(
+            "jsonschema", Namespace("https://www.w3.org/2019/wot/json-schema#")
+        )
         artifact_graph.bind("ex", EX)
 
-        return artifact_graph.serialize(format='turtle')
+        return artifact_graph.serialize(format="turtle")
 
     def query_sparql(self, home_id: str, query: str) -> Dict[str, Any]:
         """Execute a SPARQL 1.1 query against a home's RDF graph
@@ -940,7 +1059,9 @@ class SmartHomeSimulator:
             dict with "results" containing variable bindings
         """
         if home_id not in self.graphs:
-            raise HTTPException(status_code=404, detail=f"Home not found: {home_id}")
+            raise HTTPException(
+                status_code=404, detail=f"Home not found: {home_id}"
+            )
 
         g = self.graphs[home_id]
 
@@ -948,10 +1069,12 @@ class SmartHomeSimulator:
             print(repr(query[:100]))
             results = g.query(query)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"SPARQL query error: {str(e)}")
+            raise HTTPException(
+                status_code=400, detail=f"SPARQL query error: {str(e)}"
+            )
 
         # Convert results to JSON-serializable format
-        if results.type == 'SELECT':
+        if results.type == "SELECT":
             variables = [str(v) for v in results.vars]
             bindings = []
             for row in results:
@@ -960,9 +1083,16 @@ class SmartHomeSimulator:
                     value = row[var]
                     if value is not None:
                         binding[str(var)] = {
-                            "type": "uri" if isinstance(value, URIRef) else
-                                    "literal" if isinstance(value, Literal) else "bnode",
-                            "value": str(value)
+                            "type": (
+                                "uri"
+                                if isinstance(value, URIRef)
+                                else (
+                                    "literal"
+                                    if isinstance(value, Literal)
+                                    else "bnode"
+                                )
+                            ),
+                            "value": str(value),
                         }
                         if isinstance(value, Literal) and value.datatype:
                             binding[str(var)]["datatype"] = str(value.datatype)
@@ -970,23 +1100,30 @@ class SmartHomeSimulator:
 
             return {
                 "head": {"vars": variables},
-                "results": {"bindings": bindings}
+                "results": {"bindings": bindings},
             }
-        elif results.type == 'ASK':
+        elif results.type == "ASK":
             return {"boolean": bool(results.askAnswer)}
-        elif results.type == 'CONSTRUCT' or results.type == 'DESCRIBE':
+        elif results.type == "CONSTRUCT" or results.type == "DESCRIBE":
             result_graph = Graph()
             for triple in results:
                 result_graph.add(triple)
-            return {"graph": result_graph.serialize(format='turtle')}
+            return {"graph": result_graph.serialize(format="turtle")}
         else:
-            raise HTTPException(status_code=400, detail=f"Unsupported query type: {results.type}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported query type: {results.type}",
+            )
 
 
 # Global simulator instance and config
 simulator: Optional[SmartHomeSimulator] = None
 config: Dict[str, Any] = {
-    "home_description_dir": REPO_ROOT / "data" / "homebench" / "hmas" / "home_description",
+    "home_description_dir": REPO_ROOT
+    / "data"
+    / "homebench"
+    / "hmas"
+    / "home_description",
     "home_ids": None,  # None = load all, or list of ints e.g. [0, 1, 5]
 }
 
@@ -1001,7 +1138,9 @@ async def lifespan(_app: FastAPI):
     home_ids = config.get("home_ids")
 
     if not home_description_dir.exists():
-        print(f"Warning: Home description directory not found: {home_description_dir}")
+        print(
+            f"Warning: Home description directory not found: {home_description_dir}"
+        )
         print("Creating simulator without loading homes...")
         simulator = SmartHomeSimulator(home_description_dir)
     else:
@@ -1089,7 +1228,7 @@ async def http_exception_handler(_request: Request, exc: HTTPException):
     """Handle HTTP exceptions with JSON responses"""
     return JSONResponse(
         status_code=exc.status_code,
-        content={"error": exc.detail, "status_code": exc.status_code}
+        content={"error": exc.detail, "status_code": exc.status_code},
     )
 
 
@@ -1098,7 +1237,11 @@ async def generic_exception_handler(_request: Request, exc: Exception):
     """Handle unexpected exceptions"""
     return JSONResponse(
         status_code=500,
-        content={"error": "Internal server error", "detail": str(exc), "status_code": 500}
+        content={
+            "error": "Internal server error",
+            "detail": str(exc),
+            "status_code": 500,
+        },
     )
 
 
@@ -1130,9 +1273,13 @@ async def sparql_query(request: Request):
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
     if "home_id" not in payload:
-        raise HTTPException(status_code=400, detail="Missing 'home_id' parameter in payload")
+        raise HTTPException(
+            status_code=400, detail="Missing 'home_id' parameter in payload"
+        )
     if "query" not in payload:
-        raise HTTPException(status_code=400, detail="Missing 'query' parameter in payload")
+        raise HTTPException(
+            status_code=400, detail="Missing 'query' parameter in payload"
+        )
 
     home_id = str(payload["home_id"])
     query = payload["query"]
@@ -1141,7 +1288,9 @@ async def sparql_query(request: Request):
     # pool so it does not block FastAPI's async event loop and cause timeouts
     # when multiple SPARQL requests arrive concurrently.
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, simulator.query_sparql, home_id, query)
+    return await loop.run_in_executor(
+        None, simulator.query_sparql, home_id, query
+    )
 
 
 @app.post("/reset")
@@ -1156,13 +1305,17 @@ async def reset_home(request: Request):
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
     if "home" not in payload:
-        raise HTTPException(status_code=400, detail="Missing 'home' parameter in payload")
+        raise HTTPException(
+            status_code=400, detail="Missing 'home' parameter in payload"
+        )
 
     home_id = str(payload["home"])
 
     # Validate that the home exists
     if home_id not in simulator.graphs:
-        raise HTTPException(status_code=404, detail=f"Home not found: {home_id}")
+        raise HTTPException(
+            status_code=404, detail=f"Home not found: {home_id}"
+        )
 
     # Reset the home
     reset_count = simulator.reset_home(home_id)
@@ -1170,7 +1323,7 @@ async def reset_home(request: Request):
     return {
         "status": "success",
         "message": f"Home {home_id} reset to initial state",
-        "devices_reset": reset_count
+        "devices_reset": reset_count,
     }
 
 
@@ -1184,45 +1337,42 @@ Examples:
   python smart_home_simulator.py --home 0                  # Load only home 0
   python smart_home_simulator.py --home 0,1,5              # Load homes 0, 1, and 5
   python smart_home_simulator.py --data-dir /path/to/data --port 8081
-        """
+        """,
     )
 
     parser.add_argument(
-        '--data-dir',
+        "--data-dir",
         type=Path,
         default=REPO_ROOT / "data" / "homebench" / "hmas" / "home_description",
-        metavar='DIR',
-        help='Path to home description data directory (default: data/homebench/hmas/home_description)'
+        metavar="DIR",
+        help="Path to home description data directory (default: data/homebench/hmas/home_description)",
     )
 
     parser.add_argument(
-        '--home',
+        "--home",
         type=str,
         default=None,
-        metavar='ID',
-        help='Specific home ID(s) to load (e.g., "0" or "0,1,5"). If not specified, loads all homes.'
+        metavar="ID",
+        help='Specific home ID(s) to load (e.g., "0" or "0,1,5"). If not specified, loads all homes.',
     )
 
     parser.add_argument(
-        '--home-config',
+        "--home-config",
         type=Path,
         default=None,
-        metavar='FILE',
-        help='JSON file containing a list of home IDs to load (e.g., [2, 4, 6]). Overrides --home if both given.'
+        metavar="FILE",
+        help="JSON file containing a list of home IDs to load (e.g., [2, 4, 6]). Overrides --home if both given.",
     )
 
     parser.add_argument(
-        '--host',
+        "--host",
         type=str,
         default="0.0.0.0",
-        help='Host to bind to (default: 0.0.0.0)'
+        help="Host to bind to (default: 0.0.0.0)",
     )
 
     parser.add_argument(
-        '--port',
-        type=int,
-        default=8080,
-        help='Port to bind to (default: 8080)'
+        "--port", type=int, default=8080, help="Port to bind to (default: 8080)"
     )
 
     args = parser.parse_args()

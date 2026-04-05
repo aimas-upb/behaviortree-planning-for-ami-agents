@@ -21,10 +21,10 @@ from typing import Optional
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from .config import ExperimentConfig, load_config, create_default_config
-from .discovery import create_discovery_pipeline, DiscoveryResult
-from .planning import create_planner, PlanningResult
-from .execution import create_executor, ExecutionResult
+from .config import ExperimentConfig, create_default_config, load_config
+from .discovery import DiscoveryResult, create_discovery_pipeline
+from .execution import ExecutionResult, create_executor
+from .planning import PlanningResult, create_planner
 
 # Load environment variables
 load_dotenv()
@@ -115,7 +115,9 @@ def run_experiment(
 
         # Log plan details
         if planning_result.plan.is_json_ir:
-            logger.info(f"Tree spec:\n{json.dumps(planning_result.plan.content, indent=2)}")
+            logger.info(
+                f"Tree spec:\n{json.dumps(planning_result.plan.content, indent=2)}"
+            )
         else:
             logger.info(f"Generated code:\n{planning_result.plan.content}")
 
@@ -193,7 +195,7 @@ Examples:
 
   # Save results
   uv run python -m src.runner --config baseline.yaml --goal "..." --output results/
-        """
+        """,
     )
 
     # Config file
@@ -202,10 +204,17 @@ Examples:
     # Goal and environment
     parser.add_argument("--goal", type=str, help="Goal to accomplish")
     parser.add_argument("--home", type=int, default=0, help="Home ID (0-99)")
-    parser.add_argument("--entry", type=str, help="Entry point URI (overrides --home)")
+    parser.add_argument(
+        "--entry", type=str, help="Entry point URI (overrides --home)"
+    )
 
     # Model settings
-    parser.add_argument("--model", type=str, default=None, help="Model name (default: from config or gpt-4o)")
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="Model name (default: from config or gpt-4o)",
+    )
     parser.add_argument("--base-url", type=str, help="API base URL")
     parser.add_argument("--api-key", type=str, help="API key")
 
@@ -213,34 +222,38 @@ Examples:
     parser.add_argument(
         "--discovery-affordances",
         choices=["exhaustive", "agentic", "relevant", "agentic_query"],
-        help="Affordance discovery strategy"
+        help="Affordance discovery strategy",
     )
     parser.add_argument(
         "--discovery-state",
         choices=["all", "relevant", "none"],
-        help="State gathering strategy"
+        help="State gathering strategy",
     )
 
     # Planning overrides
     parser.add_argument(
         "--planning-reasoning",
         choices=["none", "chain_of_thought", "multi_turn", "reflection"],
-        help="Reasoning strategy"
+        help="Reasoning strategy",
     )
     parser.add_argument(
         "--planning-output",
         choices=["json_ir", "python_code", "python_code_unconstrained"],
-        help="Output format"
+        help="Output format",
     )
     parser.add_argument(
         "--prompt-strategy",
         choices=["baseline", "detailed", "few_shot", "icl"],
-        help="Prompt strategy"
+        help="Prompt strategy",
     )
 
     # Output
-    parser.add_argument("--output", type=str, help="Output directory for results")
-    parser.add_argument("--verbose", action="store_true", help="Verbose logging")
+    parser.add_argument(
+        "--output", type=str, help="Output directory for results"
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Verbose logging"
+    )
 
     args = parser.parse_args()
 
@@ -284,7 +297,9 @@ Examples:
     if args.entry:
         entry_point = args.entry
     else:
-        entry_point = f"http://localhost:8080/workspaces/home{args.home}#workspace"
+        entry_point = (
+            f"http://localhost:8080/workspaces/home{args.home}#workspace"
+        )
 
     # Get goal
     if not args.goal:
@@ -294,7 +309,9 @@ Examples:
     goal = args.goal
 
     # Setup API client
-    api_key = args.api_key or config.model.api_key or os.environ.get("OPENAI_API_KEY")
+    api_key = (
+        args.api_key or config.model.api_key or os.environ.get("OPENAI_API_KEY")
+    )
     base_url = args.base_url or config.model.base_url
 
     if not api_key and not base_url:
@@ -313,9 +330,13 @@ Examples:
     logger.info(f"Goal: {goal}")
     logger.info(f"Entry point: {entry_point}")
     logger.info(f"Model: {config.model.name}")
-    logger.info(f"Discovery - Affordances: {config.discovery.affordances.strategy}")
+    logger.info(
+        f"Discovery - Affordances: {config.discovery.affordances.strategy}"
+    )
     logger.info(f"Discovery - State: {config.discovery.state.strategy}")
-    logger.info(f"Planning - Reasoning: {config.planning.reasoning.strategy if config.planning.reasoning.enabled else 'none'}")
+    logger.info(
+        f"Planning - Reasoning: {config.planning.reasoning.strategy if config.planning.reasoning.enabled else 'none'}"
+    )
     logger.info(f"Planning - Output: {config.planning.output.format}")
     logger.info(f"Planning - Prompt: {config.planning.prompt_strategy}")
     logger.info("=" * 60)

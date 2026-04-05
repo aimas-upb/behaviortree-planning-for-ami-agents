@@ -8,8 +8,8 @@ and produces a SPARQL query per command.
 """
 
 import json
-import re
 import logging
+import re
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
@@ -17,25 +17,29 @@ from urllib.parse import urlparse
 import requests
 from openai import OpenAI
 
-from ..base import CapabilityModel, Artifact, Affordance
 from ...config import ModelConfig, get_model_kwargs
 from ...hmas_client import (
-    list_actions,
-    list_properties,
     get_artifact_semantic_type,
     get_workspace_semantic_type,
+    list_actions,
+    list_properties,
 )
+from ..base import Affordance, Artifact, CapabilityModel
 
 logger = logging.getLogger(__name__)
 
 # Path to the semantic query prompt
 SEMANTIC_QUERY_PROMPT_PATH = (
-    Path(__file__).resolve().parents[3] / "ontologies" / "semantic-query-prompt.txt"
+    Path(__file__).resolve().parents[3]
+    / "ontologies"
+    / "semantic-query-prompt.txt"
 )
 
 # Path to the structured semantic query prompt (used with structured_goal)
 SEMANTIC_QUERY_STRUCTURED_PROMPT_PATH = (
-    Path(__file__).resolve().parents[3] / "ontologies" / "semantic-query-structured-prompt.txt"
+    Path(__file__).resolve().parents[3]
+    / "ontologies"
+    / "semantic-query-structured-prompt.txt"
 )
 
 
@@ -46,7 +50,9 @@ def _extract_home_id(entry_point: str) -> str:
     """
     match = re.search(r"/workspaces/home(\d+)", entry_point)
     if not match:
-        raise ValueError(f"Cannot extract home_id from entry point: {entry_point}")
+        raise ValueError(
+            f"Cannot extract home_id from entry point: {entry_point}"
+        )
     return match.group(1)
 
 
@@ -66,8 +72,12 @@ def _parse_llm_queries(response_text: str) -> list[dict]:
     Returns list of dicts with 'command' and 'query' keys.
     """
     # Try to extract from markdown code block
-    code_block = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", response_text, re.DOTALL)
-    json_str = code_block.group(1).strip() if code_block else response_text.strip()
+    code_block = re.search(
+        r"```(?:json)?\s*\n?(.*?)\n?```", response_text, re.DOTALL
+    )
+    json_str = (
+        code_block.group(1).strip() if code_block else response_text.strip()
+    )
 
     parsed = json.loads(json_str)
 
@@ -165,29 +175,37 @@ class AgenticQueryAffordanceDiscovery:
         """
         logger.info("Generating SPARQL queries from goal")
 
-        api_kwargs = get_model_kwargs(self.model, model_config=self.model_config)
-        api_kwargs.update({
-            "messages": [
-                {"role": "system", "content": self.semantic_query_prompt},
-                {"role": "user", "content": goal},
-            ],
-        })
+        api_kwargs = get_model_kwargs(
+            self.model, model_config=self.model_config
+        )
+        api_kwargs.update(
+            {
+                "messages": [
+                    {"role": "system", "content": self.semantic_query_prompt},
+                    {"role": "user", "content": goal},
+                ],
+            }
+        )
 
         response = self.client.chat.completions.create(**api_kwargs)
         response_text = response.choices[0].message.content
 
         # Record the LLM response in the trace
-        self.exploration_trace.append({
-            "phase": "query_generation",
-            "goal": goal,
-            "llm_response": response_text,
-            "queries": None,  # filled below
-        })
+        self.exploration_trace.append(
+            {
+                "phase": "query_generation",
+                "goal": goal,
+                "llm_response": response_text,
+                "queries": None,  # filled below
+            }
+        )
 
         try:
             queries = _parse_llm_queries(response_text)
             self.exploration_trace[-1]["queries"] = queries
-            logger.info(f"Generated {len(queries)} queries for {len(queries)} commands")
+            logger.info(
+                f"Generated {len(queries)} queries for {len(queries)} commands"
+            )
             return queries
         except (json.JSONDecodeError, ValueError) as e:
             logger.error(f"Failed to parse LLM query response: {e}")
@@ -226,11 +244,15 @@ class AgenticQueryAffordanceDiscovery:
                 error_msg = resp.json().get("detail", error_msg)
             except Exception:
                 pass
-            logger.warning(f"SPARQL query failed for command '{command}': {error_msg}")
+            logger.warning(
+                f"SPARQL query failed for command '{command}': {error_msg}"
+            )
             trace_entry["result"] = {"error": error_msg, "bindings_count": 0}
             trace_entry["error"] = error_msg
             self.exploration_trace.append(trace_entry)
-            model.mark_infeasible(command, query, reason=f"query_error: {error_msg}")
+            model.mark_infeasible(
+                command, query, reason=f"query_error: {error_msg}"
+            )
             return
 
         bindings = sparql_result.get("results", {}).get("bindings", [])
@@ -275,7 +297,11 @@ class AgenticQueryAffordanceDiscovery:
             # Derive workspace URI if not provided
             if not ws_uri:
                 parts = art_uri.split("/artifacts/")
-                ws_uri = parts[0] + "#workspace" if len(parts) == 2 else model.entry_point
+                ws_uri = (
+                    parts[0] + "#workspace"
+                    if len(parts) == 2
+                    else model.entry_point
+                )
 
             # Register workspace -> artifact mapping
             ws = model.get_or_create_workspace(ws_uri)
@@ -296,11 +322,13 @@ class AgenticQueryAffordanceDiscovery:
             # Add action affordance if not already present
             existing_action_uris = {a.uri for a in artifact.actions}
             if target_uri not in existing_action_uris:
-                artifact.actions.append(Affordance(
-                    name=affordance_name,
-                    uri=target_uri,
-                    command=command,
-                ))
+                artifact.actions.append(
+                    Affordance(
+                        name=affordance_name,
+                        uri=target_uri,
+                        command=command,
+                    )
+                )
 
     def _enrich_artifacts(self, model: CapabilityModel) -> None:
         """Enrich discovered artifacts with full action schemas, property affordances, and semantic types."""
@@ -308,9 +336,13 @@ class AgenticQueryAffordanceDiscovery:
         for ws_uri, workspace in model.workspaces.items():
             if not workspace.semantic_type:
                 try:
-                    workspace.semantic_type = get_workspace_semantic_type(ws_uri)
+                    workspace.semantic_type = get_workspace_semantic_type(
+                        ws_uri
+                    )
                 except Exception as e:
-                    logger.warning(f"Failed to fetch workspace type for {ws_uri}: {e}")
+                    logger.warning(
+                        f"Failed to fetch workspace type for {ws_uri}: {e}"
+                    )
 
         for art_uri, artifact in model.artifacts.items():
             # Fetch artifact semantic type
@@ -318,7 +350,9 @@ class AgenticQueryAffordanceDiscovery:
                 try:
                     artifact.semantic_type = get_artifact_semantic_type(art_uri)
                 except Exception as e:
-                    logger.warning(f"Failed to fetch artifact type for {art_uri}: {e}")
+                    logger.warning(
+                        f"Failed to fetch artifact type for {art_uri}: {e}"
+                    )
 
             # Fetch all property affordances
             try:
@@ -338,9 +372,13 @@ class AgenticQueryAffordanceDiscovery:
             # Enrich action schemas and semantic types
             try:
                 all_actions = list_actions(art_uri)
-                action_schema_map = {a["uri"]: a.get("input_schema", {}) for a in all_actions}
+                action_schema_map = {
+                    a["uri"]: a.get("input_schema", {}) for a in all_actions
+                }
                 action_name_map = {a["uri"]: a["name"] for a in all_actions}
-                action_type_map = {a["uri"]: a.get("semantic_type") for a in all_actions}
+                action_type_map = {
+                    a["uri"]: a.get("semantic_type") for a in all_actions
+                }
                 for action in artifact.actions:
                     if action.uri in action_schema_map:
                         action.schema = action_schema_map[action.uri]
@@ -349,4 +387,6 @@ class AgenticQueryAffordanceDiscovery:
                     if action.uri in action_type_map:
                         action.semantic_type = action_type_map[action.uri]
             except Exception as e:
-                logger.warning(f"Failed to fetch action schemas for {art_uri}: {e}")
+                logger.warning(
+                    f"Failed to fetch action schemas for {art_uri}: {e}"
+                )

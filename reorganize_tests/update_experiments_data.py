@@ -2,14 +2,18 @@
 Usage: python reorganize_tests/update_experiments_data.py
 """
 
-import os
 import json
+import os
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-GROUND_TRUTH_FILE = REPO_ROOT / "data" / "homebench" / "converted" / "test_data.json"
+GROUND_TRUTH_FILE = (
+    REPO_ROOT / "data" / "homebench" / "converted" / "test_data.json"
+)
 LEGACY_GROUPS_DIR = REPO_ROOT / "reorganize_tests" / "legacy_action_groups"
-OUTPUT_GROUPS_DIR = REPO_ROOT / "data" / "homebench" / "benchmarks" / "action_groups"
+OUTPUT_GROUPS_DIR = (
+    REPO_ROOT / "data" / "homebench" / "benchmarks" / "action_groups"
+)
 
 with open(GROUND_TRUTH_FILE) as f:
     ground_truth_tests = json.load(f)
@@ -28,19 +32,31 @@ for test_group_file in test_groups_files:
 
     for test in test_group_tests:
         # Find the matching ground truth test
-        matching_gt_test = next((gt_test for gt_test in ground_truth_tests if gt_test["id"] == test["id"]), None)
+        matching_gt_test = next(
+            (
+                gt_test
+                for gt_test in ground_truth_tests
+                if gt_test["id"] == test["id"]
+            ),
+            None,
+        )
 
         if matching_gt_test:
-            if test_group_file == "single_unfeasible_action_tests.json" and matching_gt_test["output"][0]["execution"] != "error_input":
+            if (
+                test_group_file == "single_unfeasible_action_tests.json"
+                and matching_gt_test["output"][0]["execution"] != "error_input"
+            ):
                 new_feasible_retry_tests.append(matching_gt_test)
                 continue  # Skip this test as it doesn't match the expected unfeasible action
 
             fixed_test.append(matching_gt_test)
         else:
-            print(f"Warning: No matching ground truth test found for test ID {test['id']}")
+            print(
+                f"Warning: No matching ground truth test found for test ID {test['id']}"
+            )
 
     # Save the fixed tests back to the file
-    with open(OUTPUT_GROUPS_DIR / test_group_file, 'w') as f:
+    with open(OUTPUT_GROUPS_DIR / test_group_file, "w") as f:
         json.dump(fixed_test, f, indent=2)
 
     total_number_of_tests_per_group[test_group_file] = len(fixed_test)
@@ -50,15 +66,17 @@ if new_feasible_retry_tests:
     feasible_file_path = OUTPUT_GROUPS_DIR / "single_feasible_action_tests.json"
     print(f"Total new feasible retry tests: {len(new_feasible_retry_tests)}")
 
-    with open(feasible_file_path, 'r') as f:
+    with open(feasible_file_path, "r") as f:
         existing_feasible_tests = json.load(f)
-    
+
     existing_feasible_tests.extend(new_feasible_retry_tests)
 
-    with open(feasible_file_path, 'w') as f:
+    with open(feasible_file_path, "w") as f:
         json.dump(existing_feasible_tests, f, indent=2)
 
-    total_number_of_tests_per_group["single_feasible_action_tests.json"] += len(new_feasible_retry_tests)
+    total_number_of_tests_per_group["single_feasible_action_tests.json"] += len(
+        new_feasible_retry_tests
+    )
 
 print("Total number of tests per group:")
 for group, count in total_number_of_tests_per_group.items():

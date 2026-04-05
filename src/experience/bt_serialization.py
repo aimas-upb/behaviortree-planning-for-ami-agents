@@ -14,7 +14,6 @@ import logging
 from typing import Any
 
 import py_trees
-
 from behavior_trees.affordance_nodes import (
     ActionAffordanceNode,
     ComparisonPropertyConditionNode,
@@ -28,6 +27,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # py_trees -> JSON-IR
 # ---------------------------------------------------------------------------
+
 
 def py_tree_to_json_ir(node: py_trees.behaviour.Behaviour) -> dict:
     """
@@ -135,7 +135,9 @@ def py_tree_to_json_ir(node: py_trees.behaviour.Behaviour) -> dict:
         }
 
     # --- Unknown leaf ---
-    logger.warning(f"Unknown node type: {type(node).__name__}, name={node.name}")
+    logger.warning(
+        f"Unknown node type: {type(node).__name__}, name={node.name}"
+    )
     return {
         "type": "unknown",
         "name": node.name,
@@ -146,6 +148,7 @@ def py_tree_to_json_ir(node: py_trees.behaviour.Behaviour) -> dict:
 # ---------------------------------------------------------------------------
 # Extraction helpers
 # ---------------------------------------------------------------------------
+
 
 def extract_leaf_nodes_json_ir(
     node: py_trees.behaviour.Behaviour,
@@ -207,6 +210,7 @@ def _collect_property_urls(node: dict, out: list[str]) -> None:
 # ---------------------------------------------------------------------------
 # Plan / tree combination
 # ---------------------------------------------------------------------------
+
 
 def combine_trees_parallel(
     trees: list[py_trees.behaviour.Behaviour],

@@ -4,7 +4,11 @@ import os
 from pathlib import Path
 
 ONTOLOGIES_DIR = Path(__file__).resolve().parent.parent / "ontologies" / "txt"
-OUTPUT_FILE = Path(__file__).resolve().parent.parent / "ontologies" / "ontologies-prompt.txt"
+OUTPUT_FILE = (
+    Path(__file__).resolve().parent.parent
+    / "ontologies"
+    / "ontologies-prompt.txt"
+)
 
 
 def main():

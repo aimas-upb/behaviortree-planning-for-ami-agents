@@ -5,22 +5,22 @@ Uses LLM to guide exploration based on the goal.
 """
 
 import json
-from typing import Optional
 import logging
+from typing import Optional
 
 from openai import OpenAI
 
-from ..base import CapabilityModel, Artifact, Affordance
 from ...config import ModelConfig, get_model_kwargs
 from ...hmas_client import (
-    list_workspaces,
-    list_artifacts,
-    list_properties,
-    list_actions,
     get_artifact_name,
     get_artifact_semantic_type,
     get_workspace_semantic_type,
+    list_actions,
+    list_artifacts,
+    list_properties,
+    list_workspaces,
 )
+from ..base import Affordance, Artifact, CapabilityModel
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,9 @@ class AgenticAffordanceDiscovery:
         self.model_config = model_config
         self.model = model_config.name
         self.max_iterations = max_iterations
-        self.exploration_trace: list[dict] = []  # Track tool calls for visualization
+        self.exploration_trace: list[dict] = (
+            []
+        )  # Track tool calls for visualization
 
     def discover(
         self,
@@ -144,7 +146,9 @@ class AgenticAffordanceDiscovery:
         capability_model = CapabilityModel(entry_point=entry_point)
         self.exploration_trace = []  # Reset trace
 
-        system_prompt = DISCOVERY_SYSTEM_PROMPT.format(entry_point=entry_point, goal=goal)
+        system_prompt = DISCOVERY_SYSTEM_PROMPT.format(
+            entry_point=entry_point, goal=goal
+        )
         user_message = f"Find capabilities needed to: {goal}"
 
         messages = [
@@ -153,19 +157,25 @@ class AgenticAffordanceDiscovery:
         ]
 
         for iteration in range(self.max_iterations):
-            api_kwargs = get_model_kwargs(self.model, model_config=self.model_config)
-            api_kwargs.update({
-                "messages": messages,
-                "tools": DISCOVERY_TOOLS,
-                "tool_choice": "auto",
-            })
+            api_kwargs = get_model_kwargs(
+                self.model, model_config=self.model_config
+            )
+            api_kwargs.update(
+                {
+                    "messages": messages,
+                    "tools": DISCOVERY_TOOLS,
+                    "tool_choice": "auto",
+                }
+            )
             response = self.client.chat.completions.create(**api_kwargs)
 
             message = response.choices[0].message
             messages.append(message)
 
             if not message.tool_calls:
-                logger.info(f"Discovery ended after {iteration + 1} iterations (no tool call)")
+                logger.info(
+                    f"Discovery ended after {iteration + 1} iterations (no tool call)"
+                )
                 break
 
             for tool_call in message.tool_calls:
@@ -181,9 +191,13 @@ class AgenticAffordanceDiscovery:
                 }
 
                 if fn_name == "done_exploring":
-                    trace_entry["result"] = {"reason": fn_args.get("reason", "done")}
+                    trace_entry["result"] = {
+                        "reason": fn_args.get("reason", "done")
+                    }
                     self.exploration_trace.append(trace_entry)
-                    logger.info(f"Discovery complete: {fn_args.get('reason', 'done')}")
+                    logger.info(
+                        f"Discovery complete: {fn_args.get('reason', 'done')}"
+                    )
                     return capability_model
 
                 elif fn_name == "explore_workspace":
@@ -193,11 +207,13 @@ class AgenticAffordanceDiscovery:
                     )
                     trace_entry["result"] = result
                     self.exploration_trace.append(trace_entry)
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(result),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(result),
+                        }
+                    )
 
                 elif fn_name == "inspect_artifact":
                     result = self._inspect_artifact(
@@ -206,11 +222,13 @@ class AgenticAffordanceDiscovery:
                     )
                     trace_entry["result"] = result
                     self.exploration_trace.append(trace_entry)
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(result),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(result),
+                        }
+                    )
 
         logger.info(
             f"Discovery complete: {len(capability_model.artifacts)} artifacts "
@@ -247,7 +265,9 @@ class AgenticAffordanceDiscovery:
             try:
                 arts = list_artifacts(workspace_uri)
                 ws_type = get_workspace_semantic_type(workspace_uri)
-                ws = model.get_or_create_workspace(workspace_uri, semantic_type=ws_type)
+                ws = model.get_or_create_workspace(
+                    workspace_uri, semantic_type=ws_type
+                )
                 ws.artifact_uris = arts
                 for a in arts:
                     try:
@@ -283,20 +303,24 @@ class AgenticAffordanceDiscovery:
             properties = []
 
             for a in list_actions(artifact_uri):
-                actions.append(Affordance(
-                    name=a["name"],
-                    uri=a["uri"],
-                    schema=a.get("input_schema", {}),
-                    semantic_type=a.get("semantic_type"),
-                ))
+                actions.append(
+                    Affordance(
+                        name=a["name"],
+                        uri=a["uri"],
+                        schema=a.get("input_schema", {}),
+                        semantic_type=a.get("semantic_type"),
+                    )
+                )
 
             for p in list_properties(artifact_uri):
-                properties.append(Affordance(
-                    name=p["name"],
-                    uri=p["uri"],
-                    schema=p.get("output_schema", {}),
-                    semantic_type=p.get("semantic_type"),
-                ))
+                properties.append(
+                    Affordance(
+                        name=p["name"],
+                        uri=p["uri"],
+                        schema=p.get("output_schema", {}),
+                        semantic_type=p.get("semantic_type"),
+                    )
+                )
 
             # Find workspace for this artifact
             ws_uri = "/".join(artifact_uri.split("/")[:-2]) + "#workspace"
@@ -313,7 +337,9 @@ class AgenticAffordanceDiscovery:
             return {
                 "name": name,
                 "actions": [{"name": a.name, "uri": a.uri} for a in actions],
-                "properties": [{"name": p.name, "uri": p.uri} for p in properties],
+                "properties": [
+                    {"name": p.name, "uri": p.uri} for p in properties
+                ],
             }
 
         except Exception as e:

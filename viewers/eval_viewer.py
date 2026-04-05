@@ -13,8 +13,8 @@ Usage:
 import argparse
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from scripts.common import resolve_repo_path
@@ -24,7 +24,13 @@ def _html_escape(text) -> str:
     """Escape HTML special characters."""
     if text is None:
         return ""
-    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    return (
+        str(text)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
 
 
 def _format_uri(uri: str) -> str:
@@ -321,16 +327,28 @@ def generate_metrics_card(metrics: dict) -> str:
     """Generate the metrics summary card."""
     success_rate = metrics.get("success_rate", 0) * 100
     quantifiable_rate = metrics.get("quantifiable_rate", 0) * 100
-    success_or_quantifiable_rate = metrics.get("success_or_quantifiable_rate", 0) * 100
+    success_or_quantifiable_rate = (
+        metrics.get("success_or_quantifiable_rate", 0) * 100
+    )
     action_precision = metrics.get("action_precision", 0) * 100
     action_recall = metrics.get("action_recall", 0) * 100
     action_f1 = metrics.get("action_f1", 0) * 100
     property_accuracy = metrics.get("property_accuracy", 0) * 100
-    impossible_detection_rate = metrics.get("impossible_detection_rate", 0) * 100
+    impossible_detection_rate = (
+        metrics.get("impossible_detection_rate", 0) * 100
+    )
 
-    success_class = "success" if success_rate >= 50 else "warning" if success_rate >= 25 else "error"
+    success_class = (
+        "success"
+        if success_rate >= 50
+        else "warning" if success_rate >= 25 else "error"
+    )
     quantifiable_class = "warning"
-    combined_class = "success" if success_or_quantifiable_rate >= 50 else "warning" if success_or_quantifiable_rate >= 25 else "error"
+    combined_class = (
+        "success"
+        if success_or_quantifiable_rate >= 50
+        else "warning" if success_or_quantifiable_rate >= 25 else "error"
+    )
 
     # Failure type breakdown
     failures_by_type = metrics.get("failures_by_type", {})
@@ -562,7 +580,11 @@ def generate_execution_section(result: dict) -> str:
         for prop in prop_results:
             match = prop.get("matched", False)
             match_class = "match" if match else "mismatch"
-            match_icon = '<span class="match-icon yes">&#10003;</span>' if match else '<span class="match-icon no">&#10007;</span>'
+            match_icon = (
+                '<span class="match-icon yes">&#10003;</span>'
+                if match
+                else '<span class="match-icon no">&#10007;</span>'
+            )
             props_html += f"""
             <tr class="{match_class}">
                 <td>{_html_escape(_format_uri(prop.get('property', '')))}</td>
@@ -639,14 +661,20 @@ def generate_failure_analysis(result: dict, test_data: dict) -> str:
             "other": "Other - Unknown failure type",
         }
         type_label = type_labels.get(failure_type, failure_type)
-        reasons.append(f'<strong>Failure Type:</strong> <span style="color: #f59e0b;">{_html_escape(type_label)}</span>')
+        reasons.append(
+            f'<strong>Failure Type:</strong> <span style="color: #f59e0b;">{_html_escape(type_label)}</span>'
+        )
 
     if is_error_input:
         # For impossible requests, failure means we incorrectly tried to execute
         if result.get("execution_success"):
-            reasons.append("System <strong>incorrectly executed</strong> an action for an impossible request")
+            reasons.append(
+                "System <strong>incorrectly executed</strong> an action for an impossible request"
+            )
         if result.get("actions_in_plan"):
-            reasons.append(f"Generated actions when none were possible: {len(result.get('actions_in_plan', []))} actions")
+            reasons.append(
+                f"Generated actions when none were possible: {len(result.get('actions_in_plan', []))} actions"
+            )
     else:
         # Normal test failure/partial analysis
         if not result.get("plan_generated"):
@@ -654,13 +682,19 @@ def generate_failure_analysis(result: dict, test_data: dict) -> str:
 
         missing = result.get("missing_actions", [])
         if missing:
-            reasons.append(f"<strong>Missing actions:</strong> {len(missing)} expected action(s) not in generated plan")
+            reasons.append(
+                f"<strong>Missing actions:</strong> {len(missing)} expected action(s) not in generated plan"
+            )
             for action in missing[:3]:
-                reasons.append(f"&nbsp;&nbsp;- {_html_escape(_format_uri(action))}")
+                reasons.append(
+                    f"&nbsp;&nbsp;- {_html_escape(_format_uri(action))}"
+                )
 
         extra = result.get("extra_actions", [])
         if extra:
-            reasons.append(f"<strong>Extra actions:</strong> {len(extra)} unexpected action(s) in plan")
+            reasons.append(
+                f"<strong>Extra actions:</strong> {len(extra)} unexpected action(s) in plan"
+            )
 
         # Check param mismatches
         expected_params = result.get("expected_params", {})
@@ -669,31 +703,49 @@ def generate_failure_analysis(result: dict, test_data: dict) -> str:
             exp = expected_params.get(action, {})
             act = actual_params.get(action, {})
             if exp != act:
-                reasons.append(f"<strong>Parameter mismatch</strong> for {_html_escape(_format_uri(action))}")
-                reasons.append(f"&nbsp;&nbsp;Expected: {_html_escape(_format_params(exp))}")
-                reasons.append(f"&nbsp;&nbsp;Actual: {_html_escape(_format_params(act))}")
+                reasons.append(
+                    f"<strong>Parameter mismatch</strong> for {_html_escape(_format_uri(action))}"
+                )
+                reasons.append(
+                    f"&nbsp;&nbsp;Expected: {_html_escape(_format_params(exp))}"
+                )
+                reasons.append(
+                    f"&nbsp;&nbsp;Actual: {_html_escape(_format_params(act))}"
+                )
 
         if not result.get("execution_success") and result.get("plan_generated"):
-            reasons.append("Plan was generated but <strong>execution failed</strong>")
+            reasons.append(
+                "Plan was generated but <strong>execution failed</strong>"
+            )
 
         prop_results = result.get("property_results", [])
         failed_props = [p for p in prop_results if not p.get("matched")]
         if failed_props:
-            reasons.append(f"<strong>Property verification failed:</strong> {len(failed_props)} property mismatch(es)")
+            reasons.append(
+                f"<strong>Property verification failed:</strong> {len(failed_props)} property mismatch(es)"
+            )
 
         if result.get("error"):
-            reasons.append(f"<strong>Error:</strong> {_html_escape(result.get('error'))}")
+            reasons.append(
+                f"<strong>Error:</strong> {_html_escape(result.get('error'))}"
+            )
 
     if not reasons:
         if is_quantifiable:
-            reasons.append("Partial success - some actions or properties matched but not all")
+            reasons.append(
+                "Partial success - some actions or properties matched but not all"
+            )
         else:
             reasons.append("Unknown failure reason")
 
-    reasons_html = "\n".join(f'<div class="failure-reason">{r}</div>' for r in reasons)
+    reasons_html = "\n".join(
+        f'<div class="failure-reason">{r}</div>' for r in reasons
+    )
 
     # Use different styling for quantifiable vs failed
-    section_title = "Partial Success Analysis" if is_quantifiable else "Failure Analysis"
+    section_title = (
+        "Partial Success Analysis" if is_quantifiable else "Failure Analysis"
+    )
     box_class = "partial-analysis" if is_quantifiable else "failure-analysis"
 
     return f"""
@@ -712,10 +764,14 @@ def generate_failure_analysis(result: dict, test_data: dict) -> str:
     """
 
 
-def generate_test_card(result: dict, test_data: Optional[dict] = None, has_trace_html: bool = False) -> str:
+def generate_test_card(
+    result: dict, test_data: Optional[dict] = None, has_trace_html: bool = False
+) -> str:
     """Generate a comprehensive card for a single test result."""
     test_id = result.get("test_id", "unknown")
-    success = result.get("success", "False")  # Can be "True", "False", or "Quantifiable"
+    success = result.get(
+        "success", "False"
+    )  # Can be "True", "False", or "Quantifiable"
     is_error_input = result.get("is_error_input_only", False)
     failure_type = result.get("failure_type", "")
 
@@ -748,10 +804,16 @@ def generate_test_card(result: dict, test_data: Optional[dict] = None, has_trace
     input_goal = test_data.get("input", "N/A") if test_data else "N/A"
 
     # Generate sections (detailed traces are in individual trace files)
-    ground_truth = generate_ground_truth_section(test_data or {}, is_error_input)
+    ground_truth = generate_ground_truth_section(
+        test_data or {}, is_error_input
+    )
     action_comparison = generate_action_comparison_section(result)
     execution_section = generate_execution_section(result)
-    failure_analysis = generate_failure_analysis(result, test_data or {}) if success != "True" else ""
+    failure_analysis = (
+        generate_failure_analysis(result, test_data or {})
+        if success != "True"
+        else ""
+    )
 
     return f"""
     <div class="test-card {status_class}" data-success="{_html_escape(str(success))}" data-error-input="{str(is_error_input).lower()}" data-failure-type="{_html_escape(failure_type)}">
@@ -812,7 +874,11 @@ def generate_html_report(
         aff_strategy = discovery.get("affordances", {}).get("strategy", "N/A")
         state_strategy = discovery.get("state", {}).get("strategy", "N/A")
         reasoning = planning.get("reasoning", {})
-        reasoning_str = reasoning.get("strategy", "none") if reasoning.get("enabled") else "none"
+        reasoning_str = (
+            reasoning.get("strategy", "none")
+            if reasoning.get("enabled")
+            else "none"
+        )
         output_format = planning.get("output", {}).get("format", "N/A")
 
         config_html = f"""
@@ -965,12 +1031,14 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate comprehensive HTML report for HomeBench evaluation",
     )
-    parser.add_argument("eval_dirs", nargs="+", help="Evaluation result directories")
+    parser.add_argument(
+        "eval_dirs", nargs="+", help="Evaluation result directories"
+    )
     parser.add_argument("--output", "-o", help="Output HTML file")
     parser.add_argument(
         "--test-data",
         default="data/homebench/converted/test_data.json",
-        help="Path to original test data JSON"
+        help="Path to original test data JSON",
     )
 
     args = parser.parse_args()
@@ -988,8 +1056,12 @@ def main():
             print(f"No results found in {eval_dir}")
             continue
 
-        output_file = args.output if args.output else str(eval_path / "eval_report.html")
-        generate_html_report(metrics, results, config, test_data_map, output_file)
+        output_file = (
+            args.output if args.output else str(eval_path / "eval_report.html")
+        )
+        generate_html_report(
+            metrics, results, config, test_data_map, output_file
+        )
 
 
 if __name__ == "__main__":

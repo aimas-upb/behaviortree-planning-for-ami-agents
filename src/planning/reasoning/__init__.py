@@ -8,9 +8,9 @@ Strategies:
 - reflection: Generate, critique, and refine
 """
 
-from .none import NoReasoning
 from .chain_of_thought import ChainOfThoughtReasoning
 from .multi_turn import MultiTurnReasoning
+from .none import NoReasoning
 from .reflection import ReflectionReasoning
 
 __all__ = [

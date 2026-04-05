@@ -15,28 +15,27 @@ Usage:
     uv run python -m viewers.experience_trace_viewer --latest
 """
 
+import argparse
 import json
 import sys
-import argparse
 from pathlib import Path
 from typing import Optional
 
 # Reuse helpers from the standard trace_viewer
 from viewers.trace_viewer import (
-    _html_escape,
-    _generate_html_card,
-    format_duration,
     _generate_discovery_html,
+    _generate_errors_html,
+    _generate_execution_html,
     _generate_exploration_trace_html,
-    _generate_state_trace_html,
+    _generate_html_card,
+    _generate_plan_html,
     _generate_planning_context_html,
     _generate_reasoning_html,
-    _generate_plan_html,
-    _generate_execution_html,
-    _generate_errors_html,
+    _generate_state_trace_html,
+    _html_escape,
     console,
+    format_duration,
 )
-
 
 # =========================================================================
 # Experience-specific HTML section generators
@@ -61,9 +60,17 @@ def _generate_experience_overview_html(data: dict) -> str:
     discovery = config.get("discovery", {})
     if isinstance(discovery, dict):
         affordances = discovery.get("affordances", {})
-        aff_strategy = affordances.get("strategy", "N/A") if isinstance(affordances, dict) else str(affordances)
+        aff_strategy = (
+            affordances.get("strategy", "N/A")
+            if isinstance(affordances, dict)
+            else str(affordances)
+        )
         state = discovery.get("state", {})
-        state_strategy = state.get("strategy", "N/A") if isinstance(state, dict) else str(state)
+        state_strategy = (
+            state.get("strategy", "N/A")
+            if isinstance(state, dict)
+            else str(state)
+        )
     else:
         aff_strategy = "N/A"
         state_strategy = "N/A"
@@ -73,24 +80,51 @@ def _generate_experience_overview_html(data: dict) -> str:
         reasoning = planning.get("reasoning", {})
         reasoning = reasoning if isinstance(reasoning, dict) else {}
         output = planning.get("output", {})
-        output_format = output.get("format", "N/A") if isinstance(output, dict) else str(output)
+        output_format = (
+            output.get("format", "N/A")
+            if isinstance(output, dict)
+            else str(output)
+        )
     else:
         reasoning = {}
         output_format = "N/A"
 
     rows = [
-        ("Status", f'<span class="{status_class}">{"SUCCESS" if success else "FAILED"}</span>'),
+        (
+            "Status",
+            f'<span class="{status_class}">{"SUCCESS" if success else "FAILED"}</span>',
+        ),
         ("Goal", _html_escape(data.get("goal", "N/A"))),
-        ("Config", _html_escape(data.get("config_name", config.get("config_name", config.get("experiment", {}).get("name", "N/A")) if isinstance(config, dict) else "N/A"))),
+        (
+            "Config",
+            _html_escape(
+                data.get(
+                    "config_name",
+                    (
+                        config.get(
+                            "config_name",
+                            config.get("experiment", {}).get("name", "N/A"),
+                        )
+                        if isinstance(config, dict)
+                        else "N/A"
+                    ),
+                )
+            ),
+        ),
         ("Model", _html_escape(model_name)),
-        ("Execution Backend", _html_escape(str(data.get("execution_backend", "N/A")))),
+        (
+            "Execution Backend",
+            _html_escape(str(data.get("execution_backend", "N/A"))),
+        ),
         ("Duration", format_duration(data.get("duration_seconds", 0))),
         ("Affordance Strategy", _html_escape(aff_strategy)),
         ("State Strategy", _html_escape(state_strategy)),
     ]
 
     if reasoning.get("enabled"):
-        rows.append(("Reasoning", _html_escape(reasoning.get("strategy", "N/A"))))
+        rows.append(
+            ("Reasoning", _html_escape(reasoning.get("strategy", "N/A")))
+        )
     else:
         rows.append(("Reasoning", "disabled"))
 
@@ -101,10 +135,16 @@ def _generate_experience_overview_html(data: dict) -> str:
     unmatched_time = data.get("unmatched_plan_time_seconds", 0)
     if matched_time or unmatched_time:
         rows.append(("Matched Planning Time", format_duration(matched_time)))
-        rows.append(("Unmatched Planning Time", format_duration(unmatched_time)))
+        rows.append(
+            ("Unmatched Planning Time", format_duration(unmatched_time))
+        )
 
-    table_rows = "\n".join([f'<tr><td class="label">{k}</td><td>{v}</td></tr>' for k, v in rows])
-    return _generate_html_card("Experiment Overview", f"<table>{table_rows}</table>", "#4a9eff")
+    table_rows = "\n".join(
+        [f'<tr><td class="label">{k}</td><td>{v}</td></tr>' for k, v in rows]
+    )
+    return _generate_html_card(
+        "Experiment Overview", f"<table>{table_rows}</table>", "#4a9eff"
+    )
 
 
 def _build_intent_route_map(data: dict) -> dict:
@@ -157,9 +197,18 @@ def _generate_intent_extraction_html(data: dict) -> str:
     route_map = _build_intent_route_map(data)
 
     _ROUTE_BADGE = {
-        "SET":       ("<span class='intent-route-badge route-set'>SET</span>", "#22c55e"),
-        "MODIFY":    ("<span class='intent-route-badge route-modify'>MODIFY</span>", "#a855f7"),
-        "IMPOSSIBLE":("<span class='intent-route-badge route-impossible'>IMPOSSIBLE</span>", "#ef4444"),
+        "SET": (
+            "<span class='intent-route-badge route-set'>SET</span>",
+            "#22c55e",
+        ),
+        "MODIFY": (
+            "<span class='intent-route-badge route-modify'>MODIFY</span>",
+            "#a855f7",
+        ),
+        "IMPOSSIBLE": (
+            "<span class='intent-route-badge route-impossible'>IMPOSSIBLE</span>",
+            "#ef4444",
+        ),
     }
 
     html = "<div class='intent-list'>"
@@ -189,8 +238,16 @@ def _generate_intent_extraction_html(data: dict) -> str:
         # Parameter/value row — only shown when at least one is present
         param_html = ""
         if parameter is not None or value is not None:
-            param_display = _html_escape(str(parameter)) if parameter is not None else "<span class='dim'>none</span>"
-            value_display = _html_escape(str(value)) if value is not None else "<span class='dim'>none</span>"
+            param_display = (
+                _html_escape(str(parameter))
+                if parameter is not None
+                else "<span class='dim'>none</span>"
+            )
+            value_display = (
+                _html_escape(str(value))
+                if value is not None
+                else "<span class='dim'>none</span>"
+            )
             param_html = f"""
             <div class='intent-param-row'>
                 <span class='intent-param-label'>parameter:</span>
@@ -321,11 +378,15 @@ def _generate_ns_routing_html(data: dict) -> str:
             route_badge = "<span class='intent-route-badge route-impossible'>IMPOSSIBLE</span>"
             sparql_status = "<span class='ns-sparql-fail'>✗ no result</span>"
             if error:
-                sparql_status += f" <span class='dim'>({_html_escape(error[:80])})</span>"
+                sparql_status += (
+                    f" <span class='dim'>({_html_escape(error[:80])})</span>"
+                )
             border_color = "#ef4444"
         else:
             if verb == "set":
-                route_badge = "<span class='intent-route-badge route-set'>SET</span>"
+                route_badge = (
+                    "<span class='intent-route-badge route-set'>SET</span>"
+                )
                 border_color = "#22c55e"
             else:
                 route_badge = "<span class='intent-route-badge route-modify'>MODIFY</span>"
@@ -334,11 +395,17 @@ def _generate_ns_routing_html(data: dict) -> str:
 
         # Target display: resolved URI when SPARQL succeeded, queried intent types when it failed
         if target_uri:
-            short_uri = target_uri.split("/")[-1] if "/" in target_uri else target_uri
+            short_uri = (
+                target_uri.split("/")[-1] if "/" in target_uri else target_uri
+            )
             uri_html = f"<span class='dim' title='{_html_escape(target_uri)}'>{_html_escape(short_uri)}</span>"
         else:
             # Show what the SPARQL was looking for (from the intent)
-            artifact_type = _html_escape(target.get("artifact_type") or action.get("affordance_type") or "?")
+            artifact_type = _html_escape(
+                target.get("artifact_type")
+                or action.get("affordance_type")
+                or "?"
+            )
             workspace_type = _html_escape(target.get("workspace_type") or "?")
             uri_html = (
                 f"<span class='dim ns-queried-types'>"
@@ -349,10 +416,16 @@ def _generate_ns_routing_html(data: dict) -> str:
 
         # Parameter display: resolved name+schema when SPARQL succeeded, queried parameter when it failed
         if parameter_name:
-            schema_local = parameter_schema.rsplit("#", 1)[-1].rsplit("/", 1)[-1] if parameter_schema else ""
+            schema_local = (
+                parameter_schema.rsplit("#", 1)[-1].rsplit("/", 1)[-1]
+                if parameter_schema
+                else ""
+            )
             param_html = f"<span class='intent-param-name'>{_html_escape(parameter_name)}</span>"
             if schema_local:
-                param_html += f" <span class='dim'>({_html_escape(schema_local)})</span>"
+                param_html += (
+                    f" <span class='dim'>({_html_escape(schema_local)})</span>"
+                )
         elif action.get("parameter"):
             # Show the intent-level parameter name (not yet resolved by SPARQL)
             queried_param = _html_escape(action["parameter"])
@@ -362,7 +435,9 @@ def _generate_ns_routing_html(data: dict) -> str:
                 f"<span class='intent-param-name'>{queried_param}</span>"
             )
             if queried_val:
-                param_html += f" = <span class='intent-param-value'>{queried_val}</span>"
+                param_html += (
+                    f" = <span class='intent-param-value'>{queried_val}</span>"
+                )
         else:
             param_html = "<span class='dim'>—</span>"
 
@@ -387,9 +462,17 @@ def _generate_ns_routing_html(data: dict) -> str:
                     cells = ""
                     for v in all_vars:
                         raw_val = b.get(v, {})
-                        val = raw_val.get("value", "") if isinstance(raw_val, dict) else str(raw_val)
+                        val = (
+                            raw_val.get("value", "")
+                            if isinstance(raw_val, dict)
+                            else str(raw_val)
+                        )
                         # Shorten long URIs: keep only the last path segment
-                        display = val.split("/")[-1] if "/" in val and len(val) > 50 else val
+                        display = (
+                            val.split("/")[-1]
+                            if "/" in val and len(val) > 50
+                            else val
+                        )
                         cells += f"<td title='{_html_escape(val)}'>{_html_escape(display)}</td>"
                     rows_html += f"<tr>{cells}</tr>"
                 bindings_html = f"""
@@ -463,8 +546,14 @@ def _generate_experience_plan_html(data: dict) -> str:
     set_ir = data.get("set_actions_tree_ir")
     modify_ir = data.get("modify_actions_tree_ir")
     modify_trace = data.get("modify_plan_trace") or {}
-    modify_planning = modify_trace.get("planning") if isinstance(modify_trace, dict) else None
-    modify_plan = modify_planning.get("plan") if isinstance(modify_planning, dict) else None
+    modify_planning = (
+        modify_trace.get("planning") if isinstance(modify_trace, dict) else None
+    )
+    modify_plan = (
+        modify_planning.get("plan")
+        if isinstance(modify_planning, dict)
+        else None
+    )
 
     format_type = ""
     content = None
@@ -484,11 +573,17 @@ def _generate_experience_plan_html(data: dict) -> str:
         format_type = "json_ir"
         content = modify_ir
         source = "modify_actions_tree_ir"
-    elif isinstance(modify_plan, dict) and modify_plan.get("content") is not None:
+    elif (
+        isinstance(modify_plan, dict) and modify_plan.get("content") is not None
+    ):
         format_type = modify_plan.get("format", "unknown")
         content = modify_plan.get("content")
         explanation = modify_plan.get("explanation", "")
-        llm_calls = modify_planning.get("llm_calls", 0) if isinstance(modify_planning, dict) else 0
+        llm_calls = (
+            modify_planning.get("llm_calls", 0)
+            if isinstance(modify_planning, dict)
+            else 0
+        )
         source = "modify_plan_trace.planning.plan"
     else:
         return _generate_plan_html(data)
@@ -497,18 +592,24 @@ def _generate_experience_plan_html(data: dict) -> str:
     if source:
         html_content += f"<p class='stats'>Source: {_html_escape(source)}</p>"
     if explanation:
-        html_content += f"<p class='explanation'>{_html_escape(explanation)}</p><hr>"
+        html_content += (
+            f"<p class='explanation'>{_html_escape(explanation)}</p><hr>"
+        )
 
     if format_type == "json_ir":
         json_str = json.dumps(content, indent=2)
         html_content += f"<pre class='code json'>{_html_escape(json_str)}</pre>"
     elif format_type == "python_code":
-        html_content += f"<pre class='code python'>{_html_escape(str(content))}</pre>"
+        html_content += (
+            f"<pre class='code python'>{_html_escape(str(content))}</pre>"
+        )
     else:
         html_content += f"<pre>{_html_escape(str(content))}</pre>"
 
     html_content += f"<p class='stats'>LLM Calls: {llm_calls}</p>"
-    return _generate_html_card(f"Generated Plan ({format_type or 'unknown'})", html_content, "#a855f7")
+    return _generate_html_card(
+        f"Generated Plan ({format_type or 'unknown'})", html_content, "#a855f7"
+    )
 
 
 def _generate_experience_matching_html(data: dict) -> str:
@@ -559,13 +660,17 @@ def _generate_experience_matching_html(data: dict) -> str:
 
         # Similarity bar
         sim_pct = sim_score * 100
-        sim_bar = f"""
+        sim_bar = (
+            f"""
         <div class='similarity-bar-container'>
             <div class='similarity-bar' style='width: {sim_pct:.0f}%;
                  background: {"#22c55e" if sim_score >= 0.85 else "#f59e0b" if sim_score >= 0.5 else "#ef4444"}'></div>
             <span class='similarity-value'>{sim_score:.3f}</span>
         </div>
-        """ if matched else ""
+        """
+            if matched
+            else ""
+        )
 
         exp_info = ""
         if exp_id:
@@ -584,15 +689,18 @@ def _generate_experience_matching_html(data: dict) -> str:
 
                 home_badge = (
                     f"<span class='exp-badge home-badge'>home: {exp_home}</span>"
-                    if exp_home else ""
+                    if exp_home
+                    else ""
                 )
                 src_badge = (
                     f"<span class='exp-badge src-badge'>from: {exp_src}</span>"
-                    if exp_src else ""
+                    if exp_src
+                    else ""
                 )
                 created_badge = (
                     f"<span class='exp-badge dim'>{exp_created[:10]}</span>"
-                    if exp_created else ""
+                    if exp_created
+                    else ""
                 )
 
                 bt_leaf_html = ""
@@ -743,11 +851,13 @@ def _generate_sparql_trace_html(data: dict) -> str:
 
     # Filter to SPARQL-related entries
     query_gen_entries = [
-        e for e in exploration_trace
+        e
+        for e in exploration_trace
         if isinstance(e, dict) and e.get("phase") == "query_generation"
     ]
     query_exec_entries = [
-        e for e in exploration_trace
+        e
+        for e in exploration_trace
         if isinstance(e, dict) and e.get("phase") == "query_execution"
     ]
 
@@ -817,8 +927,16 @@ def _generate_sparql_trace_html(data: dict) -> str:
                         else:
                             val = str(var_val)
                         # Shorten URIs
-                        if isinstance(val, str) and "/" in val and len(val) > 60:
-                            val = "..." + val.split("/")[-1] if "/" in val else val
+                        if (
+                            isinstance(val, str)
+                            and "/" in val
+                            and len(val) > 60
+                        ):
+                            val = (
+                                "..." + val.split("/")[-1]
+                                if "/" in val
+                                else val
+                            )
                         binding_parts.append(
                             f"<span class='binding-var'>{_html_escape(var_name)}</span>="
                             f"<span class='binding-val'>{_html_escape(str(val))}</span>"
@@ -861,8 +979,10 @@ def _generate_non_sparql_exploration_trace_html(data: dict) -> str:
     # Check if there are any non-SPARQL entries
     sparql_phases = {"query_generation", "query_execution"}
     non_sparql = [
-        e for e in exploration_trace
-        if isinstance(e, dict) and e.get("phase") not in sparql_phases
+        e
+        for e in exploration_trace
+        if isinstance(e, dict)
+        and e.get("phase") not in sparql_phases
         and e.get("function") is not None
     ]
 
@@ -1464,7 +1584,9 @@ def export_experience_html(data: dict, output_path: str):
 # =========================================================================
 
 
-def get_latest_trace(results_dir: str = "experiments/results") -> Optional[Path]:
+def get_latest_trace(
+    results_dir: str = "experiments/results",
+) -> Optional[Path]:
     """Get the most recent trace JSON file."""
     results_path = Path(results_dir)
     if not results_path.exists():
@@ -1473,7 +1595,11 @@ def get_latest_trace(results_dir: str = "experiments/results") -> Optional[Path]
     json_files = list(results_path.glob("**/traces/*.json"))
     if not json_files:
         json_files = list(results_path.glob("**/*.json"))
-        json_files = [f for f in json_files if "metrics" not in f.name and "results" not in f.name]
+        json_files = [
+            f
+            for f in json_files
+            if "metrics" not in f.name and "results" not in f.name
+        ]
 
     if not json_files:
         return None
@@ -1493,9 +1619,17 @@ Examples:
         """,
     )
     parser.add_argument("files", nargs="*", help="Trace JSON files")
-    parser.add_argument("--latest", action="store_true", help="View the most recent trace")
-    parser.add_argument("--html", metavar="FILE", help="Output HTML path (default: same dir as input)")
-    parser.add_argument("--results-dir", default="experiments/results", help="Results directory")
+    parser.add_argument(
+        "--latest", action="store_true", help="View the most recent trace"
+    )
+    parser.add_argument(
+        "--html",
+        metavar="FILE",
+        help="Output HTML path (default: same dir as input)",
+    )
+    parser.add_argument(
+        "--results-dir", default="experiments/results", help="Results directory"
+    )
 
     args = parser.parse_args()
 
@@ -1512,7 +1646,9 @@ Examples:
     files.extend(Path(f) for f in args.files)
 
     if not files:
-        console.print("[yellow]Usage: python -m viewers.experience_trace_viewer [--latest] [--html FILE] [trace_files...]")
+        console.print(
+            "[yellow]Usage: python -m viewers.experience_trace_viewer [--latest] [--html FILE] [trace_files...]"
+        )
         console.print("\nRun with --help for more options.")
         return 1
 

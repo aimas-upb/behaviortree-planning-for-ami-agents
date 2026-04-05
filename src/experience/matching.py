@@ -199,7 +199,12 @@ class ExperienceMatcher:
                 # stored entry came from the same home as the current query.
                 # Feasible entries are not restricted this way — the
                 # adaptation step handles differences in concrete device state.
-                if entry.is_infeasible and home_id and entry.home_id and entry.home_id != home_id:
+                if (
+                    entry.is_infeasible
+                    and home_id
+                    and entry.home_id
+                    and entry.home_id != home_id
+                ):
                     logger.debug(
                         f"Skipping infeasible entry {entry.id} "
                         f"(home_id={entry.home_id!r} != current={home_id!r})"

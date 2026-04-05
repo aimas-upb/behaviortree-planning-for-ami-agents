@@ -13,7 +13,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 import httpx
 from dotenv import load_dotenv
@@ -24,9 +24,18 @@ load_dotenv()
 
 from scripts.common import resolve_repo_path
 from src.config import (
-    ExperimentConfig, ExperimentMeta, DiscoveryConfig, PlanningConfig,
-    ExecutionConfig, ModelConfig, TracingConfig, AffordanceConfig,
-    StateConfig, ReasoningConfig, OutputConfig, load_config
+    AffordanceConfig,
+    DiscoveryConfig,
+    ExecutionConfig,
+    ExperimentConfig,
+    ExperimentMeta,
+    ModelConfig,
+    OutputConfig,
+    PlanningConfig,
+    ReasoningConfig,
+    StateConfig,
+    TracingConfig,
+    load_config,
 )
 from src.runner import run_experiment
 
@@ -40,6 +49,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TestCase:
     """A single HomeBench test case."""
+
     id: str
     home_id: str
     test_type: str  # 'one' or 'multi'
@@ -62,17 +72,24 @@ class TestCase:
     @property
     def expected_successes(self) -> list[dict]:
         """Get expected successful actions."""
-        return [o for o in self.expected_outputs if o.get("execution") == "success"]
+        return [
+            o for o in self.expected_outputs if o.get("execution") == "success"
+        ]
 
     @property
     def expected_errors(self) -> list[dict]:
         """Get expected error_input cases."""
-        return [o for o in self.expected_outputs if o.get("execution") == "error_input"]
+        return [
+            o
+            for o in self.expected_outputs
+            if o.get("execution") == "error_input"
+        ]
 
 
 @dataclass
 class TestResult:
     """Result of running a single test case."""
+
     test_id: str
     success: Literal["True", "False", "Quantifiable"]
 
@@ -102,15 +119,23 @@ class TestResult:
     # Impossible sub-goal detection (error_input cases)
     # These are sub-goals that cannot be achieved (missing capability, invalid params, etc.)
     expected_impossible: int = 0  # Count of error_input in ground truth
-    detected_impossible: list[str] = field(default_factory=list)  # Sub-goals reported as impossible
-    is_error_input_only: bool = False  # True if ALL expected outputs are error_input
-    handled_correctly: bool = False  # For error cases: didn't attempt; for success: all matched
+    detected_impossible: list[str] = field(
+        default_factory=list
+    )  # Sub-goals reported as impossible
+    is_error_input_only: bool = (
+        False  # True if ALL expected outputs are error_input
+    )
+    handled_correctly: bool = (
+        False  # For error cases: didn't attempt; for success: all matched
+    )
 
     # Timing
     duration_seconds: float = 0.0
 
     # Failure tracking
-    failure_type: Optional[str] = None  # none, parse_error, compilation_error, execution_error, property_mismatch
+    failure_type: Optional[str] = (
+        None  # none, parse_error, compilation_error, execution_error, property_mismatch
+    )
 
     # Raw data
     error: Optional[str] = None
@@ -120,9 +145,12 @@ class TestResult:
 @dataclass
 class EvaluationMetrics:
     """Aggregated evaluation metrics."""
+
     total_tests: int = 0
     successful_tests: int = 0
-    quantifiable_tests: int = 0  # Partially successful - some actions/properties matched
+    quantifiable_tests: int = (
+        0  # Partially successful - some actions/properties matched
+    )
     failed_tests: int = 0
 
     # Planning
@@ -140,21 +168,27 @@ class EvaluationMetrics:
 
     # Impossible sub-goal detection (error_input cases)
     # Tracks detection of sub-goals that cannot be achieved
-    total_expected_impossible: int = 0  # Total error_input sub-goals in ground truth
-    total_detected_impossible: int = 0  # Total sub-goals reported as impossible by system
+    total_expected_impossible: int = (
+        0  # Total error_input sub-goals in ground truth
+    )
+    total_detected_impossible: int = (
+        0  # Total sub-goals reported as impossible by system
+    )
     # Note: We can't do perfect matching since error_inputs don't have identifiers,
     # so we track counts - if system detects >= expected, it's good
 
     # Failure type tracking
-    failures_by_type: dict = field(default_factory=lambda: {
-        "parse_error": 0,
-        "compilation_error": 0,
-        "execution_error": 0,
-        "action_mismatch": 0,
-        "property_mismatch": 0,
-        "error_input_not_detected": 0,  # Failed to detect impossible goal
-        "other": 0,
-    })
+    failures_by_type: dict = field(
+        default_factory=lambda: {
+            "parse_error": 0,
+            "compilation_error": 0,
+            "execution_error": 0,
+            "action_mismatch": 0,
+            "property_mismatch": 0,
+            "error_input_not_detected": 0,  # Failed to detect impossible goal
+            "other": 0,
+        }
+    )
 
     # Timing
     total_duration: float = 0.0
@@ -162,17 +196,29 @@ class EvaluationMetrics:
     @property
     def success_rate(self) -> float:
         """Rate of fully successful tests."""
-        return self.successful_tests / self.total_tests if self.total_tests > 0 else 0.0
+        return (
+            self.successful_tests / self.total_tests
+            if self.total_tests > 0
+            else 0.0
+        )
 
     @property
     def quantifiable_rate(self) -> float:
         """Rate of quantifiable (partially successful) tests."""
-        return self.quantifiable_tests / self.total_tests if self.total_tests > 0 else 0.0
+        return (
+            self.quantifiable_tests / self.total_tests
+            if self.total_tests > 0
+            else 0.0
+        )
 
     @property
     def success_or_quantifiable_rate(self) -> float:
         """Rate of tests that are either successful or quantifiable (not failed)."""
-        return (self.successful_tests + self.quantifiable_tests) / self.total_tests if self.total_tests > 0 else 0.0
+        return (
+            (self.successful_tests + self.quantifiable_tests) / self.total_tests
+            if self.total_tests > 0
+            else 0.0
+        )
 
     @property
     def action_precision(self) -> float:
@@ -183,7 +229,11 @@ class EvaluationMetrics:
     @property
     def action_recall(self) -> float:
         """Recall: matched / expected"""
-        return self.total_matched_actions / self.total_expected_actions if self.total_expected_actions > 0 else 0.0
+        return (
+            self.total_matched_actions / self.total_expected_actions
+            if self.total_expected_actions > 0
+            else 0.0
+        )
 
     @property
     def action_f1(self) -> float:
@@ -194,15 +244,23 @@ class EvaluationMetrics:
     @property
     def property_accuracy(self) -> float:
         """Property verification accuracy."""
-        return self.total_properties_matched / self.total_properties_checked if self.total_properties_checked > 0 else 0.0
+        return (
+            self.total_properties_matched / self.total_properties_checked
+            if self.total_properties_checked > 0
+            else 0.0
+        )
 
     @property
     def impossible_detection_rate(self) -> float:
         """Rate of detecting impossible sub-goals (detected / expected)."""
         if self.total_expected_impossible == 0:
-            return 1.0  # No impossible sub-goals expected, so "perfect" detection
+            return (
+                1.0  # No impossible sub-goals expected, so "perfect" detection
+            )
         # Cap at 1.0 - detecting more than expected is fine
-        return min(1.0, self.total_detected_impossible / self.total_expected_impossible)
+        return min(
+            1.0, self.total_detected_impossible / self.total_expected_impossible
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -229,7 +287,11 @@ class EvaluationMetrics:
             "impossible_detection_rate": self.impossible_detection_rate,
             "failures_by_type": self.failures_by_type,
             "total_duration": self.total_duration,
-            "avg_duration": self.total_duration / self.total_tests if self.total_tests > 0 else 0,
+            "avg_duration": (
+                self.total_duration / self.total_tests
+                if self.total_tests > 0
+                else 0
+            ),
         }
 
 
@@ -291,7 +353,9 @@ class HomeBenchEvaluator:
                 json={"home": numeric_id},
             )
             if response.status_code == 404:
-                logger.warning("Reset endpoint not available, continuing without reset")
+                logger.warning(
+                    "Reset endpoint not available, continuing without reset"
+                )
                 self.reset_enabled = False  # Disable for future tests
                 return True
             return response.status_code == 200
@@ -299,7 +363,9 @@ class HomeBenchEvaluator:
             logger.error(f"Failed to reset home {home_id}: {e}")
             return True  # Continue anyway
 
-    def verify_property(self, property_url: str, expected_value) -> tuple[bool, any]:
+    def verify_property(
+        self, property_url: str, expected_value
+    ) -> tuple[bool, any]:
         """Verify a property matches expected value."""
         try:
             response = self.http_client.get(property_url)
@@ -324,9 +390,10 @@ class HomeBenchEvaluator:
         if isinstance(content, str):
             # Python code - try to extract URLs
             import re
+
             urls = re.findall(r'http://[^"\'>\s]+', content)
             # Filter for action URLs (not property URLs)
-            actions = [u for u in urls if '/properties/' not in u]
+            actions = [u for u in urls if "/properties/" not in u]
         else:
             # JSON IR - traverse tree
             self._extract_actions_recursive(content, actions)
@@ -389,7 +456,11 @@ class HomeBenchEvaluator:
 
         # Check planning errors
         plan_explanation = planning.get("plan", {}).get("explanation", "")
-        if "parse error" in plan_explanation.lower() or "json" in plan_explanation.lower() and "error" in plan_explanation.lower():
+        if (
+            "parse error" in plan_explanation.lower()
+            or "json" in plan_explanation.lower()
+            and "error" in plan_explanation.lower()
+        ):
             return "parse_error"
 
         # Check for compilation errors (invalid node type, missing fields)
@@ -404,7 +475,11 @@ class HomeBenchEvaluator:
             return "execution_error"
 
         # Execution succeeded, but affordance properties don't match
-        if result.execution_success and result.properties_checked > 0 and result.properties_matched < result.properties_checked:
+        if (
+            result.execution_success
+            and result.properties_checked > 0
+            and result.properties_matched < result.properties_checked
+        ):
             return "property_mismatch"
 
         # Plan not generated at all
@@ -417,14 +492,24 @@ class HomeBenchEvaluator:
 
     def run_test_direct_agent(self, test: TestCase) -> TestResult:
         """Run a single test case using direct agent mode."""
-        from src.execution import DirectAgentExecutor
         from src.discovery import create_discovery_pipeline
+        from src.execution import DirectAgentExecutor
 
         result = TestResult(test_id=test.id, success="False")
-        result.expected_actions = [o.get("affordance", "") for o in test.expected_successes if o.get("affordance")]
-        result.expected_params = {o.get("affordance"): o.get("params", {}) for o in test.expected_successes if o.get("affordance")}
+        result.expected_actions = [
+            o.get("affordance", "")
+            for o in test.expected_successes
+            if o.get("affordance")
+        ]
+        result.expected_params = {
+            o.get("affordance"): o.get("params", {})
+            for o in test.expected_successes
+            if o.get("affordance")
+        }
         result.expected_impossible = len(test.expected_errors)
-        result.is_error_input_only = len(test.expected_successes) == 0 and len(test.expected_errors) > 0
+        result.is_error_input_only = (
+            len(test.expected_successes) == 0 and len(test.expected_errors) > 0
+        )
 
         start_time = datetime.now()
 
@@ -433,7 +518,9 @@ class HomeBenchEvaluator:
             self.reset_home(test.home_id)
 
             # Build entry point
-            entry_point = f"{self.simulator_url}/workspaces/{test.home_id}#workspace"
+            entry_point = (
+                f"{self.simulator_url}/workspaces/{test.home_id}#workspace"
+            )
 
             # Run discovery phase only
             discovery_pipeline = create_discovery_pipeline(
@@ -441,7 +528,9 @@ class HomeBenchEvaluator:
                 client=self.client,
                 model=self.config.model.name,
             )
-            discovery_result = discovery_pipeline.discover(entry_point, test.input)
+            discovery_result = discovery_pipeline.discover(
+                entry_point, test.input
+            )
 
             # Create direct agent executor
             executor = DirectAgentExecutor(
@@ -458,14 +547,21 @@ class HomeBenchEvaluator:
             )
 
             # Map results
-            result.plan_generated = True  # Direct agent doesn't generate a "plan"
+            result.plan_generated = (
+                True  # Direct agent doesn't generate a "plan"
+            )
             result.plan_format = "direct_agent"
             result.execution_success = agent_result.success
             result.execution_ticks = agent_result.iterations
 
             # Extract actions from agent execution
-            result.actions_in_plan = [a["url"] for a in agent_result.actions_executed]
-            result.params_in_plan = {a["url"]: a.get("params", {}) for a in agent_result.actions_executed}
+            result.actions_in_plan = [
+                a["url"] for a in agent_result.actions_executed
+            ]
+            result.params_in_plan = {
+                a["url"]: a.get("params", {})
+                for a in agent_result.actions_executed
+            }
             result.detected_impossible = agent_result.impossible_reported
 
             # Store trace
@@ -499,9 +595,9 @@ class HomeBenchEvaluator:
                 # For pure error_input cases: success only if system detected it's impossible
                 # and did NOT generate/execute a plan.
                 detected_as_impossible = (
-                    len(result.detected_impossible) > 0 or
-                    not result.plan_generated or
-                    len(result.actions_in_plan) == 0
+                    len(result.detected_impossible) > 0
+                    or not result.plan_generated
+                    or len(result.actions_in_plan) == 0
                 )
                 result.success = "True" if detected_as_impossible else "False"
             else:
@@ -509,10 +605,14 @@ class HomeBenchEvaluator:
                     result.success = "False"
                 else:
                     no_extra_actions = len(result.extra_actions) == 0
-                    all_properties_matched = result.properties_matched == result.properties_checked
+                    all_properties_matched = (
+                        result.properties_matched == result.properties_checked
+                    )
 
-                    result.handled_correctly = no_extra_actions and all_properties_matched
-                    
+                    result.handled_correctly = (
+                        no_extra_actions and all_properties_matched
+                    )
+
                     if result.handled_correctly:
                         result.success = "True"
                     elif result.matched_actions:
@@ -528,7 +628,9 @@ class HomeBenchEvaluator:
                 if result.is_error_input_only:
                     result.failure_type = "error_input_not_detected"
                 else:
-                    result.failure_type = self._classify_failure(result, result.raw_result)
+                    result.failure_type = self._classify_failure(
+                        result, result.raw_result
+                    )
 
             executor.close()
 
@@ -557,22 +659,34 @@ class HomeBenchEvaluator:
                     result.properties_checked += 1
                     if matched:
                         result.properties_matched += 1
-                    result.property_results.append({
-                                "property": prop_url,
-                                "expected": exp_val,
-                                "actual": actual,
-                                "matched": matched,
-                            })
+                    result.property_results.append(
+                        {
+                            "property": prop_url,
+                            "expected": exp_val,
+                            "actual": actual,
+                            "matched": matched,
+                        }
+                    )
 
     def run_test(self, test: TestCase) -> TestResult:
         """Run a single test case."""
         result = TestResult(test_id=test.id, success="False")
-        result.expected_actions = [o.get("affordance", "") for o in test.expected_successes if o.get("affordance")]
-        result.expected_params = {o.get("affordance"): o.get("params", {}) for o in test.expected_successes if o.get("affordance")}
+        result.expected_actions = [
+            o.get("affordance", "")
+            for o in test.expected_successes
+            if o.get("affordance")
+        ]
+        result.expected_params = {
+            o.get("affordance"): o.get("params", {})
+            for o in test.expected_successes
+            if o.get("affordance")
+        }
         result.expected_impossible = len(test.expected_errors)
 
         # Check if this is an error_input-only case (impossible/invalid command)
-        result.is_error_input_only = len(test.expected_successes) == 0 and len(test.expected_errors) > 0
+        result.is_error_input_only = (
+            len(test.expected_successes) == 0 and len(test.expected_errors) > 0
+        )
 
         start_time = datetime.now()
 
@@ -581,7 +695,9 @@ class HomeBenchEvaluator:
             self.reset_home(test.home_id)
 
             # Build entry point
-            entry_point = f"{self.simulator_url}/workspaces/{test.home_id}#workspace"
+            entry_point = (
+                f"{self.simulator_url}/workspaces/{test.home_id}#workspace"
+            )
 
             # Run experiment
             exp_result = run_experiment(
@@ -597,15 +713,23 @@ class HomeBenchEvaluator:
                 planning = exp_result["planning"]
                 if planning.get("success"):
                     result.plan_generated = True
-                    result.plan_format = planning.get("plan", {}).get("format", "")
+                    result.plan_format = planning.get("plan", {}).get(
+                        "format", ""
+                    )
 
                     # Extract actions from plan
                     plan_content = planning.get("plan", {}).get("content", {})
-                    result.actions_in_plan = self.extract_actions_from_plan({"content": plan_content})
-                    result.params_in_plan = self._extract_params_from_plan({"content": plan_content})
+                    result.actions_in_plan = self.extract_actions_from_plan(
+                        {"content": plan_content}
+                    )
+                    result.params_in_plan = self._extract_params_from_plan(
+                        {"content": plan_content}
+                    )
 
                     # Extract detected impossible sub-goals (if reported by planner)
-                    detected = planning.get("plan", {}).get("detected_impossible", [])
+                    detected = planning.get("plan", {}).get(
+                        "detected_impossible", []
+                    )
                     if detected:
                         result.detected_impossible = detected
 
@@ -633,16 +757,18 @@ class HomeBenchEvaluator:
                 # and did NOT generate/execute a plan. If a plan was generated and executed
                 # (even if execution failed), the system didn't properly identify the impossibility.
                 detected_as_impossible = (
-                    len(result.detected_impossible) > 0 or
-                    not result.plan_generated or
-                    len(result.actions_in_plan) == 0
+                    len(result.detected_impossible) > 0
+                    or not result.plan_generated
+                    or len(result.actions_in_plan) == 0
                 )
                 result.success = "True" if detected_as_impossible else "False"
             else:
                 # For cases with success actions (may also have error_inputs):
                 # Success = all expected SUCCESS actions matched AND all properties matched
                 # Error_input detection is tracked separately, doesn't affect success
-                is_plan_executed = result.plan_generated and result.execution_success
+                is_plan_executed = (
+                    result.plan_generated and result.execution_success
+                )
 
                 if not is_plan_executed:
                     # No plan or behavior tree execution failed
@@ -650,9 +776,13 @@ class HomeBenchEvaluator:
                 else:
                     # Behavior tree executed - check actions and properties
                     no_extra_actions = len(result.extra_actions) == 0
-                    all_properties_matched = result.properties_matched == result.properties_checked
+                    all_properties_matched = (
+                        result.properties_matched == result.properties_checked
+                    )
 
-                    result.handled_correctly = no_extra_actions and all_properties_matched
+                    result.handled_correctly = (
+                        no_extra_actions and all_properties_matched
+                    )
 
                     if result.handled_correctly:
                         result.success = "True"
@@ -670,7 +800,9 @@ class HomeBenchEvaluator:
                     # Error input case that wasn't detected - system incorrectly executed
                     result.failure_type = "error_input_not_detected"
                 else:
-                    result.failure_type = self._classify_failure(result, exp_result)
+                    result.failure_type = self._classify_failure(
+                        result, exp_result
+                    )
 
         except Exception as e:
             result.error = str(e)
@@ -724,16 +856,21 @@ class HomeBenchEvaluator:
             metrics.total_detected_impossible += len(result.detected_impossible)
 
             # Track failure types
-            if result.failure_type and result.failure_type in metrics.failures_by_type:
+            if (
+                result.failure_type
+                and result.failure_type in metrics.failures_by_type
+            ):
                 metrics.failures_by_type[result.failure_type] += 1
 
             metrics.total_duration += result.duration_seconds
 
             if progress:
-                iterator.set_postfix({
-                    "success": f"{metrics.success_rate:.1%}",
-                    "recall": f"{metrics.action_recall:.1%}",
-                })
+                iterator.set_postfix(
+                    {
+                        "success": f"{metrics.success_rate:.1%}",
+                        "recall": f"{metrics.action_recall:.1%}",
+                    }
+                )
 
         return results, metrics
 
@@ -750,7 +887,9 @@ def create_config(
 ) -> ExperimentConfig:
     """Create an experiment config."""
     return ExperimentConfig(
-        experiment=ExperimentMeta(name=name, description=f"HomeBench evaluation: {name}"),
+        experiment=ExperimentMeta(
+            name=name, description=f"HomeBench evaluation: {name}"
+        ),
         discovery=DiscoveryConfig(
             affordances=AffordanceConfig(strategy=affordance_strategy),
             state=StateConfig(strategy=state_strategy),
@@ -780,10 +919,14 @@ def main():
     parser.add_argument(
         "--data",
         default="data/homebench/converted/test_data.json",
-        help="Path to test data JSON"
+        help="Path to test data JSON",
     )
-    parser.add_argument("--home", type=str, help="Filter by home ID (e.g., 'home96')")
-    parser.add_argument("--type", choices=["one", "multi"], help="Filter by test type")
+    parser.add_argument(
+        "--home", type=str, help="Filter by home ID (e.g., 'home96')"
+    )
+    parser.add_argument(
+        "--type", choices=["one", "multi"], help="Filter by test type"
+    )
     parser.add_argument("--limit", type=int, help="Limit number of tests")
 
     # Config
@@ -822,12 +965,28 @@ def main():
     )
 
     # Output
-    parser.add_argument("--output", type=str, help="Output directory for results")
+    parser.add_argument(
+        "--output", type=str, help="Output directory for results"
+    )
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
-    parser.add_argument("--no-progress", action="store_true", help="Disable progress bar")
-    parser.add_argument("--generate-traces", action="store_true", help="Generate individual HTML trace files for each test")
-    parser.add_argument("--generate-report", action="store_true", help="Generate HTML evaluation report after running")
-    parser.add_argument("--open-report", action="store_true", help="Open the generated report in browser")
+    parser.add_argument(
+        "--no-progress", action="store_true", help="Disable progress bar"
+    )
+    parser.add_argument(
+        "--generate-traces",
+        action="store_true",
+        help="Generate individual HTML trace files for each test",
+    )
+    parser.add_argument(
+        "--generate-report",
+        action="store_true",
+        help="Generate HTML evaluation report after running",
+    )
+    parser.add_argument(
+        "--open-report",
+        action="store_true",
+        help="Open the generated report in browser",
+    )
 
     args = parser.parse_args()
 
@@ -844,7 +1003,11 @@ def main():
             affordance_strategy=args.discovery_affordances,
             state_strategy=args.discovery_state,
             reasoning_enabled=reasoning_enabled,
-            reasoning_strategy=args.planning_reasoning if reasoning_enabled else "chain_of_thought",
+            reasoning_strategy=(
+                args.planning_reasoning
+                if reasoning_enabled
+                else "chain_of_thought"
+            ),
             output_format=args.planning_output,
             prompt_strategy=args.prompt_strategy,
             model=args.model,
@@ -889,7 +1052,11 @@ def main():
     print(f"Discovery - Affordances: {config.discovery.affordances.strategy}")
     print(f"Discovery - State: {config.discovery.state.strategy}")
     if args.execution_mode == "behavior_tree":
-        reasoning = config.planning.reasoning.strategy if config.planning.reasoning.enabled else "none"
+        reasoning = (
+            config.planning.reasoning.strategy
+            if config.planning.reasoning.enabled
+            else "none"
+        )
         print(f"Planning - Reasoning: {reasoning}")
         print(f"Planning - Output: {config.planning.output.format}")
         print(f"Planning - Prompt: {config.planning.prompt_strategy}")
@@ -903,9 +1070,15 @@ def main():
     print("EVALUATION RESULTS")
     print("=" * 60)
     print(f"Total tests: {metrics.total_tests}")
-    print(f"Successful: {metrics.successful_tests} ({metrics.success_rate:.1%})")
-    print(f"Quantifiable: {metrics.quantifiable_tests} ({metrics.quantifiable_rate:.1%})")
-    print(f"Success + Quantifiable: {metrics.successful_tests + metrics.quantifiable_tests} ({metrics.success_or_quantifiable_rate:.1%})")
+    print(
+        f"Successful: {metrics.successful_tests} ({metrics.success_rate:.1%})"
+    )
+    print(
+        f"Quantifiable: {metrics.quantifiable_tests} ({metrics.quantifiable_rate:.1%})"
+    )
+    print(
+        f"Success + Quantifiable: {metrics.successful_tests + metrics.quantifiable_tests} ({metrics.success_or_quantifiable_rate:.1%})"
+    )
     print(f"Failed: {metrics.failed_tests}")
     print()
     print(f"Plans generated: {metrics.plans_generated}")
@@ -919,10 +1092,14 @@ def main():
     print(f"  Missing: {metrics.total_missing_actions}")
     print(f"  Extra: {metrics.total_extra_actions}")
     print()
-    print(f"Property Verification: {metrics.total_properties_matched}/{metrics.total_properties_checked} ({metrics.property_accuracy:.1%})")
+    print(
+        f"Property Verification: {metrics.total_properties_matched}/{metrics.total_properties_checked} ({metrics.property_accuracy:.1%})"
+    )
     print()
     if metrics.total_expected_impossible > 0:
-        print(f"Impossible Sub-goals: {metrics.total_detected_impossible}/{metrics.total_expected_impossible} detected ({metrics.impossible_detection_rate:.1%})")
+        print(
+            f"Impossible Sub-goals: {metrics.total_detected_impossible}/{metrics.total_expected_impossible} detected ({metrics.impossible_detection_rate:.1%})"
+        )
         print()
     # Print failure breakdown
     if metrics.failed_tests > 0:
@@ -933,7 +1110,11 @@ def main():
                 print(f"  {ftype}: {count} ({pct:.1f}%)")
         print()
     print(f"Total duration: {metrics.total_duration:.1f}s")
-    print(f"Avg per test: {metrics.total_duration/metrics.total_tests:.1f}s" if metrics.total_tests > 0 else "")
+    print(
+        f"Avg per test: {metrics.total_duration/metrics.total_tests:.1f}s"
+        if metrics.total_tests > 0
+        else ""
+    )
     print("=" * 60)
 
     # Save results
@@ -946,43 +1127,56 @@ def main():
         # Save metrics
         metrics_file = output_dir / f"metrics_{timestamp}.json"
         with open(metrics_file, "w") as f:
-            json.dump({
-                "config": config.model_dump(),
-                "filters": {
-                    "home": args.home,
-                    "type": args.type,
-                    "limit": args.limit,
+            json.dump(
+                {
+                    "config": config.model_dump(),
+                    "filters": {
+                        "home": args.home,
+                        "type": args.type,
+                        "limit": args.limit,
+                    },
+                    "metrics": metrics.to_dict(),
                 },
-                "metrics": metrics.to_dict(),
-            }, f, indent=2, default=str)
+                f,
+                indent=2,
+                default=str,
+            )
 
         # Save detailed results with full trace
         results_file = output_dir / f"results_{timestamp}.json"
         with open(results_file, "w") as f:
-            json.dump([{
-                "test_id": r.test_id,
-                "success": r.success,
-                "is_error_input_only": r.is_error_input_only,
-                "handled_correctly": r.handled_correctly,
-                "plan_generated": r.plan_generated,
-                "execution_success": r.execution_success,
-                "matched_actions": r.matched_actions,
-                "missing_actions": r.missing_actions,
-                "extra_actions": r.extra_actions,
-                "expected_actions": r.expected_actions,
-                "expected_params": r.expected_params,
-                "actions_in_plan": r.actions_in_plan,
-                "params_in_plan": r.params_in_plan,
-                "properties_matched": r.properties_matched,
-                "properties_checked": r.properties_checked,
-                "property_results": r.property_results,
-                "expected_impossible": r.expected_impossible,
-                "detected_impossible": r.detected_impossible,
-                "failure_type": r.failure_type,
-                "duration": r.duration_seconds,
-                "error": r.error,
-                "trace": r.raw_result,  # Full experiment trace
-            } for r in results], f, indent=2, default=str)
+            json.dump(
+                [
+                    {
+                        "test_id": r.test_id,
+                        "success": r.success,
+                        "is_error_input_only": r.is_error_input_only,
+                        "handled_correctly": r.handled_correctly,
+                        "plan_generated": r.plan_generated,
+                        "execution_success": r.execution_success,
+                        "matched_actions": r.matched_actions,
+                        "missing_actions": r.missing_actions,
+                        "extra_actions": r.extra_actions,
+                        "expected_actions": r.expected_actions,
+                        "expected_params": r.expected_params,
+                        "actions_in_plan": r.actions_in_plan,
+                        "params_in_plan": r.params_in_plan,
+                        "properties_matched": r.properties_matched,
+                        "properties_checked": r.properties_checked,
+                        "property_results": r.property_results,
+                        "expected_impossible": r.expected_impossible,
+                        "detected_impossible": r.detected_impossible,
+                        "failure_type": r.failure_type,
+                        "duration": r.duration_seconds,
+                        "error": r.error,
+                        "trace": r.raw_result,  # Full experiment trace
+                    }
+                    for r in results
+                ],
+                f,
+                indent=2,
+                default=str,
+            )
 
         # Save individual traces (compatible with trace_viewer)
         traces_dir = output_dir / "traces"
@@ -1003,6 +1197,7 @@ def main():
         if args.generate_traces:
             print("\nGenerating HTML traces...")
             from viewers.trace_viewer import export_html
+
             for r in results:
                 if r.raw_result:
                     trace_file = traces_dir / f"{r.test_id}.json"
@@ -1014,6 +1209,7 @@ def main():
         if args.generate_report:
             print("\nGenerating evaluation report...")
             import subprocess
+
             subprocess.run(
                 [sys.executable, "-m", "viewers.eval_viewer", str(output_dir)],
                 check=True,
@@ -1023,6 +1219,7 @@ def main():
                 print(f"Report generated: {report_file}")
                 if args.open_report:
                     import webbrowser
+
                     webbrowser.open(f"file://{report_file.absolute()}")
 
     # Exit successfully when the run completes; benchmark score should not

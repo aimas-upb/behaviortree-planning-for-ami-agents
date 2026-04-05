@@ -72,10 +72,15 @@ class ChainOfThoughtReasoning:
 
         messages = [
             {"role": "system", "content": COT_SYSTEM_PROMPT},
-            {"role": "user", "content": COT_USER_PROMPT.format(context=context, goal=goal)},
+            {
+                "role": "user",
+                "content": COT_USER_PROMPT.format(context=context, goal=goal),
+            },
         ]
 
-        api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
+        api_kwargs = get_model_kwargs(
+            model_config.name, model_config=model_config
+        )
         api_kwargs["messages"] = messages
 
         response = client.chat.completions.create(**api_kwargs)

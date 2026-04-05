@@ -12,14 +12,15 @@ This script:
 import argparse
 import json
 import sys
+from typing import Any, Dict, List
+
 import requests
-from typing import Dict, Any, List
 
 
 def load_ground_truth(file_path: str) -> List[Dict[str, Any]]:
     """Load ground truth JSON file."""
     try:
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             data = json.load(f)
         return data
     except FileNotFoundError:
@@ -30,13 +31,18 @@ def load_ground_truth(file_path: str) -> List[Dict[str, Any]]:
         sys.exit(1)
 
 
-def find_request_by_id(data: List[Dict[str, Any]], request_id: str) -> Dict[str, Any]:
+def find_request_by_id(
+    data: List[Dict[str, Any]], request_id: str
+) -> Dict[str, Any]:
     """Find a request entry by its ID."""
     for entry in data:
         if entry.get("id") == request_id:
             return entry
 
-    print(f"Error: Request ID '{request_id}' not found in ground truth data", file=sys.stderr)
+    print(
+        f"Error: Request ID '{request_id}' not found in ground truth data",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 
@@ -51,15 +57,18 @@ def get_property_value(property_url: str) -> Any:
             data = response.json()
             # The property endpoint might return the value directly or in a wrapper
             # Adjust this based on your actual API response format
-            if isinstance(data, dict) and 'value' in data:
-                return data['value']
+            if isinstance(data, dict) and "value" in data:
+                return data["value"]
             return data
         except json.JSONDecodeError:
             # If not JSON, return the text content
             return response.text.strip()
 
     except requests.exceptions.RequestException as e:
-        print(f"Warning: Failed to retrieve property from {property_url}: {e}", file=sys.stderr)
+        print(
+            f"Warning: Failed to retrieve property from {property_url}: {e}",
+            file=sys.stderr,
+        )
         return None
 
 
@@ -79,10 +88,7 @@ def test_ground_truth(file_path: str, request_id: str) -> Dict[str, Any]:
     request_entry = find_request_by_id(data, request_id)
 
     # Initialize result structure
-    result = {
-        "success_overall": True,
-        "detail": {}
-    }
+    result = {"success_overall": True, "detail": {}}
 
     # Process each output entry
     output_list = request_entry.get("output", [])
@@ -115,14 +121,18 @@ def test_ground_truth(file_path: str, request_id: str) -> Dict[str, Any]:
             # Normalize for comparison
             # Convert to same type if possible
             try:
-                if isinstance(expected_value, (int, float)) and isinstance(retrieved_value, str):
+                if isinstance(expected_value, (int, float)) and isinstance(
+                    retrieved_value, str
+                ):
                     retrieved_value = type(expected_value)(retrieved_value)
-                elif isinstance(expected_value, str) and isinstance(retrieved_value, (int, float)):
+                elif isinstance(expected_value, str) and isinstance(
+                    retrieved_value, (int, float)
+                ):
                     expected_value = str(expected_value)
             except (ValueError, TypeError):
                 pass
 
-            status = (retrieved_value == expected_value)
+            status = retrieved_value == expected_value
             if not status:
                 result["success_overall"] = False
 
@@ -130,7 +140,7 @@ def test_ground_truth(file_path: str, request_id: str) -> Dict[str, Any]:
         result["detail"][property_url] = {
             "status": status,
             "expected_value": expected_value,
-            "retrieved_value": retrieved_value
+            "retrieved_value": retrieved_value,
         }
 
     return result
@@ -146,28 +156,27 @@ Examples:
   %(prog)s --file test_data.json --id home86_multi_329 --pretty
   %(prog)s -f test_data.json -i home86_multi_329 -o results.json --pretty
         """,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "-f", "--file",
+        "-f",
+        "--file",
         dest="ground_truth_file",
         required=True,
-        help="Path to the ground truth JSON file (e.g., data/homebench/converted/test_data.json)"
+        help="Path to the ground truth JSON file (e.g., data/homebench/converted/test_data.json)",
     )
     parser.add_argument(
-        "-i", "--id",
+        "-i",
+        "--id",
         dest="request_id",
         required=True,
-        help="ID of the request to test (e.g., home86_multi_329)"
+        help="ID of the request to test (e.g., home86_multi_329)",
     )
     parser.add_argument(
-        "-o", "--output",
-        help="Output file path (default: print to stdout)"
+        "-o", "--output", help="Output file path (default: print to stdout)"
     )
     parser.add_argument(
-        "--pretty",
-        action="store_true",
-        help="Pretty-print the JSON output"
+        "--pretty", action="store_true", help="Pretty-print the JSON output"
     )
 
     args = parser.parse_args()
@@ -183,7 +192,7 @@ Examples:
 
     # Write output
     if args.output:
-        with open(args.output, 'w') as f:
+        with open(args.output, "w") as f:
             f.write(json_output)
         print(f"Results written to {args.output}")
     else:

@@ -13,24 +13,23 @@ Usage:
     uv run python -m viewers.trace_viewer --html output.html experiments/results/*.json
 """
 
+import argparse
 import json
 import sys
-import argparse
-from pathlib import Path
-from typing import Optional, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Optional
 
-from rich.console import Console, Group
-from rich.panel import Panel
-from rich.table import Table
-from rich.tree import Tree
-from rich.syntax import Syntax
-from rich.markdown import Markdown
-from rich.text import Text
-from rich.rule import Rule
-from rich.columns import Columns
 from rich import box
-
+from rich.columns import Columns
+from rich.console import Console, Group
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.rule import Rule
+from rich.syntax import Syntax
+from rich.table import Table
+from rich.text import Text
+from rich.tree import Tree
 
 console = Console()
 
@@ -84,19 +83,19 @@ def _extract_item_uri(item: Any) -> str:
 
 
 def _extract_workspace_artifacts(workspace_payload: Any) -> list[Any]:
-        """Extract artifacts list from workspace payload.
+    """Extract artifacts list from workspace payload.
 
-        Supports both legacy shape:
-            - workspace_name -> [artifact, ...]
-        and newer shape:
-            - workspace_name -> {"artifacts": [...], "semantic_type": ...}
-        """
-        if isinstance(workspace_payload, list):
-                return workspace_payload
-        if isinstance(workspace_payload, dict):
-                artifacts = workspace_payload.get("artifacts", [])
-                return artifacts if isinstance(artifacts, list) else []
-        return []
+    Supports both legacy shape:
+        - workspace_name -> [artifact, ...]
+    and newer shape:
+        - workspace_name -> {"artifacts": [...], "semantic_type": ...}
+    """
+    if isinstance(workspace_payload, list):
+        return workspace_payload
+    if isinstance(workspace_payload, dict):
+        artifacts = workspace_payload.get("artifacts", [])
+        return artifacts if isinstance(artifacts, list) else []
+    return []
 
 
 def create_overview_panel(data: dict) -> Panel:
@@ -117,7 +116,12 @@ def create_overview_panel(data: dict) -> Panel:
     table.add_row("Goal", data.get("goal", "N/A"))
 
     # Config name
-    table.add_row("Config", data.get("config_name", config.get("experiment", {}).get("name", "N/A")))
+    table.add_row(
+        "Config",
+        data.get(
+            "config_name", config.get("experiment", {}).get("name", "N/A")
+        ),
+    )
 
     # Model
     table.add_row("Model", config.get("model", {}).get("name", "N/A"))
@@ -130,8 +134,13 @@ def create_overview_panel(data: dict) -> Panel:
     discovery_cfg = config.get("discovery", {})
     planning_cfg = config.get("planning", {})
 
-    table.add_row("Affordance Strategy", discovery_cfg.get("affordances", {}).get("strategy", "N/A"))
-    table.add_row("State Strategy", discovery_cfg.get("state", {}).get("strategy", "N/A"))
+    table.add_row(
+        "Affordance Strategy",
+        discovery_cfg.get("affordances", {}).get("strategy", "N/A"),
+    )
+    table.add_row(
+        "State Strategy", discovery_cfg.get("state", {}).get("strategy", "N/A")
+    )
 
     reasoning = planning_cfg.get("reasoning", {})
     if reasoning.get("enabled"):
@@ -139,7 +148,9 @@ def create_overview_panel(data: dict) -> Panel:
     else:
         table.add_row("Reasoning", "disabled")
 
-    table.add_row("Output Format", planning_cfg.get("output", {}).get("format", "N/A"))
+    table.add_row(
+        "Output Format", planning_cfg.get("output", {}).get("format", "N/A")
+    )
     table.add_row("Prompt Strategy", planning_cfg.get("prompt_strategy", "N/A"))
 
     return Panel(table, title="[bold]Experiment Overview", border_style="blue")
@@ -164,33 +175,60 @@ def create_exploration_trace_panel(data: dict) -> Optional[Panel]:
         # Format the step
         if fn_name == "explore_workspace":
             ws_uri = args.get("workspace_uri", "")
-            ws_name = ws_uri.split("/")[-1].replace("#workspace", "") if ws_uri else "unknown"
-            step_branch = tree.add(f"[cyan]Step {iteration}:[/cyan] explore_workspace([yellow]{ws_name}[/yellow])")
+            ws_name = (
+                ws_uri.split("/")[-1].replace("#workspace", "")
+                if ws_uri
+                else "unknown"
+            )
+            step_branch = tree.add(
+                f"[cyan]Step {iteration}:[/cyan] explore_workspace([yellow]{ws_name}[/yellow])"
+            )
 
             if result:
                 if result.get("sub_workspaces"):
-                    subs = [_extract_item_name(s, "?") for s in result["sub_workspaces"]]
+                    subs = [
+                        _extract_item_name(s, "?")
+                        for s in result["sub_workspaces"]
+                    ]
                     step_branch.add(f"[dim]Sub-workspaces:[/dim] {subs}")
                 if result.get("artifacts"):
-                    arts = [_extract_item_name(a, "?") for a in result["artifacts"]]
+                    arts = [
+                        _extract_item_name(a, "?") for a in result["artifacts"]
+                    ]
                     step_branch.add(f"[dim]Artifacts:[/dim] {arts}")
 
         elif fn_name == "inspect_artifact":
             art_uri = args.get("artifact_uri", "")
-            art_name = art_uri.split("/")[-1].replace("#artifact", "") if art_uri else "unknown"
-            step_branch = tree.add(f"[cyan]Step {iteration}:[/cyan] inspect_artifact([yellow]{art_name}[/yellow])")
+            art_name = (
+                art_uri.split("/")[-1].replace("#artifact", "")
+                if art_uri
+                else "unknown"
+            )
+            step_branch = tree.add(
+                f"[cyan]Step {iteration}:[/cyan] inspect_artifact([yellow]{art_name}[/yellow])"
+            )
 
             if result:
                 if result.get("actions"):
-                    actions = [_extract_item_name(a, "?") for a in result["actions"]]
-                    step_branch.add(f"[dim]Actions:[/dim] [green]{actions}[/green]")
+                    actions = [
+                        _extract_item_name(a, "?") for a in result["actions"]
+                    ]
+                    step_branch.add(
+                        f"[dim]Actions:[/dim] [green]{actions}[/green]"
+                    )
                 if result.get("properties"):
-                    props = [_extract_item_name(p, "?") for p in result["properties"]]
-                    step_branch.add(f"[dim]Properties:[/dim] [blue]{props}[/blue]")
+                    props = [
+                        _extract_item_name(p, "?") for p in result["properties"]
+                    ]
+                    step_branch.add(
+                        f"[dim]Properties:[/dim] [blue]{props}[/blue]"
+                    )
 
         elif fn_name == "done_exploring":
             reason = args.get("reason", result.get("reason", "done"))
-            tree.add(f"[cyan]Step {iteration}:[/cyan] done_exploring([green]\"{reason}\"[/green])")
+            tree.add(
+                f'[cyan]Step {iteration}:[/cyan] done_exploring([green]"{reason}"[/green])'
+            )
 
         else:
             tree.add(f"[cyan]Step {iteration}:[/cyan] {fn_name}({args})")
@@ -198,7 +236,7 @@ def create_exploration_trace_panel(data: dict) -> Optional[Panel]:
     return Panel(
         tree,
         title=f"[bold]Agentic Discovery Trace ({len(exploration_trace)} tool calls)",
-        border_style="blue"
+        border_style="blue",
     )
 
 
@@ -250,7 +288,9 @@ def create_state_trace_panel(data: dict) -> Optional[Panel]:
 
         elif fn_name == "done_gathering":
             summary = args.get("summary", result.get("summary", "done"))
-            tree.add(f"[cyan]Step {iteration}:[/cyan] done_gathering([green]\"{summary}\"[/green])")
+            tree.add(
+                f'[cyan]Step {iteration}:[/cyan] done_gathering([green]"{summary}"[/green])'
+            )
 
         else:
             tree.add(f"[cyan]Step {iteration}:[/cyan] {fn_name}({args})")
@@ -258,7 +298,7 @@ def create_state_trace_panel(data: dict) -> Optional[Panel]:
     return Panel(
         tree,
         title=f"[bold]Agentic State Trace ({len(state_trace)} reads)",
-        border_style="cyan"
+        border_style="cyan",
     )
 
 
@@ -289,7 +329,12 @@ def create_discovery_panel(data: dict, expanded: bool = False) -> Panel:
         summary.append(f" ({error_count} errors)", style="red")
 
     if not expanded:
-        return Panel(summary, title="[bold]Discovery Phase", subtitle="[dim]Use --expand to see details", border_style="green")
+        return Panel(
+            summary,
+            title="[bold]Discovery Phase",
+            subtitle="[dim]Use --expand to see details",
+            border_style="green",
+        )
 
     # Expanded view with artifact tree
     tree = Tree("[bold]Discovered Devices")
@@ -319,12 +364,18 @@ def create_discovery_panel(data: dict, expanded: bool = False) -> Panel:
                             if "minimum" in pschema and "maximum" in pschema:
                                 constraint = f" [magenta](range: {pschema['minimum']}-{pschema['maximum']})"
                             elif "enum" in pschema:
-                                constraint = f" [magenta](values: {pschema['enum']})"
+                                constraint = (
+                                    f" [magenta](values: {pschema['enum']})"
+                                )
                             params.append(f"{pname}: {ptype}{constraint}")
                         param_str = ", ".join(params)
-                        act_branch.add(f"[green]{_extract_item_name(action)}[/green]({param_str})")
+                        act_branch.add(
+                            f"[green]{_extract_item_name(action)}[/green]({param_str})"
+                        )
                     else:
-                        act_branch.add(f"[green]{_extract_item_name(action)}[/green]()")
+                        act_branch.add(
+                            f"[green]{_extract_item_name(action)}[/green]()"
+                        )
 
             # Properties
             properties = artifact_data.get("properties", [])
@@ -336,7 +387,9 @@ def create_discovery_panel(data: dict, expanded: bool = False) -> Panel:
                     ptype = schema.get("type", "")
                     if "enum" in schema:
                         ptype += f" [magenta](values: {schema['enum']})"
-                    prop_branch.add(f"[blue]{_extract_item_name(prop)}[/blue]: {ptype}")
+                    prop_branch.add(
+                        f"[blue]{_extract_item_name(prop)}[/blue]: {ptype}"
+                    )
 
     # Infeasible commands
     infeasible = affordances.get("infeasible_commands", [])
@@ -346,7 +399,9 @@ def create_discovery_panel(data: dict, expanded: bool = False) -> Panel:
             cmd = entry.get("command", "unknown")
             reason = entry.get("reason", "unknown")
             infeasible_tree.add(f"[red]{cmd}[/red]: [dim]{reason}[/dim]")
-        content = Group(summary, Rule(style="dim"), tree, Rule(style="dim"), infeasible_tree)
+        content = Group(
+            summary, Rule(style="dim"), tree, Rule(style="dim"), infeasible_tree
+        )
     else:
         content = Group(summary, Rule(style="dim"), tree)
     return Panel(content, title="[bold]Discovery Phase", border_style="green")
@@ -369,7 +424,9 @@ def create_state_panel(data: dict) -> Optional[Panel]:
             ws_idx = parts.index("workspaces") + 1
             if ws_idx < len(parts):
                 ws_name = parts[ws_idx].split("#")[0]
-                art_idx = parts.index("artifacts") + 1 if "artifacts" in parts else -1
+                art_idx = (
+                    parts.index("artifacts") + 1 if "artifacts" in parts else -1
+                )
                 if art_idx > 0 and art_idx < len(parts):
                     art_name = parts[art_idx]
                     prop_name = parts[-1]
@@ -418,7 +475,7 @@ def create_reasoning_panel(data: dict) -> Optional[Panel]:
     return Panel(
         Group(*content_parts),
         title="[bold]Reasoning Trace (LLM Analysis)",
-        border_style="yellow"
+        border_style="yellow",
     )
 
 
@@ -441,9 +498,25 @@ def create_plan_panel(data: dict) -> Panel:
     # Plan content
     if format_type == "json_ir":
         json_str = json.dumps(content, indent=2)
-        parts.append(Syntax(json_str, "json", theme="monokai", line_numbers=True, word_wrap=True))
+        parts.append(
+            Syntax(
+                json_str,
+                "json",
+                theme="monokai",
+                line_numbers=True,
+                word_wrap=True,
+            )
+        )
     elif format_type == "python_code":
-        parts.append(Syntax(str(content), "python", theme="monokai", line_numbers=True, word_wrap=True))
+        parts.append(
+            Syntax(
+                str(content),
+                "python",
+                theme="monokai",
+                line_numbers=True,
+                word_wrap=True,
+            )
+        )
     else:
         parts.append(Text(str(content)))
 
@@ -458,7 +531,7 @@ def create_plan_panel(data: dict) -> Panel:
     return Panel(
         Group(*parts),
         title=f"[bold]Generated Plan ({format_type})",
-        border_style="magenta"
+        border_style="magenta",
     )
 
 
@@ -472,7 +545,9 @@ def create_execution_panel(data: dict) -> Panel:
 
     success = execution.get("success", False)
     status_style = "bold green" if success else "bold red"
-    table.add_row("Result", Text("SUCCESS" if success else "FAILED", style=status_style))
+    table.add_row(
+        "Result", Text("SUCCESS" if success else "FAILED", style=status_style)
+    )
 
     table.add_row("Tree Name", execution.get("tree_name", "N/A"))
     table.add_row("Ticks", str(execution.get("ticks", 0)))
@@ -487,7 +562,11 @@ def create_execution_panel(data: dict) -> Panel:
     if error:
         table.add_row("Error", Text(error, style="red"))
 
-    return Panel(table, title="[bold]Execution Results", border_style="red" if not success else "green")
+    return Panel(
+        table,
+        title="[bold]Execution Results",
+        border_style="red" if not success else "green",
+    )
 
 
 def create_errors_panel(data: dict) -> Optional[Panel]:
@@ -531,7 +610,7 @@ def create_errors_panel(data: dict) -> Optional[Panel]:
     return Panel(
         table,
         title=f"[bold red]Errors ({len(errors)} found)",
-        border_style="red"
+        border_style="red",
     )
 
 
@@ -593,7 +672,13 @@ def _html_escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _generate_html_card(title: str, content: str, border_color: str = "#4a9eff", collapsible: bool = False, collapsed: bool = False) -> str:
+def _generate_html_card(
+    title: str,
+    content: str,
+    border_color: str = "#4a9eff",
+    collapsible: bool = False,
+    collapsed: bool = False,
+) -> str:
     """Generate an HTML card with proper styling. Optionally collapsible."""
     if collapsible:
         state = "collapsed" if collapsed else ""
@@ -683,7 +768,9 @@ def _reconstruct_planning_context(data: dict) -> str:
                                 constraint = f" (values: {pschema['enum']})"
                             params.append(f"{pname}: {ptype}{constraint}")
                         schema_info = " - Parameters: " + ", ".join(params)
-                    lines.append(f"  - `{_extract_item_name(action)}`: `{_extract_item_uri(action)}`{schema_info}")
+                    lines.append(
+                        f"  - `{_extract_item_name(action)}`: `{_extract_item_uri(action)}`{schema_info}"
+                    )
 
             properties = artifact_data.get("properties", [])
             if properties:
@@ -697,14 +784,18 @@ def _reconstruct_planning_context(data: dict) -> str:
                         type_info = f" ({ptype}, values: {schema['enum']})"
                     elif ptype:
                         type_info = f" ({ptype})"
-                    lines.append(f"  - `{_extract_item_name(prop)}`: `{_extract_item_uri(prop)}`{type_info}")
+                    lines.append(
+                        f"  - `{_extract_item_name(prop)}`: `{_extract_item_uri(prop)}`{type_info}"
+                    )
 
     # Add infeasible commands section if available
     infeasible = affordances.get("infeasible_commands", [])
     if infeasible:
         lines.append("\n\n# Possibly Infeasible Commands\n")
         for entry in infeasible:
-            lines.append(f"- **{entry.get('command', 'unknown')}**: {entry.get('reason', 'unknown')}")
+            lines.append(
+                f"- **{entry.get('command', 'unknown')}**: {entry.get('reason', 'unknown')}"
+            )
 
     # Add state section if available
     property_values = state.get("property_values", {})
@@ -727,18 +818,23 @@ def _generate_planning_context_html(data: dict) -> str:
     """Generate planning context section HTML."""
     context = _reconstruct_planning_context(data)
 
-    if not context or context.strip() == "# Available Devices and Capabilities\n":
+    if (
+        not context
+        or context.strip() == "# Available Devices and Capabilities\n"
+    ):
         return ""
 
     # Convert the context to HTML-friendly format
-    html_content = f"<pre class='planning-context'>{_html_escape(context)}</pre>"
+    html_content = (
+        f"<pre class='planning-context'>{_html_escape(context)}</pre>"
+    )
 
     return _generate_html_card(
         "Planning Context (What the Model Sees)",
         html_content,
         "#f59e0b",  # amber/orange color
         collapsible=True,
-        collapsed=True  # Start collapsed by default
+        collapsed=True,  # Start collapsed by default
     )
 
 
@@ -749,25 +845,65 @@ def _generate_overview_html(data: dict) -> str:
     status_class = "success" if success else "error"
 
     rows = [
-        ("Status", f'<span class="{status_class}">{"SUCCESS" if success else "FAILED"}</span>'),
+        (
+            "Status",
+            f'<span class="{status_class}">{"SUCCESS" if success else "FAILED"}</span>',
+        ),
         ("Goal", _html_escape(data.get("goal", "N/A"))),
-        ("Config", _html_escape(data.get("config_name", config.get("experiment", {}).get("name", "N/A")))),
+        (
+            "Config",
+            _html_escape(
+                data.get(
+                    "config_name",
+                    config.get("experiment", {}).get("name", "N/A"),
+                )
+            ),
+        ),
         ("Model", _html_escape(config.get("model", {}).get("name", "N/A"))),
         ("Duration", format_duration(data.get("duration_seconds", 0))),
-        ("Affordance Strategy", _html_escape(config.get("discovery", {}).get("affordances", {}).get("strategy", "N/A"))),
-        ("State Strategy", _html_escape(config.get("discovery", {}).get("state", {}).get("strategy", "N/A"))),
+        (
+            "Affordance Strategy",
+            _html_escape(
+                config.get("discovery", {})
+                .get("affordances", {})
+                .get("strategy", "N/A")
+            ),
+        ),
+        (
+            "State Strategy",
+            _html_escape(
+                config.get("discovery", {})
+                .get("state", {})
+                .get("strategy", "N/A")
+            ),
+        ),
     ]
 
     reasoning = config.get("planning", {}).get("reasoning", {})
     if reasoning.get("enabled"):
-        rows.append(("Reasoning", _html_escape(reasoning.get("strategy", "N/A"))))
+        rows.append(
+            ("Reasoning", _html_escape(reasoning.get("strategy", "N/A")))
+        )
     else:
         rows.append(("Reasoning", "disabled"))
 
-    rows.append(("Output Format", _html_escape(config.get("planning", {}).get("output", {}).get("format", "N/A"))))
+    rows.append(
+        (
+            "Output Format",
+            _html_escape(
+                config.get("planning", {})
+                .get("output", {})
+                .get("format", "N/A")
+            ),
+        )
+    )
 
-    table_rows = "\n".join([f'<tr><td class="label">{k}</td><td>{v}</td></tr>' for k, v in rows])
-    return _generate_html_card("Experiment Overview", f"<table>{table_rows}</table>", "#4a9eff")
+    table_rows = "\n".join(
+        [f'<tr><td class="label">{k}</td><td>{v}</td></tr>' for k, v in rows]
+    )
+    return _generate_html_card(
+        "Experiment Overview", f"<table>{table_rows}</table>", "#4a9eff"
+    )
 
 
 def _generate_discovery_html(data: dict) -> str:
@@ -810,7 +946,9 @@ def _generate_discovery_html(data: dict) -> str:
                             constraint = f" <span class='constraint'>(range: {pschema['minimum']}-{pschema['maximum']})</span>"
                         elif "enum" in pschema:
                             constraint = f" <span class='constraint'>(values: {pschema['enum']})</span>"
-                        params.append(f"{pname}: {pschema.get('type', 'any')}{constraint}")
+                        params.append(
+                            f"{pname}: {pschema.get('type', 'any')}{constraint}"
+                        )
                     param_str = ", ".join(params) if params else ""
                     tree_html += f"<div class='tree-node indent3'><span class='action'>{_html_escape(_extract_item_name(action))}</span>({param_str})</div>"
                 tree_html += "</div>"
@@ -840,7 +978,9 @@ def _generate_discovery_html(data: dict) -> str:
             infeasible_html += f"<div class='tree-node indent'><span class='error'>{cmd}</span>: <span class='dim'>{reason}</span></div>"
         infeasible_html += "</div>"
 
-    return _generate_html_card("Discovery Phase", summary + tree_html + infeasible_html, "#22c55e")
+    return _generate_html_card(
+        "Discovery Phase", summary + tree_html + infeasible_html, "#22c55e"
+    )
 
 
 def _generate_exploration_trace_html(data: dict) -> str:
@@ -860,25 +1000,43 @@ def _generate_exploration_trace_html(data: dict) -> str:
 
         if fn_name == "explore_workspace":
             ws_uri = args.get("workspace_uri", "")
-            ws_name = ws_uri.split("/")[-1].replace("#workspace", "") if ws_uri else "unknown"
+            ws_name = (
+                ws_uri.split("/")[-1].replace("#workspace", "")
+                if ws_uri
+                else "unknown"
+            )
             steps_html += f"<div class='trace-step'><span class='step-num'>Step {iteration}:</span> explore_workspace(<span class='highlight'>{_html_escape(ws_name)}</span>)"
             if result.get("sub_workspaces"):
-                subs = [_extract_item_name(s, "?") for s in result["sub_workspaces"]]
-                steps_html += f"<div class='trace-result'>Sub-workspaces: {subs}</div>"
+                subs = [
+                    _extract_item_name(s, "?") for s in result["sub_workspaces"]
+                ]
+                steps_html += (
+                    f"<div class='trace-result'>Sub-workspaces: {subs}</div>"
+                )
             if result.get("artifacts"):
                 arts = [_extract_item_name(a, "?") for a in result["artifacts"]]
-                steps_html += f"<div class='trace-result'>Artifacts: {arts}</div>"
+                steps_html += (
+                    f"<div class='trace-result'>Artifacts: {arts}</div>"
+                )
             steps_html += "</div>"
 
         elif fn_name == "inspect_artifact":
             art_uri = args.get("artifact_uri", "")
-            art_name = art_uri.split("/")[-1].replace("#artifact", "") if art_uri else "unknown"
+            art_name = (
+                art_uri.split("/")[-1].replace("#artifact", "")
+                if art_uri
+                else "unknown"
+            )
             steps_html += f"<div class='trace-step'><span class='step-num'>Step {iteration}:</span> inspect_artifact(<span class='highlight'>{_html_escape(art_name)}</span>)"
             if result.get("actions"):
-                actions = [_extract_item_name(a, "?") for a in result["actions"]]
+                actions = [
+                    _extract_item_name(a, "?") for a in result["actions"]
+                ]
                 steps_html += f"<div class='trace-result'>Actions: <span class='action'>{actions}</span></div>"
             if result.get("properties"):
-                props = [_extract_item_name(p, "?") for p in result["properties"]]
+                props = [
+                    _extract_item_name(p, "?") for p in result["properties"]
+                ]
                 steps_html += f"<div class='trace-result'>Properties: <span class='property'>{props}</span></div>"
             steps_html += "</div>"
 
@@ -887,7 +1045,11 @@ def _generate_exploration_trace_html(data: dict) -> str:
             steps_html += f"<div class='trace-step'><span class='step-num'>Step {iteration}:</span> done_exploring(<span class='success'>\"{_html_escape(reason)}\"</span>)</div>"
 
     steps_html += "</div>"
-    return _generate_html_card(f"Agentic Discovery Trace ({len(exploration_trace)} tool calls)", steps_html, "#4a9eff")
+    return _generate_html_card(
+        f"Agentic Discovery Trace ({len(exploration_trace)} tool calls)",
+        steps_html,
+        "#4a9eff",
+    )
 
 
 def _generate_state_trace_html(data: dict) -> str:
@@ -934,7 +1096,9 @@ def _generate_state_trace_html(data: dict) -> str:
             steps_html += f"<div class='trace-step'><span class='step-num'>Step {iteration}:</span> done_gathering(<span class='success'>\"{_html_escape(summary)}\"</span>)</div>"
 
     steps_html += "</div>"
-    return _generate_html_card(f"Agentic State Trace ({len(state_trace)} reads)", steps_html, "#06b6d4")
+    return _generate_html_card(
+        f"Agentic State Trace ({len(state_trace)} reads)", steps_html, "#06b6d4"
+    )
 
 
 def _generate_reasoning_html(data: dict) -> str:
@@ -953,7 +1117,9 @@ def _generate_reasoning_html(data: dict) -> str:
         formatted = formatted.replace("\n", "<br>")
         content += f"<div class='reasoning-block'>{formatted}</div>"
 
-    return _generate_html_card("Reasoning Trace (LLM Analysis)", content, "#eab308")
+    return _generate_html_card(
+        "Reasoning Trace (LLM Analysis)", content, "#eab308"
+    )
 
 
 def _generate_plan_html(data: dict) -> str:
@@ -966,20 +1132,26 @@ def _generate_plan_html(data: dict) -> str:
 
     html_content = ""
     if explanation:
-        html_content += f"<p class='explanation'>{_html_escape(explanation)}</p><hr>"
+        html_content += (
+            f"<p class='explanation'>{_html_escape(explanation)}</p><hr>"
+        )
 
     if format_type == "json_ir":
         json_str = json.dumps(content, indent=2)
         html_content += f"<pre class='code json'>{_html_escape(json_str)}</pre>"
     elif format_type == "python_code":
-        html_content += f"<pre class='code python'>{_html_escape(str(content))}</pre>"
+        html_content += (
+            f"<pre class='code python'>{_html_escape(str(content))}</pre>"
+        )
     else:
         html_content += f"<pre>{_html_escape(str(content))}</pre>"
 
     llm_calls = planning.get("llm_calls", 0)
     html_content += f"<p class='stats'>LLM Calls: {llm_calls}</p>"
 
-    return _generate_html_card(f"Generated Plan ({format_type})", html_content, "#a855f7")
+    return _generate_html_card(
+        f"Generated Plan ({format_type})", html_content, "#a855f7"
+    )
 
 
 def _generate_execution_html(data: dict) -> str:
@@ -989,7 +1161,10 @@ def _generate_execution_html(data: dict) -> str:
     status_class = "success" if success else "error"
 
     rows = [
-        ("Result", f'<span class="{status_class}">{"SUCCESS" if success else "FAILED"}</span>'),
+        (
+            "Result",
+            f'<span class="{status_class}">{"SUCCESS" if success else "FAILED"}</span>',
+        ),
         ("Tree Name", _html_escape(execution.get("tree_name", "N/A"))),
         ("Ticks", str(execution.get("ticks", 0))),
         ("Final Status", _html_escape(execution.get("final_status", "N/A"))),
@@ -1001,11 +1176,17 @@ def _generate_execution_html(data: dict) -> str:
 
     error = execution.get("error")
     if error:
-        rows.append(("Error", f'<span class="error">{_html_escape(error)}</span>'))
+        rows.append(
+            ("Error", f'<span class="error">{_html_escape(error)}</span>')
+        )
 
-    table_rows = "\n".join([f'<tr><td class="label">{k}</td><td>{v}</td></tr>' for k, v in rows])
+    table_rows = "\n".join(
+        [f'<tr><td class="label">{k}</td><td>{v}</td></tr>' for k, v in rows]
+    )
     border_color = "#22c55e" if success else "#ef4444"
-    return _generate_html_card("Execution Results", f"<table>{table_rows}</table>", border_color)
+    return _generate_html_card(
+        "Execution Results", f"<table>{table_rows}</table>", border_color
+    )
 
 
 def _generate_errors_html(data: dict) -> str:
@@ -1033,11 +1214,17 @@ def _generate_errors_html(data: dict) -> str:
     if not errors:
         return ""
 
-    table_rows = "\n".join([
-        f'<tr><td class="label">{_html_escape(phase)}</td><td class="error">{_html_escape(err)}</td></tr>'
-        for phase, err in errors
-    ])
-    return _generate_html_card(f"Errors ({len(errors)} found)", f"<table>{table_rows}</table>", "#ef4444")
+    table_rows = "\n".join(
+        [
+            f'<tr><td class="label">{_html_escape(phase)}</td><td class="error">{_html_escape(err)}</td></tr>'
+            for phase, err in errors
+        ]
+    )
+    return _generate_html_card(
+        f"Errors ({len(errors)} found)",
+        f"<table>{table_rows}</table>",
+        "#ef4444",
+    )
 
 
 def export_html(data: dict, output_path: str):
@@ -1204,7 +1391,9 @@ def export_html(data: dict, output_path: str):
     console.print(f"[green]Exported to {output_path}")
 
 
-def get_latest_experiment(results_dir: str = "experiments/results") -> Optional[Path]:
+def get_latest_experiment(
+    results_dir: str = "experiments/results",
+) -> Optional[Path]:
     """Get the most recent experiment result file."""
     results_path = Path(results_dir)
     if not results_path.exists():
@@ -1230,13 +1419,21 @@ Examples:
   uv run python -m viewers.trace_viewer --latest
   uv run python -m viewers.trace_viewer --expand experiments/results/ablation_*/cot_*.json
   uv run python -m viewers.trace_viewer --html output.html experiments/results/ablation_*/cot_*.json
-        """
+        """,
     )
     parser.add_argument("files", nargs="*", help="Experiment result JSON files")
-    parser.add_argument("--latest", action="store_true", help="View the most recent experiment")
-    parser.add_argument("--expand", action="store_true", help="Show expanded details (all affordances, state)")
+    parser.add_argument(
+        "--latest", action="store_true", help="View the most recent experiment"
+    )
+    parser.add_argument(
+        "--expand",
+        action="store_true",
+        help="Show expanded details (all affordances, state)",
+    )
     parser.add_argument("--html", metavar="FILE", help="Export to HTML file")
-    parser.add_argument("--results-dir", default="experiments/results", help="Results directory")
+    parser.add_argument(
+        "--results-dir", default="experiments/results", help="Results directory"
+    )
 
     args = parser.parse_args()
 
@@ -1253,7 +1450,9 @@ Examples:
     files.extend(Path(f) for f in args.files)
 
     if not files:
-        console.print("[yellow]Usage: python -m viewers.trace_viewer [--latest] [--expand] [--html FILE] [experiment_files...]")
+        console.print(
+            "[yellow]Usage: python -m viewers.trace_viewer [--latest] [--expand] [--html FILE] [experiment_files...]"
+        )
         console.print("\nRun with --help for more options.")
         return 1
 

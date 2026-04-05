@@ -26,8 +26,12 @@ class StructuredIntent:
     workspace_type: str  # e.g. "ex:Bathroom"
     original_index: int = 0
     # Neuro-symbolic fields (may be None for intents without parameter/value)
-    parameter: Optional[str] = None   # e.g. "brightness", "mode"; None if parameterless
-    value: Optional[str] = None       # e.g. "63", "heat", "auto"; None if not extracted
+    parameter: Optional[str] = (
+        None  # e.g. "brightness", "mode"; None if parameterless
+    )
+    value: Optional[str] = (
+        None  # e.g. "63", "heat", "auto"; None if not extracted
+    )
 
     def slot_key(self) -> tuple:
         """Slot-matching key: (affordance_type, artifact_type, workspace_type)."""
@@ -36,7 +40,11 @@ class StructuredIntent:
     def is_fully_structured(self) -> bool:
         """Return True if all neuro-symbolic fields are present (or parameter is None for parameterless commands)."""
         # affordance_type, artifact_type, workspace_type must always be set
-        if not self.affordance_type or not self.artifact_type or not self.workspace_type:
+        if (
+            not self.affordance_type
+            or not self.artifact_type
+            or not self.workspace_type
+        ):
             return False
         # value must be set (even parameterless actions still need the verb resolved)
         # For parameterless commands (parameter is None), value is not required
@@ -144,7 +152,12 @@ EXTRACT_INTENTS_TOOL = {
                                         ),
                                     },
                                 },
-                                "required": ["affordance_type", "parameter", "value", "verb"],
+                                "required": [
+                                    "affordance_type",
+                                    "parameter",
+                                    "value",
+                                    "verb",
+                                ],
                             },
                             "target": {
                                 "type": "object",
@@ -243,22 +256,28 @@ class IntentExtractor:
         """
         logger.info(f"Extracting intents from goal: {goal!r}")
 
-        system_prompt = INTENT_EXTRACTION_SYSTEM.format(ontology=self.ontology_text)
+        system_prompt = INTENT_EXTRACTION_SYSTEM.format(
+            ontology=self.ontology_text
+        )
 
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": goal},
         ]
 
-        api_kwargs = get_model_kwargs(model_config.name, model_config=model_config)
-        api_kwargs.update({
-            "messages": messages,
-            "tools": [EXTRACT_INTENTS_TOOL],
-            "tool_choice": {
-                "type": "function",
-                "function": {"name": "extract_intents"},
-            },
-        })
+        api_kwargs = get_model_kwargs(
+            model_config.name, model_config=model_config
+        )
+        api_kwargs.update(
+            {
+                "messages": messages,
+                "tools": [EXTRACT_INTENTS_TOOL],
+                "tool_choice": {
+                    "type": "function",
+                    "function": {"name": "extract_intents"},
+                },
+            }
+        )
 
         trace = {
             "phase": "intent_extraction",

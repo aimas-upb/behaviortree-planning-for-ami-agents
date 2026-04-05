@@ -4,8 +4,8 @@ No state gathering strategy.
 Returns empty state - current behavior where state is read at execution time.
 """
 
-from typing import Optional
 import logging
+from typing import Optional
 
 from ..base import CapabilityModel, EnvironmentState
 

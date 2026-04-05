@@ -19,6 +19,7 @@ from typing import Optional
 @dataclass
 class PromptStrategy:
     """A complete prompting strategy configuration."""
+
     name: str
     system_prompt: str
     tool_description: str

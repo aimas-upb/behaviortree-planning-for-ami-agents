@@ -7,15 +7,15 @@ to interact with the environment to achieve the goal.
 
 import json
 import logging
-from typing import Optional
 from dataclasses import dataclass, field
+from typing import Optional
 
-from openai import OpenAI
 import httpx
+from openai import OpenAI
 
-from .base import ExecutionResult
-from ..discovery.base import CapabilityModel, EnvironmentState
 from ..config import ModelConfig, get_model_kwargs
+from ..discovery.base import CapabilityModel, EnvironmentState
+from .base import ExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +174,7 @@ CORRECT: execute_action(turn_on_url, {{}})  // No parameters needed for toggle a
 @dataclass
 class DirectAgentResult:
     """Result of direct agent execution."""
+
     success: bool
     actions_executed: list[dict] = field(default_factory=list)
     properties_read: list[dict] = field(default_factory=list)
@@ -254,12 +255,16 @@ class DirectAgentExecutor:
         for iteration in range(self.max_iterations):
             result.iterations = iteration + 1
 
-            api_kwargs = get_model_kwargs(self.model, model_config=self.model_config)
-            api_kwargs.update({
-                "messages": messages,
-                "tools": DIRECT_AGENT_TOOLS,
-                "tool_choice": "auto",
-            })
+            api_kwargs = get_model_kwargs(
+                self.model, model_config=self.model_config
+            )
+            api_kwargs.update(
+                {
+                    "messages": messages,
+                    "tools": DIRECT_AGENT_TOOLS,
+                    "tool_choice": "auto",
+                }
+            )
             response = self.client.chat.completions.create(**api_kwargs)
 
             message = response.choices[0].message
@@ -267,10 +272,18 @@ class DirectAgentExecutor:
 
             if not message.tool_calls:
                 # No more tool calls - check if done was called
-                logger.info(f"Agent finished after {iteration + 1} iterations (no tool call)")
+                logger.info(
+                    f"Agent finished after {iteration + 1} iterations (no tool call)"
+                )
                 if not result.summary:
-                    result.summary = message.content or "Completed without explicit done signal"
-                    result.success = len(result.actions_executed) > 0 or len(result.impossible_reported) > 0
+                    result.summary = (
+                        message.content
+                        or "Completed without explicit done signal"
+                    )
+                    result.success = (
+                        len(result.actions_executed) > 0
+                        or len(result.impossible_reported) > 0
+                    )
                 break
 
             for tool_call in message.tool_calls:
@@ -290,15 +303,20 @@ class DirectAgentExecutor:
                 if fn_name == "done":
                     result.summary = fn_args.get("summary", "Completed")
                     result.success = True
-                    trace_entry["result"] = {"status": "completed", "summary": result.summary}
+                    trace_entry["result"] = {
+                        "status": "completed",
+                        "summary": result.summary,
+                    }
                     result.trace.append(trace_entry)
                     logger.info(f"Agent completed: {result.summary}")
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps({"status": "completed"}),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps({"status": "completed"}),
+                        }
+                    )
                     return result
 
                 elif fn_name == "read_property":
@@ -308,23 +326,30 @@ class DirectAgentExecutor:
                         if resp.status_code == 200:
                             value = resp.json()
                             tool_result = {"success": True, "value": value}
-                            result.properties_read.append({
-                                "url": prop_url,
-                                "value": value,
-                            })
+                            result.properties_read.append(
+                                {
+                                    "url": prop_url,
+                                    "value": value,
+                                }
+                            )
                         else:
-                            tool_result = {"success": False, "error": f"HTTP {resp.status_code}"}
+                            tool_result = {
+                                "success": False,
+                                "error": f"HTTP {resp.status_code}",
+                            }
                     except Exception as e:
                         tool_result = {"success": False, "error": str(e)}
 
                     trace_entry["result"] = tool_result
                     result.trace.append(trace_entry)
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(tool_result),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(tool_result),
+                        }
+                    )
 
                 elif fn_name == "execute_action":
                     action_url = fn_args.get("action_url", "")
@@ -333,17 +358,21 @@ class DirectAgentExecutor:
 
                     try:
                         if params:
-                            resp = self.http_client.post(action_url, json=params)
+                            resp = self.http_client.post(
+                                action_url, json=params
+                            )
                         else:
                             resp = self.http_client.post(action_url)
 
                         if resp.status_code == 200:
                             tool_result = {"success": True}
-                            result.actions_executed.append({
-                                "url": action_url,
-                                "params": params,
-                                "reason": reason,
-                            })
+                            result.actions_executed.append(
+                                {
+                                    "url": action_url,
+                                    "params": params,
+                                    "reason": reason,
+                                }
+                            )
                             logger.info(f"Executed action: {action_url}")
                         elif resp.status_code == 400:
                             # Bad request - likely wrong parameters
@@ -355,24 +384,33 @@ class DirectAgentExecutor:
                             tool_result = {
                                 "success": False,
                                 "error": "HTTP 400 Bad Request - Check your parameters!",
-                                "hint": "The action requires specific parameters. Check the schema and ensure you're passing the correct parameter names and values. For set_X actions, the parameter is usually named X (e.g., set_brightness needs {\"brightness\": value}, set_interval needs {\"interval\": value}).",
+                                "hint": 'The action requires specific parameters. Check the schema and ensure you\'re passing the correct parameter names and values. For set_X actions, the parameter is usually named X (e.g., set_brightness needs {"brightness": value}, set_interval needs {"interval": value}).',
                                 "params_sent": params,
-                                "response": error_body[:200] if error_body else None,
+                                "response": (
+                                    error_body[:200] if error_body else None
+                                ),
                             }
-                            logger.warning(f"Action {action_url} failed with 400. Params sent: {params}")
+                            logger.warning(
+                                f"Action {action_url} failed with 400. Params sent: {params}"
+                            )
                         else:
-                            tool_result = {"success": False, "error": f"HTTP {resp.status_code}"}
+                            tool_result = {
+                                "success": False,
+                                "error": f"HTTP {resp.status_code}",
+                            }
                     except Exception as e:
                         tool_result = {"success": False, "error": str(e)}
 
                     trace_entry["result"] = tool_result
                     result.trace.append(trace_entry)
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(tool_result),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(tool_result),
+                        }
+                    )
 
                 elif fn_name == "report_impossible":
                     subgoal = fn_args.get("subgoal", "")
@@ -383,11 +421,13 @@ class DirectAgentExecutor:
                     result.trace.append(trace_entry)
                     logger.info(f"Reported impossible: {subgoal}")
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(tool_result),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(tool_result),
+                        }
+                    )
 
         if not result.success and result.iterations >= self.max_iterations:
             result.error = f"Max iterations ({self.max_iterations}) reached"
@@ -413,18 +453,39 @@ class DirectAgentExecutor:
                                 params = action.schema.get("properties", {})
                                 required = action.schema.get("required", [])
                                 if params:
-                                    for param_name, param_spec in params.items():
-                                        param_type = param_spec.get("type", "any")
-                                        req_marker = " (REQUIRED)" if param_name in required else ""
+                                    for (
+                                        param_name,
+                                        param_spec,
+                                    ) in params.items():
+                                        param_type = param_spec.get(
+                                            "type", "any"
+                                        )
+                                        req_marker = (
+                                            " (REQUIRED)"
+                                            if param_name in required
+                                            else ""
+                                        )
                                         constraints = []
                                         if "minimum" in param_spec:
-                                            constraints.append(f"min={param_spec['minimum']}")
+                                            constraints.append(
+                                                f"min={param_spec['minimum']}"
+                                            )
                                         if "maximum" in param_spec:
-                                            constraints.append(f"max={param_spec['maximum']}")
+                                            constraints.append(
+                                                f"max={param_spec['maximum']}"
+                                            )
                                         if "enum" in param_spec:
-                                            constraints.append(f"values={param_spec['enum']}")
-                                        constraint_str = f" [{', '.join(constraints)}]" if constraints else ""
-                                        lines.append(f"      Parameter: {param_name} ({param_type}){constraint_str}{req_marker}")
+                                            constraints.append(
+                                                f"values={param_spec['enum']}"
+                                            )
+                                        constraint_str = (
+                                            f" [{', '.join(constraints)}]"
+                                            if constraints
+                                            else ""
+                                        )
+                                        lines.append(
+                                            f"      Parameter: {param_name} ({param_type}){constraint_str}{req_marker}"
+                                        )
                                 else:
                                     lines.append("      No parameters required")
                             else:
@@ -437,7 +498,9 @@ class DirectAgentExecutor:
                                 prop_type = prop.schema.get("type", "")
                                 if prop_type:
                                     type_info = f" (returns: {prop_type})"
-                            lines.append(f"  - {prop.name}: `{prop.uri}`{type_info}")
+                            lines.append(
+                                f"  - {prop.name}: `{prop.uri}`{type_info}"
+                            )
         return "\n".join(lines)
 
     def _format_state(self, state: EnvironmentState) -> str:

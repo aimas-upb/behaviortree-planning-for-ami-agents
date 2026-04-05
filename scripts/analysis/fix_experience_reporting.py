@@ -39,10 +39,10 @@ from pathlib import Path
 
 from scripts.common import PROJECT_ROOT
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _extract_action_urls(node: dict) -> list[str]:
     """Recursively collect action_url values from a JSON-IR tree."""
@@ -109,12 +109,12 @@ def _recompute_result(result: dict) -> dict | None:
 
     corrected_matched = sorted(expected_set & corrected_set)
     corrected_missing = sorted(expected_set - corrected_set)
-    corrected_extra   = sorted(corrected_set - expected_set)
+    corrected_extra = sorted(corrected_set - expected_set)
 
     props_matched = result.get("properties_matched", 0)
     props_checked = result.get("properties_checked", 0)
-    all_props_ok  = (props_matched == props_checked)
-    exec_ok       = result.get("execution_success", False)
+    all_props_ok = props_matched == props_checked
+    exec_ok = result.get("execution_success", False)
     is_error_only = result.get("is_error_input_only", False)
 
     # Replicate the same success-determination logic as the evaluator
@@ -149,19 +149,20 @@ def _recompute_result(result: dict) -> dict | None:
         # Even if actions changed internally, verdict is the same — still update
         # the action fields for consistency, but only if they actually differ.
         if (
-            sorted(result.get("actions_in_plan") or []) == sorted(corrected_actions)
+            sorted(result.get("actions_in_plan") or [])
+            == sorted(corrected_actions)
             and sorted(result.get("matched_actions") or []) == corrected_matched
             and sorted(result.get("missing_actions") or []) == corrected_missing
-            and sorted(result.get("extra_actions")   or []) == corrected_extra
+            and sorted(result.get("extra_actions") or []) == corrected_extra
         ):
             return None  # nothing changed at all
 
     fixed = copy.deepcopy(result)
-    fixed["actions_in_plan"]  = corrected_actions
-    fixed["matched_actions"]  = corrected_matched
-    fixed["missing_actions"]  = corrected_missing
-    fixed["extra_actions"]    = corrected_extra
-    fixed["success"]          = new_success
+    fixed["actions_in_plan"] = corrected_actions
+    fixed["matched_actions"] = corrected_matched
+    fixed["missing_actions"] = corrected_missing
+    fixed["extra_actions"] = corrected_extra
+    fixed["success"] = new_success
     fixed["handled_correctly"] = new_handled
     if new_failure_type is None:
         fixed.pop("failure_type", None)
@@ -211,15 +212,17 @@ def _recompute_metrics(results: list[dict]) -> dict:
         if r.get("plan_generated"):
             m["plans_generated"] += 1
 
-        m["total_expected_actions"]  += len(r.get("expected_actions")  or [])
-        m["total_matched_actions"]   += len(r.get("matched_actions")   or [])
-        m["total_missing_actions"]   += len(r.get("missing_actions")   or [])
-        m["total_extra_actions"]     += len(r.get("extra_actions")     or [])
+        m["total_expected_actions"] += len(r.get("expected_actions") or [])
+        m["total_matched_actions"] += len(r.get("matched_actions") or [])
+        m["total_missing_actions"] += len(r.get("missing_actions") or [])
+        m["total_extra_actions"] += len(r.get("extra_actions") or [])
         m["total_properties_checked"] += r.get("properties_checked", 0)
         m["total_properties_matched"] += r.get("properties_matched", 0)
         m["total_expected_impossible"] += r.get("expected_impossible", 0)
-        m["total_detected_impossible"] += len(r.get("detected_impossible") or [])
-        m["total_duration"]           += r.get("duration", 0.0)
+        m["total_detected_impossible"] += len(
+            r.get("detected_impossible") or []
+        )
+        m["total_duration"] += r.get("duration", 0.0)
 
         ft = r.get("failure_type")
         if ft and ft in m["failures_by_type"]:
@@ -227,22 +230,23 @@ def _recompute_metrics(results: list[dict]) -> dict:
 
     # Computed rates (mirror EvaluationMetrics properties)
     total = m["total_tests"] or 1
-    m["success_rate"]              = m["successful_tests"] / total
-    m["quantifiable_rate"]         = m["quantifiable_tests"] / total
+    m["success_rate"] = m["successful_tests"] / total
+    m["quantifiable_rate"] = m["quantifiable_tests"] / total
     m["success_or_quantifiable_rate"] = (
         m["successful_tests"] + m["quantifiable_tests"]
     ) / total
 
-    ma  = m["total_matched_actions"]
-    ex  = m["total_extra_actions"]
+    ma = m["total_matched_actions"]
+    ex = m["total_extra_actions"]
     exp = m["total_expected_actions"]
-    precision = ma / (ma + ex)  if (ma + ex) > 0 else 0.0
-    recall    = ma / exp         if exp > 0 else 0.0
+    precision = ma / (ma + ex) if (ma + ex) > 0 else 0.0
+    recall = ma / exp if exp > 0 else 0.0
     m["action_precision"] = precision
-    m["action_recall"]    = recall
+    m["action_recall"] = recall
     m["action_f1"] = (
         2 * precision * recall / (precision + recall)
-        if (precision + recall) > 0 else 0.0
+        if (precision + recall) > 0
+        else 0.0
     )
 
     pc = m["total_properties_checked"]
@@ -262,6 +266,7 @@ def _recompute_metrics(results: list[dict]) -> dict:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def _regenerate_html_report(results_dir: Path, test_data: str) -> None:
     """Regenerate eval_report.html via the canonical viewer module."""
     report_file = results_dir / "eval_report.html"
@@ -272,7 +277,8 @@ def _regenerate_html_report(results_dir: Path, test_data: str) -> None:
                 sys.executable,
                 "-m",
                 "viewers.eval_viewer",
-                "--test-data", test_data,
+                "--test-data",
+                test_data,
                 str(results_dir),
             ],
             check=True,
@@ -280,20 +286,32 @@ def _regenerate_html_report(results_dir: Path, test_data: str) -> None:
         )
         print(f"  Report updated: {report_file}")
     except subprocess.CalledProcessError as e:
-        print(f"  WARNING: viewers.eval_viewer failed (exit {e.returncode}); report not updated")
+        print(
+            f"  WARNING: viewers.eval_viewer failed (exit {e.returncode}); report not updated"
+        )
 
 
-def fix_results_dir(results_dir: Path, dry_run: bool = False, test_data: str = "data/homebench/converted/test_data.json") -> None:
+def fix_results_dir(
+    results_dir: Path,
+    dry_run: bool = False,
+    test_data: str = "data/homebench/converted/test_data.json",
+) -> None:
     # Exclude backup files (contain ".bak_" in the stem)
-    results_files  = sorted(f for f in results_dir.glob("results_*.json") if ".bak_" not in f.name)
-    metrics_files  = sorted(f for f in results_dir.glob("metrics_*.json") if ".bak_" not in f.name)
+    results_files = sorted(
+        f for f in results_dir.glob("results_*.json") if ".bak_" not in f.name
+    )
+    metrics_files = sorted(
+        f for f in results_dir.glob("metrics_*.json") if ".bak_" not in f.name
+    )
 
     if not results_files:
         print(f"No results_*.json found in {results_dir}")
         return
 
     for results_file in results_files:
-        print(f"\n{'[DRY-RUN] ' if dry_run else ''}Processing {results_file.name} …")
+        print(
+            f"\n{'[DRY-RUN] ' if dry_run else ''}Processing {results_file.name} …"
+        )
 
         with open(results_file) as f:
             results: list[dict] = json.load(f)
@@ -309,7 +327,8 @@ def fix_results_dir(results_dir: Path, dry_run: bool = False, test_data: str = "
                 changed_ids.append(r["test_id"])
                 corrected_results.append(fixed)
                 verdict_tag = (
-                    f"{old_s} -> {new_s}" if old_s != new_s
+                    f"{old_s} -> {new_s}"
+                    if old_s != new_s
                     else f"{old_s} (actions corrected)"
                 )
                 print(f"  CHANGED  {r['test_id']:35s}  {verdict_tag}")
@@ -358,17 +377,26 @@ def fix_results_dir(results_dir: Path, dry_run: bool = False, test_data: str = "
 
             print(f"  Metric changes:")
             for key in (
-                "successful_tests", "quantifiable_tests", "failed_tests",
-                "total_matched_actions", "total_missing_actions", "total_extra_actions",
-                "success_rate", "action_precision", "action_recall", "action_f1",
+                "successful_tests",
+                "quantifiable_tests",
+                "failed_tests",
+                "total_matched_actions",
+                "total_missing_actions",
+                "total_extra_actions",
+                "success_rate",
+                "action_precision",
+                "action_recall",
+                "action_f1",
             ):
                 old_v = old_m.get(key, "–")
                 new_v = corrected_metrics.get(key, "–")
                 if old_v != new_v:
                     if isinstance(new_v, float):
-                        print(f"    {key}: {old_v:.4f} -> {new_v:.4f}"
-                              if isinstance(old_v, float)
-                              else f"    {key}: {old_v} -> {new_v:.4f}")
+                        print(
+                            f"    {key}: {old_v:.4f} -> {new_v:.4f}"
+                            if isinstance(old_v, float)
+                            else f"    {key}: {old_v} -> {new_v:.4f}"
+                        )
                     else:
                         print(f"    {key}: {old_v} -> {new_v}")
 
@@ -398,4 +426,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    fix_results_dir(Path(args.results_dir), dry_run=args.dry_run, test_data=args.test_data)
+    fix_results_dir(
+        Path(args.results_dir), dry_run=args.dry_run, test_data=args.test_data
+    )
