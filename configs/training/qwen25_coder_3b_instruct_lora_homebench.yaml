@@ -1,0 +1,65 @@
+model:
+  name_or_path: Qwen/Qwen2.5-Coder-3B-Instruct
+
+data:
+  train_file: data/homebench/benchmarks/modify_codegen/sft/home_disjoint/conversational/planner_exact/train.jsonl
+  validation_file: data/homebench/benchmarks/modify_codegen/sft/home_disjoint/conversational/planner_exact/validation.jsonl
+  test_file: data/homebench/benchmarks/modify_codegen/sft/home_disjoint/conversational/planner_exact/test.jsonl
+
+training:
+  output_dir: outputs/sft/qwen25-coder-3b-instruct-lora-homebench
+  logging_dir: outputs/sft/qwen25-coder-3b-instruct-lora-homebench/tensorboard
+  run_name: qwen25-coder-3b-instruct-lora-homebench
+  seed: 42
+  num_train_epochs: 3.0
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+
+  gradient_accumulation_steps: 32
+  learning_rate: 1.0e-4
+  weight_decay: 0.0
+  warmup_ratio: 0.03
+  lr_scheduler_type: cosine
+  max_seq_length: 3072
+  # Keep packing off until a supported flash-attention backend is configured.
+  packing: false
+  padding_free: false
+  # Kept off by default because we do not assume Qwen2.5's chat template exposes
+  # the assistant token mask required by TRL for assistant-only loss.
+  assistant_only_loss: false
+  gradient_checkpointing: true
+  gradient_checkpointing_kwargs:
+    use_reentrant: false
+  bf16: true
+  fp16: false
+  tf32: true
+  logging_steps: 10
+  
+  eval_steps: 250
+  save_steps: 250
+  save_total_limit: 2
+  metric_for_best_model: eval_loss
+  greater_is_better: false
+  max_grad_norm: 1.0
+  dataloader_num_workers: 4
+  dataset_num_proc: 4
+  report_to:
+    - tensorboard
+    - wandb
+  optim: adamw_torch
+  save_safetensors: true
+  ddp_find_unused_parameters: false
+
+lora:
+  r: 64
+  alpha: 128
+  dropout: 0.05
+  target_modules: all-linear
+  bias: none
+  use_rslora: true
+  modules_to_save: []
+
+runtime:
+  resume_from_checkpoint: null
+  # FEP runs pre-stage the model into the HF cache, so the training job can stay offline.
+  local_files_only: true

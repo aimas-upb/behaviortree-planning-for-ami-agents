@@ -1,0 +1,16 @@
+Bootstrap: docker
+From: pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
+
+%files
+    docker/fep-qwen-sft-requirements.txt /tmp/fep-qwen-sft-requirements.txt
+
+%post
+    python -m pip install --upgrade pip
+    python -m pip install --no-cache-dir -r /tmp/fep-qwen-sft-requirements.txt
+
+%environment
+    export HF_HOME=/root/.cache/huggingface
+    export TRANSFORMERS_CACHE=/root/.cache/huggingface/transformers
+    export TOKENIZERS_PARALLELISM=false
+    export WANDB_DIR=/tmp/wandb
+    export PYTHONUNBUFFERED=1
