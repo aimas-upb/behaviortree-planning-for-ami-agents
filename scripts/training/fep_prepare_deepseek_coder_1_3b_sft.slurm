@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=qwen25-3b-sft-prepare
+#SBATCH --job-name=deepseek-coder-1.3b-sft-prepare
 #SBATCH -A student
 #SBATCH --partition=xl
 #SBATCH --nodes=1
@@ -14,8 +14,10 @@ set -euo pipefail
 
 export PROJECT_DIR="$HOME/behaviortree-planning-for-ami-agents"
 export IMAGE_DIR="$HOME/images"
-export IMAGE_PATH="$IMAGE_DIR/qwen25-coder-sft.sif"
-export VENV_DIR="$HOME/.venvs/qwen25-coder-sft"
+# Reuse the shared SFT image and venv built by fep_prepare_qwen25_coder_sft.slurm
+# (same Python/CUDA/transformers/trl stack); all training jobs are compatible.
+export IMAGE_PATH="${IMAGE_PATH:-$IMAGE_DIR/qwen25-coder-sft.sif}"
+export VENV_DIR="${VENV_DIR:-$HOME/.venvs/qwen25-coder-sft}"
 export HF_HOME="$HOME/.cache/huggingface"
 export TRANSFORMERS_CACHE="$HF_HOME/transformers"
 export APPTAINER_CACHEDIR="$HOME/.cache/apptainer"
@@ -46,10 +48,16 @@ apptainer exec \
   "$IMAGE_PATH" \
   bash -lc '
     set -euo pipefail
-    python -m venv --system-site-packages "$VENV_DIR"
-    source "$VENV_DIR/bin/activate"
-    python -m pip install --upgrade pip setuptools wheel
-    python -m pip install --no-cache-dir -r "$PROJECT_DIR/docker/fep-qwen-sft-requirements.txt"
+    if [ ! -f "$VENV_DIR/bin/activate" ]; then
+      echo "[prepare] Creating venv at $VENV_DIR"
+      python -m venv --system-site-packages "$VENV_DIR"
+      source "$VENV_DIR/bin/activate"
+      python -m pip install --upgrade pip setuptools wheel
+      python -m pip install --no-cache-dir -r "$PROJECT_DIR/docker/fep-qwen-sft-requirements.txt"
+    else
+      echo "[prepare] Reusing existing venv at $VENV_DIR"
+      source "$VENV_DIR/bin/activate"
+    fi
     python -c "import dotenv, httpx, openai, pydantic, py_trees, rdflib, requests, tqdm; import accelerate, datasets, fastapi, peft, transformers, trl, uvicorn, yaml"
-    python -c "import os; from huggingface_hub import snapshot_download; snapshot_download(\"Qwen/Qwen2.5-Coder-3B-Instruct\", token=os.environ.get(\"HF_TOKEN\"))"
+    python -c "import os; from huggingface_hub import snapshot_download; snapshot_download(\"deepseek-ai/deepseek-coder-1.3b-instruct\", token=os.environ.get(\"HF_TOKEN\"))"
   '

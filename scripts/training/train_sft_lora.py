@@ -20,8 +20,13 @@ from typing import Any
 import torch
 import yaml
 from datasets import Dataset, DatasetDict, load_dataset
-from peft import LoraConfig, TaskType
-from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
+from peft import LoraConfig, PeftModel, TaskType
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    PreTrainedTokenizerFast,
+    set_seed,
+)
 from trl import SFTConfig, SFTTrainer
 
 if __package__ in {None, ""}:
@@ -30,6 +35,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from scripts.common import resolve_repo_path
+from src.experience.qwen_local_codegen import _load_codegen_tokenizer
 
 SUPPORTED_PACKING_ATTENTION_IMPLEMENTATIONS = {
     "flash_attention_2",
@@ -84,6 +90,16 @@ def parse_args() -> argparse.Namespace:
         type=int,
         help="Optional cap on test rows, useful for smoke tests.",
     )
+    parser.add_argument(
+        "--eval-only",
+        action="store_true",
+        help=(
+            "Skip training and only run validation/test evaluation against "
+            "the adapter previously saved at <output_dir>/best_adapter. Use "
+            "this to recover metrics from a run whose post-training "
+            "evaluation crashed."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -111,7 +127,9 @@ def normalize_report_to(value: Any) -> list[str] | str | None:
     if isinstance(value, list):
         items = [str(item).strip() for item in value if str(item).strip()]
         return items or "none"
-    raise ValueError("`report_to` must be either a string or a list of strings.")
+    raise ValueError(
+        "`report_to` must be either a string or a list of strings."
+    )
 
 
 def resolve_path(value: str | Path) -> Path:
@@ -185,9 +203,59 @@ def resolve_effective_padding_free(
     )
 
 
+def apply_chat_template_config(
+    tokenizer: Any,
+    model_config: dict[str, Any],
+    pretrained_load_kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """Optionally copy a chat template onto ``tokenizer``.
+
+    Supports two YAML knobs under ``model``:
+
+    - ``chat_template``: an inline jinja string assigned verbatim.
+    - ``chat_template_source``: another HF model name; its tokenizer's
+      ``chat_template`` is loaded (honouring ``local_files_only`` / ``token``
+      from ``pretrained_load_kwargs``) and copied across.
+
+    The inline ``chat_template`` takes precedence when both are set.
+    The function is a no-op when neither is set, leaving any preexisting
+    template on ``tokenizer`` untouched.
+    """
+
+    info: dict[str, Any] = {"applied": False}
+
+    inline_template = model_config.get("chat_template")
+    if isinstance(inline_template, str) and inline_template.strip():
+        tokenizer.chat_template = inline_template
+        info.update({"applied": True, "source": "inline"})
+        return info
+
+    source = normalize_optional_string(model_config.get("chat_template_source"))
+    if not source:
+        return info
+
+    source_tokenizer = AutoTokenizer.from_pretrained(
+        source,
+        use_fast=True,
+        **pretrained_load_kwargs,
+    )
+    source_template = getattr(source_tokenizer, "chat_template", None)
+    if not source_template:
+        raise ValueError(
+            f"`model.chat_template_source` ({source!r}) does not expose a "
+            "tokenizer.chat_template; pick a tokenizer that ships one."
+        )
+    tokenizer.chat_template = source_template
+    info.update({"applied": True, "source": source})
+    return info
+
+
 def apply_special_token_config(model: Any, tokenizer: Any) -> dict[str, Any]:
     updated_tokens: dict[str, Any] = {}
-    config_targets = [getattr(model, "config", None), getattr(model, "generation_config", None)]
+    config_targets = [
+        getattr(model, "config", None),
+        getattr(model, "generation_config", None),
+    ]
     for token_attr in ("bos_token_id", "eos_token_id", "pad_token_id"):
         if not hasattr(tokenizer, token_attr):
             continue
@@ -219,7 +287,9 @@ def estimate_total_training_steps(trainer: SFTTrainer) -> int:
         return 0
 
     world_size = max(1, int(getattr(trainer.args, "world_size", 1)))
-    per_device_batch_size = max(1, int(trainer.args.per_device_train_batch_size))
+    per_device_batch_size = max(
+        1, int(trainer.args.per_device_train_batch_size)
+    )
     gradient_accumulation_steps = max(
         1, int(trainer.args.gradient_accumulation_steps)
     )
@@ -231,7 +301,10 @@ def estimate_total_training_steps(trainer: SFTTrainer) -> int:
         1, math.ceil(micro_batches_per_epoch / gradient_accumulation_steps)
     )
     return max(
-        1, math.ceil(float(trainer.args.num_train_epochs) * update_steps_per_epoch)
+        1,
+        math.ceil(
+            float(trainer.args.num_train_epochs) * update_steps_per_epoch
+        ),
     )
 
 
@@ -295,7 +368,9 @@ def resolve_logging_dir(
 def keep_messages_only(dataset: Dataset) -> Dataset:
     if "messages" not in dataset.column_names:
         raise ValueError("Expected a `messages` column in the SFT dataset.")
-    extra_columns = [column for column in dataset.column_names if column != "messages"]
+    extra_columns = [
+        column for column in dataset.column_names if column != "messages"
+    ]
     if extra_columns:
         return dataset.remove_columns(extra_columns)
     return dataset
@@ -308,37 +383,63 @@ def maybe_select(dataset: Dataset, max_samples: int | None) -> Dataset:
     return dataset.select(range(limit))
 
 
-def get_trainer_processing_class(trainer: SFTTrainer) -> Any:
-    processing_class = getattr(trainer, "processing_class", None)
-    if processing_class is None:
-        processing_class = getattr(trainer, "tokenizer", None)
-    if processing_class is None:
-        raise RuntimeError("Could not recover the trainer processing class.")
-    return processing_class
+def tokenize_sft_example_for_eval(
+    example: dict[str, Any],
+    *,
+    tokenizer: Any,
+    max_length: int,
+) -> dict[str, Any]:
+    """Tokenize a single SFT conversation for evaluation.
+
+    This mirrors what TRL's :meth:`SFTTrainer._prepare_dataset` produces for an
+    eval split (``input_ids`` / ``attention_mask`` / ``labels`` with ``labels``
+    equal to ``input_ids`` for full-conversation language modelling), but lives
+    at module level so :meth:`Dataset.map` workers can pickle the closure
+    without accidentally dragging in the trainer (and its already on-GPU
+    model). Calling ``trainer._prepare_dataset`` after the trainer has been
+    constructed otherwise hits ``Cannot re-initialize CUDA in forked
+    subprocess`` because HF Trainer's ``__init__`` already moves the model to
+    GPU via ``_move_model_to_device``.
+    """
+
+    rendered = tokenizer.apply_chat_template(
+        example["messages"],
+        tokenize=False,
+        add_generation_prompt=False,
+    )
+    encoded = tokenizer(
+        rendered,
+        max_length=max_length,
+        truncation=True,
+        padding=False,
+        add_special_tokens=False,
+        return_attention_mask=True,
+    )
+    input_ids = list(encoded["input_ids"])
+    attention_mask = list(encoded["attention_mask"])
+    return {
+        "input_ids": input_ids,
+        "attention_mask": attention_mask,
+        "labels": list(input_ids),
+    }
 
 
-def prepare_additional_eval_dataset(
-    trainer: SFTTrainer, dataset: Dataset, dataset_name: str
+def tokenize_eval_dataset(
+    dataset: Dataset,
+    *,
+    tokenizer: Any,
+    max_length: int,
+    num_proc: int,
+    desc: str,
 ) -> Dataset:
     if "input_ids" in dataset.column_names:
         return dataset
-
-    if not hasattr(trainer, "_prepare_dataset"):
-        raise RuntimeError(
-            "This TRL version does not expose SFTTrainer._prepare_dataset, so "
-            f"the raw `{dataset_name}` dataset cannot be auto-prepared here."
-        )
-
-    eval_packing = getattr(trainer.args, "eval_packing", None)
-    packing = trainer.args.packing if eval_packing is None else eval_packing
-
-    return trainer._prepare_dataset(
-        dataset=dataset,
-        processing_class=get_trainer_processing_class(trainer),
-        args=trainer.args,
-        packing=packing,
-        formatting_func=None,
-        dataset_name=dataset_name,
+    return dataset.map(
+        tokenize_sft_example_for_eval,
+        fn_kwargs={"tokenizer": tokenizer, "max_length": max_length},
+        remove_columns=list(dataset.column_names),
+        num_proc=max(1, int(num_proc)),
+        desc=desc,
     )
 
 
@@ -421,14 +522,18 @@ def main() -> int:
         test_file = resolve_path(str(data_config["test_file"]))
 
     output_dir_overridden = args.output_dir is not None
-    output_dir = resolve_path(str(args.output_dir or training_config["output_dir"]))
+    output_dir = resolve_path(
+        str(args.output_dir or training_config["output_dir"])
+    )
     logging_dir = resolve_logging_dir(
         training_config=training_config,
         output_dir=output_dir,
         output_dir_overridden=output_dir_overridden,
         logging_dir_override=args.logging_dir,
     )
-    run_name = str(args.run_name or training_config.get("run_name") or output_dir.name)
+    run_name = str(
+        args.run_name or training_config.get("run_name") or output_dir.name
+    )
     report_to = normalize_report_to(args.report_to)
     if report_to is None:
         report_to = normalize_report_to(
@@ -440,6 +545,13 @@ def main() -> int:
 
     output_dir.mkdir(parents=True, exist_ok=True)
     logging_dir.mkdir(parents=True, exist_ok=True)
+
+    best_adapter_dir = output_dir / "best_adapter"
+    if args.eval_only and not best_adapter_dir.exists():
+        raise FileNotFoundError(
+            f"--eval-only requested but no adapter directory was found at "
+            f"{best_adapter_dir}. Run training first or drop --eval-only."
+        )
 
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
     os.environ["TENSORBOARD_LOGGING_DIR"] = str(logging_dir)
@@ -481,18 +593,33 @@ def main() -> int:
     if hf_token:
         pretrained_load_kwargs["token"] = hf_token
 
-    tokenizer = AutoTokenizer.from_pretrained(
+    tokenizer = _load_codegen_tokenizer(
+        AutoTokenizer,
+        PreTrainedTokenizerFast,
         model_name_or_path,
-        use_fast=True,
-        padding_side="right",
-        **pretrained_load_kwargs,
+        local_files_only,
     )
+    tokenizer.padding_side = "right"
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     if tokenizer.pad_token_id is None and tokenizer.eos_token_id is not None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    use_bf16 = bool(training_config.get("bf16", True)) and torch.cuda.is_bf16_supported()
+    chat_template_info = apply_chat_template_config(
+        tokenizer=tokenizer,
+        model_config=model_config,
+        pretrained_load_kwargs=pretrained_load_kwargs,
+    )
+    if chat_template_info.get("applied"):
+        print(
+            f"[config] Applied chat_template from {chat_template_info['source']!r}"
+            f" onto tokenizer for {model_name_or_path}."
+        )
+
+    use_bf16 = (
+        bool(training_config.get("bf16", True))
+        and torch.cuda.is_bf16_supported()
+    )
     use_fp16 = False
     if not use_bf16:
         use_fp16 = bool(training_config.get("fp16", True))
@@ -528,16 +655,27 @@ def main() -> int:
     if isinstance(modules_to_save, list):
         modules_to_save = [str(item) for item in modules_to_save]
 
-    peft_config = LoraConfig(
-        task_type=TaskType.CAUSAL_LM,
-        r=int(lora_config.get("r", 64)),
-        lora_alpha=int(lora_config.get("alpha", 128)),
-        lora_dropout=float(lora_config.get("dropout", 0.05)),
-        target_modules=target_modules,
-        bias=str(lora_config.get("bias", "none")),
-        use_rslora=bool(lora_config.get("use_rslora", True)),
-        modules_to_save=modules_to_save,
-    )
+    if args.eval_only:
+        print(
+            f"[eval-only] Attaching saved LoRA adapter from {best_adapter_dir}."
+        )
+        model = PeftModel.from_pretrained(
+            model,
+            str(best_adapter_dir),
+            is_trainable=False,
+        )
+        peft_config = None
+    else:
+        peft_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            r=int(lora_config.get("r", 64)),
+            lora_alpha=int(lora_config.get("alpha", 128)),
+            lora_dropout=float(lora_config.get("dropout", 0.05)),
+            target_modules=target_modules,
+            bias=str(lora_config.get("bias", "none")),
+            use_rslora=bool(lora_config.get("use_rslora", True)),
+            modules_to_save=modules_to_save,
+        )
 
     packing, packing_note = resolve_effective_packing(
         training_config, attn_implementation
@@ -587,9 +725,7 @@ def main() -> int:
         "max_grad_norm": float(training_config.get("max_grad_norm", 1.0)),
         "remove_unused_columns": False,
         "seed": int(training_config.get("seed", 42)),
-        "save_safetensors": bool(
-            training_config.get("save_safetensors", True)
-        ),
+        "save_safetensors": bool(training_config.get("save_safetensors", True)),
         "dataloader_num_workers": int(
             training_config.get("dataloader_num_workers", 4)
         ),
@@ -619,7 +755,9 @@ def main() -> int:
         if supports_argument(SFTConfig, "max_length")
         else "max_seq_length"
     )
-    sft_kwargs[max_length_key] = int(training_config.get("max_seq_length", 3072))
+    sft_kwargs[max_length_key] = int(
+        training_config.get("max_seq_length", 3072)
+    )
 
     if supports_argument(SFTConfig, "gradient_checkpointing_kwargs"):
         gradient_checkpointing_kwargs = training_config.get(
@@ -664,6 +802,22 @@ def main() -> int:
     else:
         trainer_kwargs["tokenizer"] = tokenizer
 
+    # Tokenize the test split BEFORE constructing the SFTTrainer. HF Trainer's
+    # __init__ calls _move_model_to_device, so any later call into TRL's
+    # _prepare_dataset captures a closure that pickles GPU tensors and crashes
+    # multiprocess workers with "Cannot re-initialize CUDA in forked
+    # subprocess". Doing this here keeps the closure (top-level fn + tokenizer
+    # + ints) entirely CPU/picklable.
+    prepared_test_dataset: Dataset | None = None
+    if "test" in dataset:
+        prepared_test_dataset = tokenize_eval_dataset(
+            dataset["test"],
+            tokenizer=tokenizer,
+            max_length=int(training_config.get("max_seq_length", 3072)),
+            num_proc=int(training_config.get("dataset_num_proc", 4)),
+            desc="Tokenizing test dataset",
+        )
+
     trainer = SFTTrainer(**trainer_kwargs)
     parameter_stats = get_parameter_stats(trainer.model)
     effective_warmup_steps = resolve_effective_warmup_steps(
@@ -680,6 +834,7 @@ def main() -> int:
                 "name_or_path": model_name_or_path,
                 "attn_implementation": attn_implementation,
                 "aligned_special_tokens": aligned_special_tokens,
+                "chat_template": chat_template_info,
             },
             "data": {
                 "train_file": train_file,
@@ -687,7 +842,9 @@ def main() -> int:
                 "test_file": test_file,
                 "train_samples": len(dataset["train"]),
                 "validation_samples": len(dataset["validation"]),
-                "test_samples": len(dataset["test"]) if "test" in dataset else 0,
+                "test_samples": (
+                    len(dataset["test"]) if "test" in dataset else 0
+                ),
             },
             "training": {
                 **training_config,
@@ -716,16 +873,40 @@ def main() -> int:
             },
             "parameter_stats": parameter_stats,
         }
-        save_json(output_dir / "resolved_config.json", resolved_config)
+        resolved_config_filename = (
+            "resolved_config.eval_only.json"
+            if args.eval_only
+            else "resolved_config.json"
+        )
+        save_json(output_dir / resolved_config_filename, resolved_config)
 
-    train_result = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
-    trainer.save_state()
+    if args.eval_only:
+        if trainer.is_world_process_zero():
+            print(
+                f"[eval-only] Skipping trainer.train(); reusing the adapter "
+                f"at {best_adapter_dir}."
+            )
+        train_metrics_path = output_dir / "train_results.json"
+        if train_metrics_path.exists():
+            with train_metrics_path.open("r", encoding="utf-8") as handle:
+                train_metrics = json.load(handle)
+        else:
+            train_metrics = {}
+    else:
+        train_result = trainer.train(
+            resume_from_checkpoint=resume_from_checkpoint
+        )
+        trainer.save_state()
 
-    train_metrics = add_perplexity(
-        dict(train_result.metrics), "train_loss", "train_perplexity"
-    )
-    trainer.log_metrics("train", train_metrics)
-    trainer.save_metrics("train", train_metrics)
+        trainer.save_model(best_adapter_dir)
+        if trainer.is_world_process_zero():
+            tokenizer.save_pretrained(best_adapter_dir)
+
+        train_metrics = add_perplexity(
+            dict(train_result.metrics), "train_loss", "train_perplexity"
+        )
+        trainer.log_metrics("train", train_metrics)
+        trainer.save_metrics("train", train_metrics)
 
     validation_metrics = trainer.evaluate(metric_key_prefix="validation")
     validation_metrics = add_perplexity(
@@ -736,11 +917,34 @@ def main() -> int:
     trainer.log_metrics("validation", validation_metrics)
     trainer.save_metrics("validation", validation_metrics)
 
+    summary: dict[str, Any] = {}
+    summary_path = output_dir / "run_summary.json"
+    if args.eval_only and summary_path.exists():
+        with summary_path.open("r", encoding="utf-8") as handle:
+            summary = json.load(handle)
+    summary.update(
+        {
+            "model_name_or_path": summary.get(
+                "model_name_or_path", model_name_or_path
+            ),
+            "best_metric": summary.get(
+                "best_metric", trainer.state.best_metric
+            ),
+            "best_model_checkpoint": summary.get(
+                "best_model_checkpoint", trainer.state.best_model_checkpoint
+            ),
+            "best_adapter_dir": best_adapter_dir,
+            "parameter_stats": summary.get("parameter_stats", parameter_stats),
+            "train_metrics": train_metrics or summary.get("train_metrics", {}),
+            "validation_metrics": validation_metrics,
+            "test_metrics": summary.get("test_metrics", {}),
+        }
+    )
+    if trainer.is_world_process_zero():
+        save_json(summary_path, summary)
+
     test_metrics: dict[str, Any] = {}
-    if "test" in dataset:
-        prepared_test_dataset = prepare_additional_eval_dataset(
-            trainer, dataset["test"], "test"
-        )
+    if prepared_test_dataset is not None:
         test_metrics = trainer.evaluate(
             eval_dataset=prepared_test_dataset,
             metric_key_prefix="test",
@@ -750,21 +954,9 @@ def main() -> int:
         )
         trainer.log_metrics("test", test_metrics)
         trainer.save_metrics("test", test_metrics)
+        summary["test_metrics"] = test_metrics
 
-    best_adapter_dir = output_dir / "best_adapter"
-    trainer.save_model(best_adapter_dir)
     if trainer.is_world_process_zero():
-        tokenizer.save_pretrained(best_adapter_dir)
-        summary = {
-            "model_name_or_path": model_name_or_path,
-            "best_metric": trainer.state.best_metric,
-            "best_model_checkpoint": trainer.state.best_model_checkpoint,
-            "best_adapter_dir": best_adapter_dir,
-            "parameter_stats": parameter_stats,
-            "train_metrics": train_metrics,
-            "validation_metrics": validation_metrics,
-            "test_metrics": test_metrics,
-        }
         save_json(output_dir / "run_summary.json", summary)
 
     return 0

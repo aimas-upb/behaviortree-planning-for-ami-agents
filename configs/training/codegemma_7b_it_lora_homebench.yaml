@@ -1,0 +1,74 @@
+model:
+  name_or_path: google/codegemma-7b-it
+  # CodeGemma's stock chat template hard-fails on a leading `system` message
+  # (`{% if messages[0]['role'] == 'system' %}{{ raise_exception('System role
+  # not supported') }}{% endif %}`), but the HomeBench SFT dataset prefixes
+  # every conversation with a system instruction. Override the template with a
+  # Gemma-faithful variant that merges the system message into the first user
+  # turn (separated by a blank line) and otherwise preserves the original
+  # alternation rules and `<start_of_turn>` / `<end_of_turn>` markup.
+  chat_template: "{{ bos_token }}{%- if messages[0]['role'] == 'system' -%}{%- set system_message = messages[0]['content'] | trim -%}{%- set loop_messages = messages[1:] -%}{%- else -%}{%- set system_message = '' -%}{%- set loop_messages = messages -%}{%- endif -%}{%- for message in loop_messages -%}{%- if (message['role'] == 'user') != (loop.index0 % 2 == 0) -%}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{%- endif -%}{%- if message['role'] == 'assistant' -%}{%- set role = 'model' -%}{%- else -%}{%- set role = message['role'] -%}{%- endif -%}{%- if loop.index0 == 0 and system_message -%}{{ '<start_of_turn>' + role + '\n' + system_message + '\n\n' + message['content'] | trim + '<end_of_turn>\n' }}{%- else -%}{{ '<start_of_turn>' + role + '\n' + message['content'] | trim + '<end_of_turn>\n' }}{%- endif -%}{%- endfor -%}{%- if add_generation_prompt -%}{{ '<start_of_turn>model\n' }}{%- endif -%}"
+
+data:
+  train_file: data/homebench/benchmarks/modify_codegen/sft/home_disjoint/conversational/planner_exact/train.jsonl
+  validation_file: data/homebench/benchmarks/modify_codegen/sft/home_disjoint/conversational/planner_exact/validation.jsonl
+  test_file: data/homebench/benchmarks/modify_codegen/sft/home_disjoint/conversational/planner_exact/test.jsonl
+
+training:
+  output_dir: outputs/sft/codegemma-7b-it-lora-homebench
+  logging_dir: outputs/sft/codegemma-7b-it-lora-homebench/tensorboard
+  run_name: codegemma-7b-it-lora-homebench
+  seed: 42
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+
+  gradient_accumulation_steps: 32
+  learning_rate: 1.0e-4
+  weight_decay: 0.0
+  warmup_ratio: 0.03
+  lr_scheduler_type: cosine
+  max_seq_length: 3072
+  # Keep packing off until a supported flash-attention backend is configured.
+  packing: false
+  padding_free: false
+  # CodeGemma-7B-IT ships its own Gemma chat template, but it does not expose
+  # the assistant token mask required by TRL for assistant-only loss, so train
+  # on the full conversation here.
+  assistant_only_loss: false
+  gradient_checkpointing: true
+  gradient_checkpointing_kwargs:
+    use_reentrant: false
+  bf16: true
+  fp16: false
+  tf32: true
+  logging_steps: 10
+  
+  eval_steps: 250
+  save_steps: 250
+  save_total_limit: 2
+  metric_for_best_model: eval_loss
+  greater_is_better: false
+  max_grad_norm: 1.0
+  dataloader_num_workers: 4
+  dataset_num_proc: 4
+  report_to:
+    - tensorboard
+    - wandb
+  optim: adamw_torch
+  save_safetensors: true
+  ddp_find_unused_parameters: false
+
+lora:
+  r: 64
+  alpha: 128
+  dropout: 0.05
+  target_modules: all-linear
+  bias: none
+  use_rslora: true
+  modules_to_save: []
+
+runtime:
+  resume_from_checkpoint: null
+  # FEP runs pre-stage the model into the HF cache, so the training job can stay offline.
+  local_files_only: true

@@ -130,6 +130,10 @@ def _generate_experience_overview_html(data: dict) -> str:
 
     rows.append(("Output Format", _html_escape(output_format)))
 
+    modify_intent_count = data.get("modify_intent_count")
+    if modify_intent_count is not None:
+        rows.append(("Modify Intent Count", str(modify_intent_count)))
+
     # Experience-specific timing
     matched_time = data.get("matched_plan_time_seconds", 0)
     unmatched_time = data.get("unmatched_plan_time_seconds", 0)
@@ -144,6 +148,22 @@ def _generate_experience_overview_html(data: dict) -> str:
     )
     return _generate_html_card(
         "Experiment Overview", f"<table>{table_rows}</table>", "#4a9eff"
+    )
+
+
+def _generate_target_code_html(data: dict) -> str:
+    """Render the benchmark reference code when it is available."""
+    target_code = data.get("target_code")
+    if not isinstance(target_code, str) or not target_code.strip():
+        return ""
+
+    html = f"<pre class='code python'>{_html_escape(target_code)}</pre>"
+    return _generate_html_card(
+        "Reference Target Code",
+        html,
+        "#fb923c",
+        collapsible=True,
+        collapsed=True,
     )
 
 
@@ -1422,6 +1442,8 @@ def export_experience_html(data: dict, output_path: str):
         _generate_planning_context_html(data),
         # Reasoning
         _generate_reasoning_html(data),
+        # Benchmark reference output (if present)
+        _generate_target_code_html(data),
         # Generated plan
         _generate_experience_plan_html(data),
         # Execution

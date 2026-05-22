@@ -1,5 +1,5 @@
 model:
-  name_or_path: Qwen/Qwen2.5-Coder-3B-Instruct
+  name_or_path: deepseek-ai/deepseek-coder-1.3b-instruct
 
 data:
   train_file: data/homebench/benchmarks/modify_codegen/sft/home_disjoint/conversational/planner_exact/train.jsonl
@@ -7,9 +7,9 @@ data:
   test_file: data/homebench/benchmarks/modify_codegen/sft/home_disjoint/conversational/planner_exact/test.jsonl
 
 training:
-  output_dir: outputs/sft/qwen25-coder-3b-instruct-lora-homebench
-  logging_dir: outputs/sft/qwen25-coder-3b-instruct-lora-homebench/tensorboard
-  run_name: qwen25-coder-3b-instruct-lora-homebench
+  output_dir: outputs/sft/deepseek-coder-1.3b-instruct-lora-homebench
+  logging_dir: outputs/sft/deepseek-coder-1.3b-instruct-lora-homebench/tensorboard
+  run_name: deepseek-coder-1.3b-instruct-lora-homebench
   seed: 42
   num_train_epochs: 1
   per_device_train_batch_size: 1
@@ -24,8 +24,9 @@ training:
   # Keep packing off until a supported flash-attention backend is configured.
   packing: false
   padding_free: false
-  # Kept off by default because we do not assume Qwen2.5's chat template exposes
-  # the assistant token mask required by TRL for assistant-only loss.
+  # DeepSeek-Coder-Instruct ships its own chat template, but it does not expose
+  # the assistant token mask required by TRL for assistant-only loss, so train
+  # on the full conversation here.
   assistant_only_loss: false
   gradient_checkpointing: true
   gradient_checkpointing_kwargs:

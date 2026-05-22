@@ -1,0 +1,33 @@
+%%{init: {'flowchart': {'curve': 'linear', 'nodeSpacing': 35, 'rankSpacing': 45}, 'themeVariables': {'fontFamily': 'Helvetica, Arial, sans-serif', 'fontSize': '18px'}}}%%
+flowchart LR
+    G[User goal] --> I[Extract intents]
+    I --> C{Impossible<br/>cache hit?}
+
+    S[(Experience store<br/>impossible only intents)] -. exact intent + home .-> C
+
+    C -->|yes| X[Mark impossible]
+    C -->|no| R[SPARQL resolve]
+    R --> D{Resolvable?}
+
+    D -->|no| X
+    D -->|set| B[Build BT action<br/>deterministic]
+    D -->|modify| Q[Codegen]
+
+    B --> E[Execute BT]
+    Q --> E
+    E --> O[Result]
+    X --> O
+    X -. store confirmed impossible .-> S
+
+    classDef llm fill:#E3ECFA,stroke:#1F3A93,stroke-width:1.5px,color:#0B1F4F;
+    classDef sym fill:#E6F2E6,stroke:#2E7D32,stroke-width:1.5px,color:#143C16;
+    classDef dec fill:#F1E4FB,stroke:#6A1B9A,stroke-width:1.5px,color:#2C0A48;
+    classDef imp fill:#FADBD8,stroke:#B71C1C,stroke-width:1.5px,color:#4A0F0F;
+    classDef io fill:#ECEFF1,stroke:#37474F,stroke-width:1.2px,color:#102027;
+
+    class I,Q llm;
+    class R,B,E,S sym;
+    class C,D dec;
+    class X imp;
+    class G,O io;
+    linkStyle default stroke:#37474F,stroke-width:1.4px;

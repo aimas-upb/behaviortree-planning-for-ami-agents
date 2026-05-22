@@ -38,7 +38,11 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from scripts.common import DOCKERFILE, PROJECT_ROOT, resolve_repo_path
+
+load_dotenv()
 
 # Default configuration
 DEFAULT_WORKERS = 4
@@ -155,7 +159,10 @@ def load_test_cases(data_paths: list[str]) -> list[dict]:
                 data = json.load(f)
 
             for item in data:
-                item["source_file"] = os.path.basename(file_path)
+                item = dict(item)
+                item["source_file"] = item.get(
+                    "source_file"
+                ) or os.path.basename(file_path)
                 parts = item["id"].split("_")
                 item["home_id"] = parts[0].replace("home", "")
                 all_tests.append(item)
@@ -180,6 +187,8 @@ def create_work_queue(
                 "input": test["input"],
                 "output": test["output"],
                 "source_file": test.get("source_file", ""),
+                "modify_intent_count": test.get("modify_intent_count"),
+                "target_code": test.get("target_code"),
                 "config": config,
                 "status": "pending",
                 "worker_id": None,
@@ -233,6 +242,8 @@ def start_experience_worker(
         "--name",
         container_name,
         "--rm",
+        "--add-host",
+        "host.docker.internal:host-gateway",
         "--user",
         f"{os.getuid()}:{os.getgid()}",
         "-e",
@@ -270,6 +281,24 @@ def start_experience_worker(
     if traces_dir:
         cmd.extend(["-v", f"{traces_dir.absolute()}:/traces"])
 
+    for env_name in (
+        "MODIFY_CODEGEN_BACKEND",
+        "MODIFY_CODEGEN_BASE_URL",
+        "MODIFY_CODEGEN_BASE_MODEL_NAME_OR_PATH",
+        "MODIFY_CODEGEN_ADAPTER_PATH",
+        "MODIFY_CODEGEN_DEVICE_MAP",
+        "MODIFY_CODEGEN_TORCH_DTYPE",
+        "MODIFY_CODEGEN_LOCAL_FILES_ONLY",
+        "MODIFY_CODEGEN_PROMPT_STYLE",
+        "MODIFY_CODEGEN_TIMEOUT_SECONDS",
+        "MODIFY_CODEGEN_MAX_NEW_TOKENS",
+        "MODIFY_CODEGEN_TEMPERATURE",
+        "MODIFY_CODEGEN_TOP_P",
+    ):
+        env_value = os.environ.get(env_name)
+        if env_value:
+            cmd.extend(["-e", f"{env_name}={env_value}"])
+
     if home_config:
         cmd.extend(
             [
@@ -304,6 +333,20 @@ def start_experience_worker(
     )
 
     return process
+
+
+def _attach_trace_metadata(trace: dict, metadata_source: dict) -> dict:
+    """Copy selected per-test metadata into a reshaped trace payload."""
+    if not isinstance(trace, dict) or not isinstance(metadata_source, dict):
+        return trace
+
+    if "modify_intent_count" in metadata_source:
+        trace["modify_intent_count"] = metadata_source.get(
+            "modify_intent_count"
+        )
+    if "target_code" in metadata_source:
+        trace["target_code"] = metadata_source.get("target_code")
+    return trace
 
 
 def monitor_progress(work_dir: Path, total: int) -> dict:
@@ -403,7 +446,7 @@ def _reshape_trace_for_viewer(
         ]
         trace["goal"] = ", ".join(t for t in intent_texts if t)
 
-    return trace
+    return _attach_trace_metadata(trace, raw_result)
 
 
 def _reshape_ns_trace_for_viewer(
@@ -467,7 +510,7 @@ def _reshape_ns_trace_for_viewer(
         ]
         trace["goal"] = ", ".join(t for t in intent_texts if t)
 
-    return trace
+    return _attach_trace_metadata(trace, raw_result)
 
 
 def _reshape_standard_trace_for_viewer(
@@ -490,7 +533,7 @@ def _reshape_standard_trace_for_viewer(
         or "model" not in trace["config"]
     ):
         trace["config"] = config
-    return trace
+    return _attach_trace_metadata(trace, raw_result)
 
 
 def aggregate_results(
@@ -717,6 +760,7 @@ def aggregate_results(
                 reshaped = _reshape_standard_trace_for_viewer(
                     trace_data, test_id, experiment_config or {}
                 )
+            reshaped = _attach_trace_metadata(reshaped, r)
 
             trace_file = traces_dir / f"{test_id}.json"
             with open(trace_file, "w") as f:
@@ -809,17 +853,20 @@ def generate_html_traces(output_dir: Path, config_name: str) -> int:
     return html_count
 
 
-def generate_eval_report(output_dir: Path):
+def generate_eval_report(output_dir: Path, test_data: Path | str | None = None):
     """Generate eval_report.html using the canonical viewer module."""
     print("\nGenerating evaluation report...")
+    command = [
+        sys.executable,
+        "-m",
+        "viewers.eval_viewer",
+    ]
+    if test_data is not None:
+        command.extend(["--test-data", str(test_data)])
+    command.append(str(output_dir.absolute()))
     try:
         subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "viewers.eval_viewer",
-                str(output_dir.absolute()),
-            ],
+            command,
             check=True,
             cwd=PROJECT_ROOT,
         )

@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 if __package__ in {None, ""}:
     import sys
 
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from scripts.common import resolve_repo_path
 

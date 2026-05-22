@@ -9,7 +9,7 @@ an in-memory slot-key index for fast retrieval.
 import json
 import logging
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Optional

@@ -225,6 +225,7 @@ from src.config import (
     ExperimentConfig,
     ExperimentMeta,
     ModelConfig,
+    ModifyCodegenConfig,
     OutputConfig,
     PlanningConfig,
     ReasoningConfig,
@@ -239,6 +240,7 @@ from src.experience.matching import ExperienceMatcher
 from src.experience.neurosymbolic_runner import (
     NeuroSymbolicRunner,
     NeuroSymbolicRunResult,
+    QwenModifyCodegenNeuroSymbolicRunner,
 )
 from src.experience.runner import ExperiencePipelineRunner, ExperienceRunResult
 from src.runner import run_experiment
@@ -277,8 +279,9 @@ ABLATION_CONFIGS_EXPERIENCE = {
     },
     "neurosymbolic": {
         # Discovery and full planning are bypassed; these document the strategy.
-        # The modify branch uses "detailed_structured_modify_only" / "python_code"
-        # hardcoded inside NeuroSymbolicRunner._build_modify_tree().
+        # The default modify branch uses "detailed_structured_modify_only" /
+        # "python_code"; the Qwen subclass can override codegen via
+        # config.modify_codegen.
         "output_format": "python_code",
         "prompt_strategy": "detailed_structured_modify_only",
         "ontology": "ontologies/homeont.ttl",
@@ -305,6 +308,18 @@ def create_config(
     experience_store: str = "experience_store.json",
     similarity_threshold: float = 0.85,
     experience_enabled: bool = False,
+    modify_codegen_backend: str = "openai_tool_call",
+    modify_codegen_base_url: Optional[str] = None,
+    modify_codegen_base_model_name_or_path: Optional[str] = None,
+    modify_codegen_adapter_path: Optional[str] = None,
+    modify_codegen_device_map: str = "auto",
+    modify_codegen_torch_dtype: str = "bfloat16",
+    modify_codegen_local_files_only: bool = True,
+    modify_codegen_prompt_style: str = "planner_exact",
+    modify_codegen_timeout_seconds: float = 180.0,
+    modify_codegen_max_new_tokens: int = 2048,
+    modify_codegen_temperature: float = 0.0,
+    modify_codegen_top_p: float = 1.0,
 ) -> ExperimentConfig:
     """Create an experiment config."""
     return ExperimentConfig(
@@ -324,6 +339,20 @@ def create_config(
             output=OutputConfig(format=output_format),
             prompt_strategy=prompt_strategy,
         ),
+        modify_codegen=ModifyCodegenConfig(
+            backend=modify_codegen_backend,
+            base_url=modify_codegen_base_url,
+            base_model_name_or_path=modify_codegen_base_model_name_or_path,
+            adapter_path=modify_codegen_adapter_path,
+            device_map=modify_codegen_device_map,
+            torch_dtype=modify_codegen_torch_dtype,
+            local_files_only=modify_codegen_local_files_only,
+            prompt_style=modify_codegen_prompt_style,
+            timeout_seconds=modify_codegen_timeout_seconds,
+            max_new_tokens=modify_codegen_max_new_tokens,
+            temperature=modify_codegen_temperature,
+            top_p=modify_codegen_top_p,
+        ),
         execution=ExecutionConfig(max_ticks=10),
         model=ModelConfig(
             name=model, temperature=0.0, reasoning_effort=reasoning_effort
@@ -339,6 +368,62 @@ def create_config(
     )
 
 
+def resolve_modify_codegen_config_from_env() -> ModifyCodegenConfig:
+    """Read optional direct modify-codegen backend settings from env vars."""
+    base_url = os.environ.get("MODIFY_CODEGEN_BASE_URL")
+    base_model_name_or_path = os.environ.get(
+        "MODIFY_CODEGEN_BASE_MODEL_NAME_OR_PATH"
+    )
+    adapter_path = os.environ.get("MODIFY_CODEGEN_ADAPTER_PATH")
+    backend = os.environ.get("MODIFY_CODEGEN_BACKEND")
+    if not backend:
+        if base_model_name_or_path or adapter_path:
+            backend = "fep_qwen_local"
+        elif base_url:
+            backend = "fep_qwen_http"
+
+    device_map = os.environ.get("MODIFY_CODEGEN_DEVICE_MAP", "auto")
+    torch_dtype = os.environ.get(
+        "MODIFY_CODEGEN_TORCH_DTYPE", "bfloat16"
+    )
+    local_files_only_raw = os.environ.get(
+        "MODIFY_CODEGEN_LOCAL_FILES_ONLY", "1"
+    )
+    local_files_only = local_files_only_raw.strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+    prompt_style = os.environ.get(
+        "MODIFY_CODEGEN_PROMPT_STYLE", "planner_exact"
+    )
+    timeout_seconds = float(
+        os.environ.get("MODIFY_CODEGEN_TIMEOUT_SECONDS", "180")
+    )
+    max_new_tokens = int(
+        os.environ.get("MODIFY_CODEGEN_MAX_NEW_TOKENS", "2048")
+    )
+    temperature = float(os.environ.get("MODIFY_CODEGEN_TEMPERATURE", "0.0"))
+    top_p = float(os.environ.get("MODIFY_CODEGEN_TOP_P", "1.0"))
+
+    return ModifyCodegenConfig(
+        backend=backend or "openai_tool_call",
+        base_url=base_url,
+        base_model_name_or_path=base_model_name_or_path,
+        adapter_path=adapter_path,
+        device_map=device_map,
+        torch_dtype=torch_dtype,
+        local_files_only=local_files_only,
+        prompt_style=prompt_style,
+        timeout_seconds=timeout_seconds,
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
+        top_p=top_p,
+    )
+
+
 # ============================================================================
 # HomeBench Test Result (matches run_homebench.py and worker.py)
 # ============================================================================
@@ -350,6 +435,8 @@ class HomeBenchTestResult:
 
     test_id: str
     success: Literal["True", "False", "Quantifiable"] = "False"
+    modify_intent_count: Optional[int] = None
+    target_code: Optional[str] = None
 
     # Planning metrics
     plan_generated: bool = False
@@ -401,6 +488,8 @@ class HomeBenchTestResult:
         return {
             "test_id": self.test_id,
             "success": self.success,
+            "modify_intent_count": self.modify_intent_count,
+            "target_code": self.target_code,
             "plan_generated": self.plan_generated,
             "plan_format": self.plan_format,
             "actions_in_plan": self.actions_in_plan,
@@ -599,6 +688,8 @@ def generate_trace_html(
             trace_data, test_id, experiment_config
         )
 
+    reshaped = _attach_trace_metadata(reshaped, result)
+
     trace_file = traces_dir / f"{test_id}.json"
     with open(trace_file, "w") as f:
         json.dump(reshaped, f, indent=2, default=str)
@@ -620,6 +711,33 @@ def generate_trace_html(
             export_html(reshaped, str(trace_file.with_suffix(".html")))
         except Exception:
             pass
+
+
+def _attach_result_metadata(
+    result: HomeBenchTestResult, work_item: dict
+) -> None:
+    """Persist selected test metadata into both the result and raw trace."""
+    result.modify_intent_count = work_item.get("modify_intent_count")
+    result.target_code = work_item.get("target_code")
+    if isinstance(result.raw_result, dict):
+        result.raw_result["modify_intent_count"] = (
+            result.modify_intent_count
+        )
+        result.raw_result["target_code"] = result.target_code
+
+
+def _attach_trace_metadata(trace: dict, metadata_source: dict) -> dict:
+    """Copy selected per-test metadata into a reshaped trace payload."""
+    if not isinstance(trace, dict) or not isinstance(metadata_source, dict):
+        return trace
+
+    if "modify_intent_count" in metadata_source:
+        trace["modify_intent_count"] = metadata_source.get(
+            "modify_intent_count"
+        )
+    if "target_code" in metadata_source:
+        trace["target_code"] = metadata_source.get("target_code")
+    return trace
 
 
 def _reshape_experience_trace(
@@ -658,7 +776,7 @@ def _reshape_experience_trace(
             for i in intents
         ]
         trace["goal"] = ", ".join(t for t in intent_texts if t)
-    return trace
+    return _attach_trace_metadata(trace, raw_result)
 
 
 def _reshape_standard_trace(
@@ -672,7 +790,7 @@ def _reshape_standard_trace(
         or "model" not in trace["config"]
     ):
         trace["config"] = config
-    return trace
+    return _attach_trace_metadata(trace, raw_result)
 
 
 def reset_simulator(simulator_url: str, home_id: str) -> bool:
@@ -951,6 +1069,7 @@ def run_standard_test(
         print(f"[Worker {worker_id}] Test {test_id} failed with exception: {e}")
 
     result.duration_seconds = (datetime.now() - start_time).total_seconds()
+    _attach_result_metadata(result, work_item)
 
     # Save result
     result_dict = result.to_dict()
@@ -1201,6 +1320,7 @@ def run_experience_test(
         print(f"[Worker {worker_id}] Test {test_id} failed with exception: {e}")
 
     result.duration_seconds = (datetime.now() - start_time).total_seconds()
+    _attach_result_metadata(result, work_item)
 
     # Save result
     result_dict = result.to_dict()
@@ -1264,7 +1384,7 @@ def _reshape_ns_trace(raw_result: dict, test_id: str, config: dict) -> dict:
             for i in intents
         ]
         trace["goal"] = ", ".join(t for t in intent_texts if t)
-    return trace
+    return _attach_trace_metadata(trace, raw_result)
 
 
 # ============================================================================
@@ -1442,6 +1562,7 @@ def run_ns_test(
         print(f"[Worker {worker_id}] Test {test_id} failed with exception: {e}")
 
     result.duration_seconds = (datetime.now() - start_time).total_seconds()
+    _attach_result_metadata(result, work_item)
 
     result_dict = result.to_dict()
     result_file = results_dir / f"{test_id}.json"
@@ -1649,6 +1770,7 @@ def main():
         ontology_text = Path(ontology_path).read_text()
         engine = ExperienceEngine(persistence_path=experience_store_path)
         intent_extractor = IntentExtractor(ontology_text=ontology_text)
+        modify_codegen_config = resolve_modify_codegen_config_from_env()
 
         if is_neurosymbolic:
             # Config for the NS runner: model + execution are used at runtime;
@@ -1663,16 +1785,42 @@ def main():
                 reasoning_effort=args.reasoning_effort,
                 experience_store=experience_store_path,
                 experience_enabled=True,
+                modify_codegen_backend=modify_codegen_config.backend,
+                modify_codegen_base_url=modify_codegen_config.base_url,
+                modify_codegen_base_model_name_or_path=(
+                    modify_codegen_config.base_model_name_or_path
+                ),
+                modify_codegen_adapter_path=(
+                    modify_codegen_config.adapter_path
+                ),
+                modify_codegen_device_map=modify_codegen_config.device_map,
+                modify_codegen_torch_dtype=(
+                    modify_codegen_config.torch_dtype
+                ),
+                modify_codegen_local_files_only=(
+                    modify_codegen_config.local_files_only
+                ),
+                modify_codegen_prompt_style=modify_codegen_config.prompt_style,
+                modify_codegen_timeout_seconds=modify_codegen_config.timeout_seconds,
+                modify_codegen_max_new_tokens=modify_codegen_config.max_new_tokens,
+                modify_codegen_temperature=modify_codegen_config.temperature,
+                modify_codegen_top_p=modify_codegen_config.top_p,
             )
-            ns_runner = NeuroSymbolicRunner(
+            runner_cls = (
+                QwenModifyCodegenNeuroSymbolicRunner
+                if ns_exp_config.modify_codegen.backend
+                in {"fep_qwen_http", "fep_qwen_local"}
+                else NeuroSymbolicRunner
+            )
+            ns_runner = runner_cls(
                 config=ns_exp_config,
                 client=client,
                 engine=engine,
                 intent_extractor=intent_extractor,
             )
             print(
-                f"[Worker {worker_id}] NeuroSymbolicRunner initialized "
-                f"(ontology={ontology_path})"
+                f"[Worker {worker_id}] {runner_cls.__name__} initialized "
+                f"(ontology={ontology_path}, modify_backend={ns_exp_config.modify_codegen.backend})"
             )
         else:
             matcher = ExperienceMatcher(

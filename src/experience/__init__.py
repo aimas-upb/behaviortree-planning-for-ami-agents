@@ -23,8 +23,10 @@ from .engine import ExperienceEngine, ExperienceEntry
 from .intent import IntentExtractor, StructuredIntent
 from .matching import ExperienceMatcher, MatchResult
 from .neurosymbolic_runner import (
+    FEPQwenNeuroSymbolicRunner,
     NeuroSymbolicRunner,
     NeuroSymbolicRunResult,
+    QwenModifyCodegenNeuroSymbolicRunner,
     SparqlResolutionResult,
 )
 
@@ -47,7 +49,9 @@ __all__ = [
     "extract_property_urls",
     "combine_trees_parallel",
     # Neuro-symbolic runner
+    "FEPQwenNeuroSymbolicRunner",
     "NeuroSymbolicRunner",
     "NeuroSymbolicRunResult",
+    "QwenModifyCodegenNeuroSymbolicRunner",
     "SparqlResolutionResult",
 ]

@@ -69,6 +69,56 @@ class PlanningConfig(BaseModel):
     prompt_strategy: str = "detailed"
 
 
+class ModifyCodegenConfig(BaseModel):
+    """Configuration for modify-only code generation in the neuro-symbolic runner."""
+
+    backend: Literal[
+        "openai_tool_call", "fep_qwen_http", "fep_qwen_local"
+    ] = (
+        "openai_tool_call"
+    )
+    base_url: Optional[str] = None
+    base_model_name_or_path: Optional[str] = Field(
+        default=None,
+        description=(
+            "Base model repo id or local path for the direct local Qwen "
+            "modify-codegen backend."
+        ),
+    )
+    adapter_path: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional local LoRA adapter path for the direct local Qwen "
+            "modify-codegen backend."
+        ),
+    )
+    device_map: str = Field(
+        default="auto",
+        description="Transformers device_map value for the local backend.",
+    )
+    torch_dtype: Literal["auto", "bfloat16", "float16", "float32"] = (
+        "bfloat16"
+    )
+    local_files_only: bool = Field(
+        default=True,
+        description=(
+            "When true, only load the local Qwen backend from the HF cache or "
+            "filesystem."
+        ),
+    )
+    prompt_style: Literal["compact", "planner_exact"] = "planner_exact"
+    timeout_seconds: float = Field(
+        default=180.0,
+        description="HTTP timeout for the direct modify-codegen backend.",
+    )
+    max_new_tokens: int = Field(
+        default=2048,
+        description="Maximum number of tokens to generate for direct codegen.",
+    )
+    temperature: float = 0.0
+    top_p: float = 1.0
+
+
 class ExecutionConfig(BaseModel):
     """Configuration for the execution phase."""
 
@@ -117,6 +167,9 @@ class ExperimentConfig(BaseModel):
     experiment: ExperimentMeta
     discovery: DiscoveryConfig = Field(default_factory=DiscoveryConfig)
     planning: PlanningConfig = Field(default_factory=PlanningConfig)
+    modify_codegen: ModifyCodegenConfig = Field(
+        default_factory=ModifyCodegenConfig
+    )
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
     tracing: TracingConfig = Field(default_factory=TracingConfig)

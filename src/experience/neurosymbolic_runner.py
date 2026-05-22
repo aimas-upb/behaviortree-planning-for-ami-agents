@@ -35,7 +35,16 @@ from behavior_trees.affordance_nodes import ActionAffordanceNode
 
 from ..config import ExperimentConfig
 from ..execution import CodeExecutor, ExecutionResult, create_executor
-from ..planning import create_planner
+from ..planning import Plan, create_planner
+from ..planning.output.python_code import extract_impossible_subgoals
+from .modify_codegen_prompting import (
+    build_modify_codegen_messages,
+    sanitize_direct_codegen_response,
+)
+from .qwen_local_codegen import (
+    QwenLocalGenerationSettings,
+    QwenLocalModifyCodegenModel,
+)
 from .bt_serialization import py_tree_to_json_ir
 from .engine import ExperienceEngine, ExperienceEntry
 from .intent import IntentExtractor, StructuredIntent
@@ -917,6 +926,30 @@ class NeuroSymbolicRunner:
     # Internal: modify-actions BT via LLM
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _build_runtime_modify_goal(
+        modify_intents: list[tuple[StructuredIntent, SparqlResolutionResult]],
+    ) -> str:
+        """Render the structured modify-goal format used by the SFT dataset."""
+        goal_lines: list[str] = []
+        for idx, (intent, res) in enumerate(modify_intents, start=1):
+            goal_lines.append(f"**Intent {idx}**")
+            goal_lines.append(f"text_intent: {intent.text_intent}")
+            goal_lines.append(
+                f"action.affordance_type: {intent.affordance_type}"
+            )
+            goal_lines.append(f"action.verb: {intent.verb}")
+            goal_lines.append(f"action.parameter: {intent.parameter}")
+            goal_lines.append(f"action.value: {intent.value}")
+            goal_lines.append(f"target.artifact_type: {intent.artifact_type}")
+            goal_lines.append(f"target.workspace_type: {intent.workspace_type}")
+            if res.target_uri:
+                goal_lines.append(f"resolved.action_url: {res.target_uri}")
+            if res.artifact_uri:
+                goal_lines.append(f"resolved.artifact_uri: {res.artifact_uri}")
+            goal_lines.append("")
+        return "\n".join(goal_lines).rstrip()
+
     def _build_modify_tree(
         self,
         modify_intents: list[tuple[StructuredIntent, SparqlResolutionResult]],
@@ -941,25 +974,7 @@ class NeuroSymbolicRunner:
             "error": None,
         }
 
-        # Build a structured goal string for the modify intents
-        goal_lines: list[str] = []
-        for idx, (intent, res) in enumerate(modify_intents, start=1):
-            goal_lines.append(f"**Intent {idx}**")
-            goal_lines.append(f"text_intent: {intent.text_intent}")
-            goal_lines.append(
-                f"action.affordance_type: {intent.affordance_type}"
-            )
-            goal_lines.append(f"action.verb: {intent.verb}")
-            goal_lines.append(f"action.parameter: {intent.parameter}")
-            goal_lines.append(f"action.value: {intent.value}")
-            goal_lines.append(f"target.artifact_type: {intent.artifact_type}")
-            goal_lines.append(f"target.workspace_type: {intent.workspace_type}")
-            if res.target_uri:
-                goal_lines.append(f"resolved.action_url: {res.target_uri}")
-            if res.artifact_uri:
-                goal_lines.append(f"resolved.artifact_uri: {res.artifact_uri}")
-            goal_lines.append("")
-        modify_goal = "\n".join(goal_lines).rstrip()
+        modify_goal = self._build_runtime_modify_goal(modify_intents)
 
         # Build DiscoveryResult from the SPARQL bindings already at hand
         try:
@@ -1280,3 +1295,295 @@ class NeuroSymbolicRunner:
                 return True
 
         return False
+
+
+class QwenModifyCodegenNeuroSymbolicRunner(NeuroSymbolicRunner):
+    """
+    Neuro-symbolic runner whose modify branch uses a direct Qwen backend.
+
+    The OpenAI client passed to the base runner is still used for intent
+    extraction. Only `_build_modify_tree()` is replaced so that modify-only
+    code generation goes through the fine-tuned Qwen model instead of the
+    generic OpenAI tool-call planner.
+    """
+
+    SUPPORTED_BACKENDS = frozenset({"fep_qwen_http", "fep_qwen_local"})
+
+    def __init__(
+        self,
+        config: ExperimentConfig,
+        client,
+        engine: ExperienceEngine,
+        intent_extractor: IntentExtractor,
+    ):
+        super().__init__(
+            config=config,
+            client=client,
+            engine=engine,
+            intent_extractor=intent_extractor,
+        )
+
+        self._local_modify_model: QwenLocalModifyCodegenModel | None = None
+
+        if self.config.modify_codegen.backend not in self.SUPPORTED_BACKENDS:
+            logger.warning(
+                "QwenModifyCodegenNeuroSymbolicRunner initialized with backend=%s; expected one of %s",
+                self.config.modify_codegen.backend,
+                sorted(self.SUPPORTED_BACKENDS),
+            )
+
+    @staticmethod
+    def _resolve_modify_codegen_url(base_url: str) -> str:
+        """Allow either a service root URL or an explicit `/generate` URL."""
+        stripped = base_url.rstrip("/")
+        if stripped.endswith("/generate"):
+            return stripped
+        return f"{stripped}/generate"
+
+    def _get_local_modify_model(self) -> QwenLocalModifyCodegenModel:
+        """Load the local Qwen model once per worker process."""
+        if self._local_modify_model is None:
+            modify_config = self.config.modify_codegen
+            self._local_modify_model = QwenLocalModifyCodegenModel.from_settings(
+                QwenLocalGenerationSettings(
+                    base_model_name_or_path=(
+                        modify_config.base_model_name_or_path
+                    ),
+                    adapter_path=modify_config.adapter_path,
+                    device_map=modify_config.device_map,
+                    torch_dtype=modify_config.torch_dtype,
+                    local_files_only=modify_config.local_files_only,
+                )
+            )
+        return self._local_modify_model
+
+    def _request_modify_codegen_http(
+        self,
+        request_payload: dict,
+        trace: dict,
+    ) -> dict:
+        """Send a modify-codegen request to an HTTP endpoint."""
+        modify_config = self.config.modify_codegen
+        if not modify_config.base_url:
+            raise ValueError(
+                "modify_codegen.base_url is required for fep_qwen_http"
+            )
+
+        generate_url = self._resolve_modify_codegen_url(
+            modify_config.base_url
+        )
+        trace["planning_request"] = {
+            "url": generate_url,
+            "payload": request_payload,
+        }
+
+        try:
+            response = requests.post(
+                generate_url,
+                json=request_payload,
+                timeout=modify_config.timeout_seconds,
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as exc:
+            error_msg = str(exc)
+            response_obj = getattr(exc, "response", None)
+            if response_obj is not None:
+                try:
+                    error_msg = response_obj.json().get("detail", error_msg)
+                except Exception:
+                    pass
+            raise RuntimeError(error_msg) from exc
+
+    def _request_modify_codegen_local(
+        self,
+        request_payload: dict,
+        trace: dict,
+    ) -> dict:
+        """Run modify-codegen in-process with the local Qwen model."""
+        modify_config = self.config.modify_codegen
+        trace["planning_request"] = {
+            "backend": "fep_qwen_local",
+            "payload": request_payload,
+            "model": {
+                "base_model_name_or_path": (
+                    modify_config.base_model_name_or_path
+                ),
+                "adapter_path": modify_config.adapter_path,
+                "device_map": modify_config.device_map,
+                "torch_dtype": modify_config.torch_dtype,
+                "local_files_only": modify_config.local_files_only,
+            },
+        }
+
+        response = self._get_local_modify_model().generate(
+            messages=request_payload["messages"],
+            max_new_tokens=request_payload["max_new_tokens"],
+            temperature=request_payload["temperature"],
+            top_p=request_payload["top_p"],
+        )
+        return {
+            "text": response.text,
+            "model_name": response.model_name,
+            "usage": response.usage,
+            "finish_reason": response.finish_reason,
+        }
+
+    def _build_modify_tree(
+        self,
+        modify_intents: list[tuple[StructuredIntent, SparqlResolutionResult]],
+        entry_point: str,
+        original_goal: str,
+    ) -> tuple[Optional[py_trees.behaviour.Behaviour], dict]:
+        """
+        Build a BT for modify intents via the configured direct Qwen backend.
+
+        Unlike the base NeuroSymbolicRunner, this path does not use tool calls.
+        It sends the exact system/user prompt pair used for SFT and expects the
+        assistant message to contain raw Python code.
+        """
+        del original_goal  # The fine-tuned prompt uses the structured goal only.
+
+        modify_config = self.config.modify_codegen
+        backend = modify_config.backend
+        trace: dict = {
+            "phase": "modify_planning",
+            "backend": backend,
+            "intents": [i.to_dict() for i, _ in modify_intents],
+            "planning": None,
+            "detected_impossible": [],
+            "error": None,
+        }
+
+        if backend not in self.SUPPORTED_BACKENDS:
+            trace["error"] = (
+                f"Unsupported modify_codegen.backend: {backend}"
+            )
+            return None, trace
+
+        modify_goal = self._build_runtime_modify_goal(modify_intents)
+
+        try:
+            discovery_result = self._build_discovery_result_from_resolutions(
+                modify_intents, entry_point
+            )
+        except Exception as exc:
+            logger.error(
+                "Failed to build discovery result from SPARQL bindings: %s",
+                exc,
+            )
+            trace["error"] = str(exc)
+            return None, trace
+
+        runtime_context = discovery_result.to_prompt_context()
+        trace["discovery"] = discovery_result.to_dict()
+
+        messages = build_modify_codegen_messages(
+            runtime_modify_goal=modify_goal,
+            runtime_context=runtime_context,
+            prompt_style=modify_config.prompt_style,
+        )
+
+        request_payload = {
+            "messages": messages,
+            "max_new_tokens": modify_config.max_new_tokens,
+            "temperature": modify_config.temperature,
+            "top_p": modify_config.top_p,
+        }
+
+        try:
+            if backend == "fep_qwen_http":
+                response_payload = self._request_modify_codegen_http(
+                    request_payload, trace
+                )
+            else:
+                response_payload = self._request_modify_codegen_local(
+                    request_payload, trace
+                )
+        except Exception as exc:
+            trace["error"] = str(exc)
+            logger.error(
+                "Qwen modify-codegen request failed for backend %s: %s",
+                backend,
+                trace["error"],
+            )
+            return None, trace
+
+        trace["planning_response"] = response_payload
+
+        raw_code = (
+            response_payload.get("text")
+            or response_payload.get("generated_text")
+            or response_payload.get("code")
+            or ""
+        )
+        code = sanitize_direct_codegen_response(raw_code)
+        detected_impossible = extract_impossible_subgoals(code)
+        plan = Plan(
+            format="python_code",
+            content=code,
+            explanation=(
+                "Generated by direct Qwen modify-codegen backend "
+                f"({backend})"
+            ),
+            detected_impossible=detected_impossible,
+        )
+
+        total_tokens = 0
+        usage = response_payload.get("usage")
+        if isinstance(usage, dict):
+            total_tokens = int(usage.get("total_tokens", 0) or 0)
+
+        trace["planning"] = {
+            "plan": plan.to_dict(),
+            "success": bool(code.strip()),
+            "error": None,
+            "llm_calls": 1,
+            "total_tokens": total_tokens,
+        }
+
+        if not code.strip():
+            trace["error"] = "Empty code returned by Qwen modify-codegen service"
+            trace["planning"]["success"] = False
+            trace["planning"]["error"] = trace["error"]
+            return None, trace
+
+        normalized_code = self._normalize_top_level_tree_assignment(code)
+        if normalized_code != code:
+            logger.info(
+                "Normalized direct Qwen modify code by de-indenting top-level tree assignment"
+            )
+            plan.content = normalized_code
+            trace["planning"]["plan"] = plan.to_dict()
+
+        if detected_impossible:
+            trace["detected_impossible"] = detected_impossible
+
+        if detected_impossible and not self._code_defines_tree_or_builder(
+            plan.content
+        ):
+            logger.info(
+                "Direct Qwen output contains only impossible sub-goals — no executable tree"
+            )
+            return None, trace
+
+        try:
+            executor = create_executor(
+                output_format=plan.format,
+                max_ticks=self.config.execution.max_ticks,
+            )
+            assert isinstance(executor, CodeExecutor)
+            tree = executor._execute_code(plan.content, unconstrained=False)
+            return tree, trace
+        except Exception as exc:
+            logger.error(
+                "Failed to build modify tree from direct Qwen code: %s",
+                exc,
+            )
+            trace["error"] = str(exc)
+            trace["planning"]["success"] = False
+            trace["planning"]["error"] = trace["error"]
+            return None, trace
+
+
+FEPQwenNeuroSymbolicRunner = QwenModifyCodegenNeuroSymbolicRunner

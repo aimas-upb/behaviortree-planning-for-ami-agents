@@ -1,0 +1,49 @@
+%%{init: {'flowchart': {'curve': 'basis', 'nodeSpacing': 30, 'rankSpacing': 35}, 'themeVariables': {'fontFamily': 'Helvetica, Arial, sans-serif', 'fontSize': '16px'}}}%%
+flowchart TD
+    G[/"User goal (NL)"/]
+
+    IE[["Intent extraction<br/>LLM + ontology"]]
+
+    EM{"Experience<br/>match?"}
+    ADAPT[["Adapt stored leaf<br/>LLM params"]]
+
+    SPQ["SPARQL resolution"]
+    ROUT{"bindings &amp; verb"}
+
+    DET["SET branch:<br/>deterministic BT node"]
+    SLM[["MODIFY branch:<br/><b>SLM code generation</b><br/>gpt-5-mini · deepseek-1.3b*<br/>codegemma-7b* · qwen2.5-3b*<br/>*fine-tuned"]]
+
+    IMP["Impossible<br/>(short-circuit)"]
+
+    COMB["Combine ‖ Execute<br/>on simulator"]
+    OUT[/"Result + trace"/]
+
+    EXP[("Experience<br/>store")]
+
+    G --> IE --> EM
+    EM -->|feasible| ADAPT --> COMB
+    EM -->|infeasible| IMP
+    EM -->|unmatched| SPQ --> ROUT
+    ROUT -->|none| IMP
+    ROUT -->|set| DET --> COMB
+    ROUT -->|modify| SLM --> COMB
+    IMP --> COMB --> OUT
+
+    EXP <-.-> EM
+    OUT -. write-back .-> EXP
+
+    classDef llm fill:#E3ECFA,stroke:#1F3A93,stroke-width:1.4px,color:#0B1F4F;
+    classDef sym fill:#E6F2E6,stroke:#2E7D32,stroke-width:1.4px,color:#143C16;
+    classDef dec fill:#F1E4FB,stroke:#6A1B9A,stroke-width:1.4px,color:#2C0A48;
+    classDef imp fill:#FADBD8,stroke:#B71C1C,stroke-width:1.4px,color:#4A0F0F;
+    classDef compare fill:#FFE08A,stroke:#B5651D,stroke-width:2px,color:#3A2705;
+    classDef io fill:#ECEFF1,stroke:#37474F,stroke-width:1.2px,color:#102027;
+
+    class IE,ADAPT llm;
+    class SPQ,DET,COMB sym;
+    class EM,ROUT dec;
+    class IMP imp;
+    class SLM compare;
+    class G,OUT io;
+    class EXP sym;
+    linkStyle default stroke:#37474F,stroke-width:1.3px;
